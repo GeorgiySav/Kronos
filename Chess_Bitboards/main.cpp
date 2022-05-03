@@ -4,7 +4,7 @@
 
 int main() {
 	
-	BB::Chess chessboard;
+	CHENG::Chess chessboard;
 	
 
 	//std::cout << chessboard << std::endl;

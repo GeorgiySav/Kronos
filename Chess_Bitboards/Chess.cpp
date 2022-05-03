@@ -1,73 +1,35 @@
 #include "Chess.h"
 
-using namespace BB;
+using namespace CHENG;
 
-Chess::Chess()
+Chess::Chess() : board()
 {
-	pieceLocations[PAWN][WHITE] = 0;
-	pieceLocations[KNIGHT][WHITE] = 0;
-	pieceLocations[BISHOP][WHITE] = 0;
-	pieceLocations[ROOK][WHITE] = 0;
-	pieceLocations[QUEEN][WHITE] = 0;
-	pieceLocations[KING][WHITE] = 0;
-
-	pieceLocations[PAWN][BLACK] = 0;
-	pieceLocations[KNIGHT][BLACK] = 0;
-	pieceLocations[BISHOP][BLACK] = 0;
-	pieceLocations[ROOK][BLACK] = 0;
-	pieceLocations[QUEEN][BLACK] = 0;
-	pieceLocations[KING][BLACK] = 0;
-
-	collectiveLocations[WHITE] = 0;
-	collectiveLocations[BLACK] = 0;
-	collectiveLocations[BOTH] = 0;
-
-	attackMaps[PAWN][WHITE] = 0;
-	attackMaps[KNIGHT][WHITE] = 0;
-	attackMaps[BISHOP][WHITE] = 0;
-	attackMaps[ROOK][WHITE] = 0;
-	attackMaps[QUEEN][WHITE] = 0;
-	attackMaps[KING][WHITE] = 0;
-
-	attackMaps[PAWN][BLACK] = 0;
-	attackMaps[KNIGHT][BLACK] = 0;
-	attackMaps[BISHOP][BLACK] = 0;
-	attackMaps[ROOK][BLACK] = 0;
-	attackMaps[QUEEN][BLACK] = 0;
-	attackMaps[KING][BLACK] = 0;
-
-	//setBit(pieceLocations[PAWN][WHITE].bitboard, E4);
-	//setBit(pieceLocations[PAWN][WHITE].bitboard, D4);
-	//
-	//std::cout << pieceLocations[PAWN][WHITE].count() << std::endl;
-	//
-	//while (pieceLocations[PAWN][WHITE].bitboard) {
-	//	uShort index = pieceLocations[PAWN][WHITE].pop();
-	//	std::cout << boardTilesStrings[index] << std::endl;
-	//	popBit(pieceLocations[PAWN][WHITE].bitboard, index);
-	//}
 	
 	processFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-	std::cout << "White Pawns:\n" << pieceLocations[PAWN][WHITE] << std::endl;
-	std::cout << "White Knights:\n" << pieceLocations[KNIGHT][WHITE] << std::endl;
-	std::cout << "White Bishops:\n" << pieceLocations[BISHOP][WHITE] << std::endl;
-	std::cout << "White Rooks:\n" << pieceLocations[ROOK][WHITE] << std::endl;
-	std::cout << "White Queens:\n" << pieceLocations[QUEEN][WHITE] << std::endl;
-	std::cout << "White Kings:\n" << pieceLocations[KING][WHITE] << std::endl;
+	std::cout << "White Pawns:\n" << _BitBoard(board.pieceLocations[WHITE][PAWN]) << std::endl;
+	std::cout << "White Knights:\n" << _BitBoard(board.pieceLocations[WHITE][KNIGHT]) << std::endl;
+	std::cout << "White Bishops:\n" << _BitBoard(board.pieceLocations[WHITE][BISHOP]) << std::endl;
+	std::cout << "White Rooks:\n" << _BitBoard(board.pieceLocations[WHITE][ROOK]) << std::endl;
+	std::cout << "White Queens:\n" << _BitBoard(board.pieceLocations[WHITE][QUEEN]) << std::endl;
+	std::cout << "White Kings:\n" << _BitBoard(board.pieceLocations[WHITE][KING]) << std::endl;
 
-	std::cout << "Black Pawns:\n" << pieceLocations[PAWN][BLACK] << std::endl;
-	std::cout << "Black Knights:\n" << pieceLocations[KNIGHT][BLACK] << std::endl;
-	std::cout << "Black Bishops:\n" << pieceLocations[BISHOP][BLACK] << std::endl;
-	std::cout << "Black Rooks:\n" << pieceLocations[ROOK][BLACK] << std::endl;
-	std::cout << "Black Queens:\n" << pieceLocations[QUEEN][BLACK] << std::endl;
-	std::cout << "Black Kings:\n" << pieceLocations[KING][BLACK] << std::endl;
+	std::cout << "Black Pawns:\n" << _BitBoard(board.pieceLocations[BLACK][PAWN]) << std::endl;
+	std::cout << "Black Knights:\n" << _BitBoard(board.pieceLocations[BLACK][KNIGHT]) << std::endl;
+	std::cout << "Black Bishops:\n" << _BitBoard(board.pieceLocations[BLACK][BISHOP]) << std::endl;
+	std::cout << "Black Rooks:\n" << _BitBoard(board.pieceLocations[BLACK][ROOK]) << std::endl;
+	std::cout << "Black Queens:\n" << _BitBoard(board.pieceLocations[BLACK][QUEEN]) << std::endl;
+	std::cout << "Black Kings:\n" << _BitBoard(board.pieceLocations[BLACK][KING]) << std::endl;
+	
+	std::cout << "\n\n";
 
-	std::cout << "White Pieces:\n" << collectiveLocations[WHITE] << std::endl;
-	std::cout << "Black Pieces:\n" << collectiveLocations[BLACK] << std::endl;
-	std::cout << "All Pieces:\n" << collectiveLocations[BOTH] << std::endl;
-
-
+	BitBoard test = 12309328ULL;
+	setBit(test, E4);
+	
+	std::cout << _BitBoard(test) << std::endl;
+	
+	std::cout << "Population count: " << populationCount(test) << std::endl;
+	std::cout << "Position of the first bit: " << boardTilesStrings[bitScan(test)] << std::endl;
 }
 
 Chess::~Chess()
@@ -100,7 +62,7 @@ void Chess::processFEN(std::string FEN)
 		return;
 	}
 
-	int bIndex = 0;
+	int bIndex = 56;
 
 	for (int index = 0; index < fenBoard.length(); index++) {
 		if (fenBoard[index] == '/') {
@@ -112,7 +74,7 @@ void Chess::processFEN(std::string FEN)
 				return;
 			}
 			for (int i = 0; i < fenBoard[index] - '0'; i++) {
-				bIndex++;
+				bIndex = !((bIndex + 1) % 8) ? bIndex - 15 : bIndex + 1;
 			}
 		}
 		else {
@@ -122,60 +84,58 @@ void Chess::processFEN(std::string FEN)
 				break;
 
 			case 'p':
-				setBit(pieceLocations[PAWN][BLACK].bitboard, bIndex);
+				setBit(board.pieceLocations[BLACK][PAWN], bIndex);
 				break;
 
 			case 'P':
-				setBit(pieceLocations[PAWN][WHITE].bitboard, bIndex);
+				setBit(board.pieceLocations[WHITE][PAWN], bIndex);
 				break;
 
 			case 'n':
-				setBit(pieceLocations[KNIGHT][BLACK].bitboard, bIndex);
+				setBit(board.pieceLocations[BLACK][KNIGHT], bIndex);
 				break;
 
 			case 'N':
-				setBit(pieceLocations[KNIGHT][WHITE].bitboard, bIndex);
+				setBit(board.pieceLocations[WHITE][KNIGHT], bIndex);
 				break;
 
 			case 'b':
-				setBit(pieceLocations[BISHOP][BLACK].bitboard, bIndex);
+				setBit(board.pieceLocations[BLACK][BISHOP], bIndex);
 				break;
 
 			case 'B':
-				setBit(pieceLocations[BISHOP][WHITE].bitboard, bIndex);
+				setBit(board.pieceLocations[WHITE][BISHOP], bIndex);
 				break;
 
 			case 'r':
-				setBit(pieceLocations[ROOK][BLACK].bitboard, bIndex);
+				setBit(board.pieceLocations[BLACK][ROOK], bIndex);
 				break;
 
 			case 'R':
-				setBit(pieceLocations[ROOK][WHITE].bitboard, bIndex);
+				setBit(board.pieceLocations[WHITE][ROOK], bIndex);
 				break;
 
 			case 'q':
-				setBit(pieceLocations[QUEEN][BLACK].bitboard, bIndex);
+				setBit(board.pieceLocations[BLACK][QUEEN], bIndex);
 				break;
 
 			case 'Q':
-				setBit(pieceLocations[QUEEN][WHITE].bitboard, bIndex);
+				setBit(board.pieceLocations[WHITE][QUEEN], bIndex);
 				break;
 
 			case 'k':
-				setBit(pieceLocations[KING][BLACK].bitboard, bIndex);
+				setBit(board.pieceLocations[BLACK][KING], bIndex);
 				break;
 
 			case 'K':
-				setBit(pieceLocations[KING][WHITE].bitboard, bIndex);
+				setBit(board.pieceLocations[WHITE][KING], bIndex);
 				break;
 			}
-			bIndex++;
+			bIndex = !((bIndex + 1) % 8) ? bIndex - 15 : bIndex + 1;
 		}
 	}
 	
-	collectiveLocations[WHITE] = pieceLocations[PAWN][WHITE].bitboard | pieceLocations[KNIGHT][WHITE].bitboard | pieceLocations[BISHOP][WHITE].bitboard | pieceLocations[ROOK][WHITE].bitboard | pieceLocations[QUEEN][WHITE].bitboard | pieceLocations[KING][WHITE].bitboard;
-	collectiveLocations[BLACK] = pieceLocations[PAWN][BLACK].bitboard | pieceLocations[KNIGHT][BLACK].bitboard | pieceLocations[BISHOP][BLACK].bitboard | pieceLocations[ROOK][BLACK].bitboard | pieceLocations[QUEEN][BLACK].bitboard | pieceLocations[KING][BLACK].bitboard;
-	collectiveLocations[BOTH] = collectiveLocations[WHITE].bitboard | collectiveLocations[BLACK].bitboard;
+	board.mergeBoth();
 
 	if (fenTurn != "w" && fenTurn != "b") {
 		std::cout << "Invalid colour\n";

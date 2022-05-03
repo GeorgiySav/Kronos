@@ -1,6 +1,10 @@
 #pragma once
 #include <vector>
 
+#define getBit(bb, i) (bb & (1ULL << i)) 
+#define setBit(bb, i) (bb |= (1ULL << i))
+#define popBit(bb, i) (bb &= ~(1ULL << i))
+
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
