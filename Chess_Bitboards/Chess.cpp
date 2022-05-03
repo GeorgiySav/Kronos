@@ -23,13 +23,7 @@ Chess::Chess() : board()
 	
 	std::cout << "\n\n";
 
-	BitBoard test = 12309328ULL;
-	setBit(test, E4);
-	
-	std::cout << _BitBoard(test) << std::endl;
-	
-	std::cout << "Population count: " << populationCount(test) << std::endl;
-	std::cout << "Position of the first bit: " << boardTilesStrings[bitScan(test)] << std::endl;
+	std::cout << _BitBoard(generateBishopMask(G4) | generateRookMask(G4)) << std::endl;
 }
 
 Chess::~Chess()

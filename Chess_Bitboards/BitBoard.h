@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cassert>
 
 #include "utility.h"
@@ -12,6 +14,44 @@ namespace CHENG {
 	const u64 notAFile = 18374403900871474942ULL;
 	const u64 notHFile = 9187201950435737471ULL;
 	
+	const u64 fileMask[8]{
+		72340172838076673ULL,
+		144680345676153346ULL,
+		289360691352306692ULL,
+		578721382704613384ULL,
+		1157442765409226768ULL,
+		2314885530818453536ULL,
+		4629771061636907072ULL,
+		9259542123273814144ULL
+	};
+	
+	enum fileIndex {
+		A, B, C, D, E, F, G, H
+	};
+
+	const u64 rankMask[8]{
+		255ULL,
+		65280ULL,
+		16711680ULL,
+		4278190080ULL,
+		1095216660480ULL,
+		280375465082880ULL,
+		71776119061217280ULL,
+		18374686479671623680ULL
+	};
+
+	enum rankIndex {
+		RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
+	};
+
+	static uint64_t getFileMask(uShort tile) {
+		return fileMask[(tile % 8)];
+	}
+	
+	static uint64_t getRankMask(uShort tile) {
+		return rankMask[tile / 8];
+	}
+
 	const int BitTable[64] = {
 		0, 47,  1, 56, 48, 27,  2, 60,
        57, 49, 41, 37, 28, 16,  3, 61,
