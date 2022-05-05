@@ -63,10 +63,22 @@ namespace CHENG {
        13, 18,  8, 12,  7,  6,  5, 63
 	};
 
-	static uShort bitScan(u64 bb) {
-		const u64 debruijn64 = u64(0x03f79d71b4cb0a89);
+	static const u64 debruijn64 = 0x03f79d71b4cb0a89;
+
+	static uShort bitScanForward(u64 bb) {
 		assert(bb != 0);
 		return BitTable[((bb ^ (bb - 1)) * debruijn64) >> 58];
+	}
+
+	static uShort bitScanReverse(u64 bb) {
+		assert(bb != 0);
+		bb |= bb >> 1;
+		bb |= bb >> 2;
+		bb |= bb >> 4;
+		bb |= bb >> 8;
+		bb |= bb >> 16;
+		bb |= bb >> 32;
+		return BitTable[(bb * debruijn64) >> 58];
 	}
 
 	static uShort populationCount(u64 bb) {
@@ -126,6 +138,16 @@ namespace CHENG {
 	static u64 rotate180(u64 b)  { return flipX(flipY(b)); }
 	static u64 rotate90C(u64 b)  { return flipX(flipA1H8(b)); }
 	static u64 rotate90AC(u64 b) { return flipA1H8(flipY(b)); }
+
+	static u64 shiftNorth(u64 b, uShort n) { for (uShort i = 0; i < n; i++) b = northOne(b); return b; }
+	static u64 shiftSouth(u64 b, uShort n) { for (uShort i = 0; i < n; i++) b = southOne(b); return b; }
+	static u64 shiftEast(u64 b, uShort n)  { for (uShort i = 0; i < n; i++) b = eastOne(b); return b; }
+	static u64 shiftWest(u64 b, uShort n) { for (uShort i = 0; i < n; i++) b = westOne(b); return b; }
+
+	static u64 shiftNE(u64 b, uShort n) { for (uShort i = 0; i < n; i++) b = NEOne(b); return b; }
+	static u64 shiftNW(u64 b, uShort n) { for (uShort i = 0; i < n; i++) b = NWOne(b); return b; }
+	static u64 shiftSE(u64 b, uShort n) { for (uShort i = 0; i < n; i++) b = SEOne(b); return b; }
+	static u64 shiftSW(u64 b, uShort n) { for (uShort i = 0; i < n; i++) b = SWOne(b); return b; }
 
 	static std::string _BitBoard(u64 b) {
 		std::string str = "";

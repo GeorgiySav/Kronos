@@ -146,6 +146,8 @@
     <ClInclude Include="BitBoard.h" />
     <ClInclude Include="Chess.h" />
     <ClInclude Include="Magic.h" />
+    <ClInclude Include="Magic_Vars.h" />
+    <ClInclude Include="Rays.h" />
     <ClInclude Include="utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

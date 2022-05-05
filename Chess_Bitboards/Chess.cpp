@@ -4,6 +4,9 @@ using namespace CHENG;
 
 Chess::Chess() : board()
 {
+
+	initRays();
+	initMagics();
 	
 	processFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
@@ -23,7 +26,13 @@ Chess::Chess() : board()
 	
 	std::cout << "\n\n";
 
-	std::cout << _BitBoard(generateBishopMask(G4) | generateRookMask(G4)) << std::endl;
+	BitBoard test;
+	
+	std::cout << _BitBoard(generateBishopMask(E4)) << std::endl;
+	std::cout << _BitBoard(generateRookMask(E4)) << std::endl;
+	std::cout << _BitBoard(generateRookMask(E4) | generateBishopMask(E4)) << std::endl;
+
+
 }
 
 Chess::~Chess()

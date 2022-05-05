@@ -9,6 +9,7 @@
 #include "utility.h"
 #include "BitBoard.h"
 #include "Magic.h"
+#include "Rays.h"
 
 namespace CHENG
 {
