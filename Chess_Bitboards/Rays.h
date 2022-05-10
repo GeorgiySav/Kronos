@@ -9,6 +9,27 @@ namespace CHENG {
 		NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST
 	};
 
+	static dir getDirectionFromOffset(int offset) {
+		if (!(offset % 8))
+			if (offset > 0)
+				return NORTH;
+			else
+				return SOUTH;
+		if (!(offset % 7))
+			if (offset > 0)
+				return NORTH_WEST;
+			else
+				return SOUTH_EAST;
+		if (!(offset % 9))
+			if (offset > 0)
+				return NORTH_EAST;
+			else
+				return SOUTH_WEST;
+		if (offset > 0)
+			return EAST;
+		return WEST;
+	}
+
 	static uint64_t rays[64][8];
 
 	static void initRays() {

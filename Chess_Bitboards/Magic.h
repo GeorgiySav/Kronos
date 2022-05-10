@@ -43,7 +43,7 @@ namespace CHENG {
 		return mask;
 	}
 
-	static u64 generateRookAttack(uShort tile, BitBoard blockers) {
+	static u64 generateRookAttack(BitBoard blockers, int tile) {
 		u64 attacks = EMPTY;
 
 		
@@ -54,11 +54,11 @@ namespace CHENG {
 			| ray 
 
 
-			occupied & ray      ray                   not ray
+			occupied & ray      ray                   not ray with bitscan
 			. . . . . . . .     . . . . | . . .       | | | | . | | |
 			. . . . 1 . . .		. . . . | . . .		  | | | | . | | |
-			. . . . . . . .		. . . . | . . .		  | | | | . | | |
-			. . . . 1 . . .		. . . . | . . .		  | | | | . | | |
+			. . . . . . . .		. . . . | . . .		  | | | | | | | |
+			. . . . . . . .		. . . . | . . .		  | | | | | | | |
 			. . . . + . . .		. . . . + . . .		  | | | | | | | |
 			. . . . . . . .		. . . . . . . .		  | | | | | | | |
 			. . . . . . . .		. . . . . . . .		  | | | | | | | |
@@ -90,7 +90,7 @@ namespace CHENG {
 
 	}
 
-	static u64 generateBishopAttack(uShort tile, BitBoard blockers) {
+	static u64 generateBishopAttack(BitBoard blockers, int tile) {
 		u64 attacks = EMPTY;
 
 		attacks |= rays[tile][NORTH_EAST];
@@ -128,7 +128,7 @@ namespace CHENG {
 		occ &= mBishopTable[tile].mask;
 		occ *= bishopMagics[tile];
 		occ >>= mBishopTable[tile].shift;
-		return  bishopAttacks[tile][occ];
+		return bishopAttacks[tile][occ];
 	}
 
 	static BitBoard occupancyFromIndex(int index, u64 mask) {
@@ -149,7 +149,6 @@ namespace CHENG {
 	// initialises the magics and bitboards
 	static void initMagics() {
 
-
 		u64 mask;
 		int bitCount;
 		int occVariations;
@@ -164,7 +163,7 @@ namespace CHENG {
 			for (int count = 0; count < occVariations; count++) {
 				u64 occ = occupancyFromIndex(count, mask);
 				int key = (occ * bishopMagics[tile]) >> (64 - bishopIndexBits[tile]);
-				bishopAttacks[tile][key] = generateBishopAttack(tile, occ);
+				bishopAttacks[tile][key] = generateBishopAttack(occ, tile);
 			}
 			mBishopTable[tile].shift = (64 - bishopIndexBits[tile]);
 
@@ -176,7 +175,7 @@ namespace CHENG {
 			for (int count = 0; count < occVariations; count++) {
 				u64 occ = occupancyFromIndex(count, mask);
 				int key = (occ * rookMagics[tile]) >> (64 - rookIndexBits[tile]);
-				rookAttacks[tile][key] = generateRookAttack(tile, occ);
+				rookAttacks[tile][key] = generateRookAttack(occ, tile);
 			}
 			mRookTable[tile].shift = (64 - rookIndexBits[tile]);
 

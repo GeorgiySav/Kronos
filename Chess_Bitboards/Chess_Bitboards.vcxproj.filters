@@ -41,5 +41,11 @@
     <ClInclude Include="Rays.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Move_Generation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Board.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

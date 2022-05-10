@@ -144,9 +144,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitBoard.h" />
+    <ClInclude Include="Board.h" />
     <ClInclude Include="Chess.h" />
     <ClInclude Include="Magic.h" />
     <ClInclude Include="Magic_Vars.h" />
+    <ClInclude Include="Move_Generation.h" />
     <ClInclude Include="Rays.h" />
     <ClInclude Include="utility.h" />
   </ItemGroup>

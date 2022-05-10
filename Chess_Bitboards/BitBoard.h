@@ -163,5 +163,7 @@ namespace CHENG {
 		str += "  Bitboard: " + std::to_string(b) + "\n";
 		return str;
 	}
+
+
 	
 }

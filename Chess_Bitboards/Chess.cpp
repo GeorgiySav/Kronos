@@ -10,28 +10,35 @@ Chess::Chess() : board()
 	
 	processFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-	std::cout << "White Pawns:\n" << _BitBoard(board.pieceLocations[WHITE][PAWN]) << std::endl;
-	std::cout << "White Knights:\n" << _BitBoard(board.pieceLocations[WHITE][KNIGHT]) << std::endl;
-	std::cout << "White Bishops:\n" << _BitBoard(board.pieceLocations[WHITE][BISHOP]) << std::endl;
-	std::cout << "White Rooks:\n" << _BitBoard(board.pieceLocations[WHITE][ROOK]) << std::endl;
-	std::cout << "White Queens:\n" << _BitBoard(board.pieceLocations[WHITE][QUEEN]) << std::endl;
-	std::cout << "White Kings:\n" << _BitBoard(board.pieceLocations[WHITE][KING]) << std::endl;
+	//std::cout << "White Pawns:\n" << _BitBoard(board.pieceLocations[WHITE][PAWN]) << std::endl;
+	//std::cout << "White Knights:\n" << _BitBoard(board.pieceLocations[WHITE][KNIGHT]) << std::endl;
+	//std::cout << "White Bishops:\n" << _BitBoard(board.pieceLocations[WHITE][BISHOP]) << std::endl;
+	//std::cout << "White Rooks:\n" << _BitBoard(board.pieceLocations[WHITE][ROOK]) << std::endl;
+	//std::cout << "White Queens:\n" << _BitBoard(board.pieceLocations[WHITE][QUEEN]) << std::endl;
+	//std::cout << "White Kings:\n" << _BitBoard(board.pieceLocations[WHITE][KING]) << std::endl;
+	//
+	//std::cout << "Black Pawns:\n" << _BitBoard(board.pieceLocations[BLACK][PAWN]) << std::endl;
+	//std::cout << "Black Knights:\n" << _BitBoard(board.pieceLocations[BLACK][KNIGHT]) << std::endl;
+	//std::cout << "Black Bishops:\n" << _BitBoard(board.pieceLocations[BLACK][BISHOP]) << std::endl;
+	//std::cout << "Black Rooks:\n" << _BitBoard(board.pieceLocations[BLACK][ROOK]) << std::endl;
+	//std::cout << "Black Queens:\n" << _BitBoard(board.pieceLocations[BLACK][QUEEN]) << std::endl;
+	//std::cout << "Black Kings:\n" << _BitBoard(board.pieceLocations[BLACK][KING]) << std::endl;
+	//
+	//std::cout << "\n\n";
 
-	std::cout << "Black Pawns:\n" << _BitBoard(board.pieceLocations[BLACK][PAWN]) << std::endl;
-	std::cout << "Black Knights:\n" << _BitBoard(board.pieceLocations[BLACK][KNIGHT]) << std::endl;
-	std::cout << "Black Bishops:\n" << _BitBoard(board.pieceLocations[BLACK][BISHOP]) << std::endl;
-	std::cout << "Black Rooks:\n" << _BitBoard(board.pieceLocations[BLACK][ROOK]) << std::endl;
-	std::cout << "Black Queens:\n" << _BitBoard(board.pieceLocations[BLACK][QUEEN]) << std::endl;
-	std::cout << "Black Kings:\n" << _BitBoard(board.pieceLocations[BLACK][KING]) << std::endl;
+
+	board.mergeBoth();
+
 	
-	std::cout << "\n\n";
 
-	BitBoard test;
-	
-	std::cout << _BitBoard(generateBishopMask(E4)) << std::endl;
-	std::cout << _BitBoard(generateRookMask(E4)) << std::endl;
-	std::cout << _BitBoard(generateRookMask(E4) | generateBishopMask(E4)) << std::endl;
+	isWhite = true;
 
+	generateMoves();
+
+	for (auto move : moves)
+	{
+		std::cout << _BitBoard((1ULL << move.to) | (1ULL << move.from)) << std::endl;
+	}
 
 }
 
@@ -145,21 +152,24 @@ void Chess::processFEN(std::string FEN)
 		return;
 	}
 
-	turn = fenTurn == "w" ? WHITE : BLACK;
+	isWhite = fenTurn == "w" ? true : false;
 
-	castleRights = 0;
+	status.BKcastle = false;
+	status.BQcastle = false;
+	status.WKcastle = false;
+	status.WQcastle = false;
 
 	if (instr(fenCastling, 'K')) {
-		castleRights |= WK;
+		status.WKcastle = true;
 	}
 	if (instr(fenCastling, 'Q')) {
-		castleRights |= WQ;
+		status.WQcastle = true;
 	}
 	if (instr(fenCastling, 'k')) {
-		castleRights |= BK;
+		status.BKcastle = true;
 	}
 	if (instr(fenCastling, 'q')) {
-		castleRights |= BQ;
+		status.BQcastle = true;
 	}
 
 	if (fenEP != "-") {
@@ -169,7 +179,7 @@ void Chess::processFEN(std::string FEN)
 			return;
 		}
 
-		enPassantTile = std::stoi(fenEP);
+		status.EP = std::stoi(fenEP);
 	}
 
 	if (!is_number(fenHalfmove)) {
@@ -184,3 +194,5 @@ void Chess::processFEN(std::string FEN)
 
 	fullMoves = atoi(fenFullmove.c_str());
 }
+
+
