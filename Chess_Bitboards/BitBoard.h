@@ -65,12 +65,12 @@ namespace CHENG {
 
 	static const u64 debruijn64 = 0x03f79d71b4cb0a89;
 
-	static uShort bitScanForward(u64 bb) {
+	static int bitScanForward(u64 bb) {
 		assert(bb != 0);
 		return BitTable[((bb ^ (bb - 1)) * debruijn64) >> 58];
 	}
 
-	static uShort bitScanReverse(u64 bb) {
+	static int bitScanReverse(u64 bb) {
 		assert(bb != 0);
 		bb |= bb >> 1;
 		bb |= bb >> 2;
@@ -81,7 +81,7 @@ namespace CHENG {
 		return BitTable[(bb * debruijn64) >> 58];
 	}
 
-	static uShort populationCount(u64 bb) {
+	static int populationCount(u64 bb) {
 		int count = 0;
 		while (bb) {
 			count++;

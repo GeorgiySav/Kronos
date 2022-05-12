@@ -10,17 +10,17 @@
 
 namespace CHENG {
 
-	static const u64 WnotOccQ = 0b0111'0000ULL;
-	static const u64 WnotAtkQ = 0b0011'1000ULL;
+	static const u64 WnotOccQ = 0b0000'1110ULL;
+	static const u64 WnotAtkQ = 0b0001'1100ULL;
 
-	static const u64 WnotOccK = 0b0000'0110ULL;
-	static const u64 WnotAtkK = 0b0000'1110ULL;
+	static const u64 WnotOccK = 0b0110'0000ULL;
+	static const u64 WnotAtkK = 0b0111'0000ULL;
 
-	static const u64 BnotOccQ = 0b0111'0000ULL << 56;
-	static const u64 BnotAtkQ = 0b0011'1000ULL << 56;
+	static const u64 BnotOccQ = WnotOccQ << 56;
+	static const u64 BnotAtkQ = WnotAtkQ << 56;
 
-	static const u64 BnotOccK = 0b0000'0110ULL << 56;
-	static const u64 BnotAtkK = 0b0000'1110ULL << 56;
+	static const u64 BnotOccK = WnotOccK << 56;
+	static const u64 BnotAtkK = WnotAtkK << 56;
 
 	struct BoardStatus
 	{
@@ -32,17 +32,47 @@ namespace CHENG {
 		bool BKcastle;
 		bool BQcastle;
 
-	    BoardStatus() : isWhite(true), EP(false), WKcastle(true), WQcastle(true), BKcastle(true), BQcastle(true) {}
+	    BoardStatus() : isWhite(true), EP(no_Tile), WKcastle(true), WQcastle(true), BKcastle(true), BQcastle(true) {}
 		BoardStatus(bool isWhite, int EP, bool WKcastle, bool WQcastle, bool BKcastle, bool BQcastle) : isWhite(isWhite), EP(EP), WKcastle(WKcastle), WQcastle(WQcastle), BKcastle(BKcastle), BQcastle(BQcastle) {}
 
 		bool kingCastleRights(const BitBoard occ, const BitBoard atk, bool isWhite) const {
-			if (isWhite) return WKcastle && !(WnotOccK & occ) && !(WnotAtkK & atk);
-			else BKcastle && !(BnotOccK & occ) && !(BnotAtkK & atk);
+			if (isWhite) {
+				if (!WKcastle)
+					return false;
+				if (WnotOccK & occ)
+					return false;
+				if (WnotAtkK & atk)
+					return false;
+			}
+			else {
+				if (!BKcastle)
+					return false;
+				if (BnotOccQ & occ)
+					return false;
+				if (BnotAtkK & atk)
+					return false;
+			}
+			return true;
 		}
 
 		bool queenCastleRights(const BitBoard occ, const BitBoard atk, bool isWhite) const {
-			if (isWhite) return WQcastle && !(WnotOccQ & occ) && !(WnotAtkQ & atk);
-			else BQcastle && !(BnotOccQ & occ) && !(BnotAtkQ & atk);
+			if (isWhite) {
+				if (!WQcastle)
+					return false;
+				if (WnotOccQ & occ)
+					return false;
+				if (WnotAtkQ & atk)
+					return false;
+			}
+			else {
+				if (!BQcastle)
+					return false;
+				if (BnotOccQ & occ)
+					return false;
+				if (BnotAtkQ & atk)
+					return false;
+			}
+			return true;
 		}
 
 	};
@@ -70,7 +100,10 @@ namespace CHENG {
 		int to : 6;
 		int flag: 4;
 		
-		Move(int from, int to, int flag) : from(from), to(to), flag(flag) {}
+		Pieces moved_Piece;
+
+		Move() : from(0), to(0), flag(0), moved_Piece(PAWN) {}
+		Move(int from, int to, int flag, Pieces moved_Piece) : from(from), to(to), flag(flag), moved_Piece(moved_Piece) {}
 	
 	};
 
@@ -98,6 +131,12 @@ namespace CHENG {
 		return (pawnAttackLeft(brd, isWhite) | pawnAttackRight(brd, isWhite));
 	}
 
+	sinline BitBoard getPawnEP(BitBoard brd, int EPtile, bool isWhite) {
+		if ((eastOne(brd) | westOne(brd)) & (1ULL << EPtile)) {
+			return 1ULL << ((isWhite) ? EPtile + 8 : EPtile - 8);
+		}
+	}
+
 	sinline BitBoard pawnPush(BitBoard brd, bool isWhite) {
 		if (isWhite) return northOne(brd);
 		return southOne(brd);
@@ -115,14 +154,14 @@ namespace CHENG {
 
 	sinline BitBoard epRank(bool isWhite) {
 		if (isWhite) return rankMask[RANK_4];
-		return rankMask[RANK_3];
+		return rankMask[RANK_5];
 	}
 
 	sinline BitBoard getPawnMoves(int pawnPos, const Board& brd, bool isWhite) {
 		BitBoard moves = EMPTY;
 
 		moves |= pawnPush(1ULL << pawnPos, isWhite) & Empty(brd);
-		moves |= (pawnPush(moves, isWhite) & epRank(isWhite) & Empty(brd));
+		moves |= ((pawnPush(moves, isWhite) & epRank(isWhite) & Empty(brd)));
 
 		return moves;
 	}
@@ -132,7 +171,7 @@ namespace CHENG {
 		static u64 notABfile = ~(fileMask[A] | fileMask[B]);
 		static u64 notGHfile = ~(fileMask[G] | fileMask[H]);
 
-		BitBoard attacks = 0;
+		BitBoard attacks = 0ULL;
 
 		attacks |= ((brd <<  6) | (brd >> 10)) & notGHfile;
 		attacks |= ((brd << 15) | (brd >> 17)) & notHFile;
@@ -145,7 +184,7 @@ namespace CHENG {
 
 	sinline BitBoard kingAttacks(BitBoard brd) {
 		
-		BitBoard attacks = 0;
+		BitBoard attacks = 0ULL;
 
 		attacks |= (westOne(brd) | NWOne(brd) | SWOne(brd)) & notHFile;
 		attacks |= (eastOne(brd) | NEOne(brd) | SEOne(brd)) & notAFile;
@@ -335,6 +374,51 @@ namespace CHENG {
 			      | (rays[start][SOUTH_EAST] & rays[end][NORTH_WEST]);
 	}
 
+	template <Pieces pieceType>
+	sinline void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, std::vector<Move>* moves) {
+		int to;
+		while (movesBB) {
+			to = bitScanForward(movesBB);
+			moves->push_back(Move(from, to, QUIET, pieceType));
+			popBit(movesBB, to);
+		}
+		while (capturesBB) {
+			to = bitScanForward(capturesBB);
+			moves->push_back(Move(from, to, CAPTURE, pieceType));
+			popBit(capturesBB, to);
+		}
+	}
+
+	sinline void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, std::vector<Move>* moves) {
+		int to;
+		if (epBB) {
+			to = bitScanForward(epBB);
+			moves->push_back(Move(from, to, ENPASSANT, PAWN));
+		}
+		while (movesBB) {
+			to = bitScanForward(movesBB);
+			if (1ULL << to & pawnPromRank(isWhite)) {
+				moves->push_back(Move(from, to, KNIGHT_PROMOTION, PAWN));
+				moves->push_back(Move(from, to, BISHOP_PROMOTION, PAWN));
+				moves->push_back(Move(from, to, ROOK_PROMOTION, PAWN));
+				moves->push_back(Move(from, to, QUEEN_PROMOTION, PAWN));
+			}
+			else moves->push_back(Move(from, to, QUIET, PAWN));
+			popBit(movesBB, to);
+		}
+		while (captureBB) {
+			to = bitScanForward(captureBB);
+			if (1ULL << to & pawnPromRank(isWhite)) {
+				moves->push_back(Move(from, to, CAPTURE | KNIGHT_PROMOTION, PAWN));
+				moves->push_back(Move(from, to, CAPTURE | BISHOP_PROMOTION, PAWN));
+				moves->push_back(Move(from, to, CAPTURE | ROOK_PROMOTION, PAWN));
+				moves->push_back(Move(from, to, CAPTURE | QUEEN_PROMOTION, PAWN));
+			}
+			else moves->push_back(Move(from, to, CAPTURE, PAWN));
+			popBit(captureBB, to);
+		}
+	}
+
 	sinline void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, std::vector<Move>* moves) {
 
 		bool onlyKingMoves = false;
@@ -354,8 +438,9 @@ namespace CHENG {
 
 		BitBoard kingBan = 0ULL;
 		int kingPos = bitScanForward(brd.pieceLocations[isWhite][KING]);
-		BitBoard ePwnAtkL = pawnAttackLeft(brd.pieceLocations[!isWhite][PAWN], isWhite);
-		BitBoard ePwnAtkR = pawnAttackRight(brd.pieceLocations[!isWhite][PAWN], isWhite);
+		
+		BitBoard ePwnAtkL = pawnAttackLeft(brd.pieceLocations[!isWhite][PAWN], !isWhite);
+		BitBoard ePwnAtkR = pawnAttackRight(brd.pieceLocations[!isWhite][PAWN], !isWhite);
 		BitBoard eKnightAtk = knightAttacks(brd.pieceLocations[!isWhite][KNIGHT]);
 
 		BitBoard eB = brd.pieceLocations[!isWhite][BISHOP];
@@ -382,22 +467,20 @@ namespace CHENG {
 			eQueenAtk |= getBishopAttacks(brd.occupied[BOTH], tile) | getRookAttacks(brd.occupied[BOTH], tile);
 		}
 
-		BitBoard eKingAtk = kingAttacks(brd.occupied[BOTH]);
+		BitBoard eKingAtk = kingAttacks(brd.pieceLocations[!isWhite][KING]);
 
 		kingBan = ePwnAtkL | ePwnAtkR | eKnightAtk | eBishopAtk | eRookAtk | eQueenAtk | eKingAtk;
-		std::cout << _BitBoard(eRookAtk) << std::endl;
-		std::cout << _BitBoard(brd.pieceLocations[isWhite][KING]) << std::endl;
 
 		// check for checks
 		BitBoard checkMask = UNIVERSE;
 
 		// get position of checks made by a knight or pawn
-		BitBoard checkers = (knightAttacks(kingPos) & brd.pieceLocations[!isWhite][KNIGHT])
+		BitBoard checkers = (knightAttacks(1ULL << kingPos) & brd.pieceLocations[!isWhite][KNIGHT])
 						   |(getPawnAttacks(king, isWhite) & brd.pieceLocations[!isWhite][PAWN]);
 
 		// sliding checks candidates
-		BitBoard canditates = getRookAttacks(brd.occupied[!isWhite], kingPos) & (brd.pieceLocations[!isWhite][ROOK] | brd.pieceLocations[!isWhite][QUEEN])
-						   | getBishopAttacks(brd.occupied[!isWhite], kingPos) & (brd.pieceLocations[!isWhite][BISHOP] | brd.pieceLocations[!isWhite][QUEEN]);
+		BitBoard canditates = (getRookAttacks(brd.occupied[!isWhite], kingPos) & (brd.pieceLocations[!isWhite][ROOK] | brd.pieceLocations[!isWhite][QUEEN]))
+						    | (getBishopAttacks(brd.occupied[!isWhite], kingPos) & (brd.pieceLocations[!isWhite][BISHOP] | brd.pieceLocations[!isWhite][QUEEN]));
 
 		while (canditates) {
 			int sliderPos = bitScanForward(canditates);
@@ -418,8 +501,8 @@ namespace CHENG {
 		}
 
 		switch (populationCount(checkers)) {
-			
-		case 2 : {
+
+		case 2: {
 			// double check
 			onlyKingMoves = true;
 		}
@@ -428,45 +511,31 @@ namespace CHENG {
 			checkMask = EMPTY;
 
 			int checkerSquare = bitScanForward(checkers);
+			setBit(checkMask, checkerSquare);
 
-			if (checkers & brd.pieceLocations[!isWhite][PAWN]) {
-				setBit(checkMask, checkerSquare);
-			}
-			else if (checkers & brd.pieceLocations[!isWhite][KNIGHT]) {
-				setBit(checkMask, checkerSquare);
-			}
-			else if (checkers & brd.pieceLocations[!isWhite][BISHOP]) {
-				setBit(checkMask, checkerSquare);
+			if (checkers & brd.pieceLocations[!isWhite][BISHOP]) {
 				bishopCheckMask(checkerSquare, kingPos, checkMask, kingBan);
 			}
 			else if (checkers & brd.pieceLocations[!isWhite][ROOK]) {
-				setBit(checkMask, checkerSquare);
 				rookCheckMask(checkerSquare, kingPos, checkMask, kingBan);
 			}
 			else if (checkers & brd.pieceLocations[!isWhite][QUEEN]) {
-				setBit(checkMask, checkerSquare);
 				queenCheckMask(checkerSquare, kingPos, checkMask, kingBan);
 			}
 		}
-			
-		}
 
-		std::cout << _BitBoard(checkMask) << std::endl;
+		}
 
 		// no need to check for pins if the king is in a double check
 		if (onlyKingMoves) {
 
 			BitBoard kingMoves = kingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~(kingBan);
+			BitBoard kingAttacks = kingMoves & brd.occupied[!isWhite];
+			kingMoves ^= kingAttacks;
 
 			// add moves to the list and return it
-			int to;
-			while (kingMoves) {
-				to = bitScanForward(kingMoves);
-				if (brd.occupied[!isWhite] & (1ULL << to))
-					moves->push_back(Move(kingPos, to, CAPTURE));
-				else moves->push_back(Move(kingPos, to, QUIET));
-				popBit(kingMoves, to);
-			}
+			addMoves<KING>(kingMoves, kingAttacks, kingPos, moves);
+			return;
 		}
 
 		while (pinned) {
@@ -477,93 +546,52 @@ namespace CHENG {
 			dir Dir = getDirectionFromOffset(pinnedPos - kingPos);
 
 			// get position of the attacking piece
-			int attackingSlider = rays[kingPos][Dir] & pinners;
+			int attackingSlider = bitScanForward(rays[kingPos][Dir] & pinners);
 
 			BitBoard pinnedMask = rays[kingPos][Dir] ^ rays[attackingSlider][Dir];
 
 			if (getBit(pawns, pinnedPos)) {
 				BitBoard pawnAttacks = getPawnAttacks(1ULL << pinnedPos, isWhite) & brd.occupied[!isWhite] & pinnedMask & checkMask;
-				BitBoard pawnMoves = getPawnMoves(pinnedPos, brd, isWhite) & pinnedMask & checkMask;
-				
-				int to;
-				while (pawnMoves) {
-					to = bitScanForward(pawnMoves);
-					if (1ULL << to & pawnPromRank(isWhite)) {
-						moves->push_back(Move(pinnedPos, to, KNIGHT_PROMOTION));
-						moves->push_back(Move(pinnedPos, to, BISHOP_PROMOTION));
-						moves->push_back(Move(pinnedPos, to, ROOK_PROMOTION));
-						moves->push_back(Move(pinnedPos, to, QUEEN_PROMOTION));
-					}
-					else moves->push_back(Move(pinnedPos, to, QUIET));
-					popBit(pawnMoves, to);
-				}
-				while (pawnAttacks) {
-					to = bitScanForward(pawnAttacks);
-					if (1ULL << to & pawnPromRank(isWhite)) {
-						moves->push_back(Move(pinnedPos, to, CAPTURE | KNIGHT_PROMOTION));
-						moves->push_back(Move(pinnedPos, to, CAPTURE | BISHOP_PROMOTION));
-						moves->push_back(Move(pinnedPos, to, CAPTURE | ROOK_PROMOTION));
-						moves->push_back(Move(pinnedPos, to, CAPTURE | QUEEN_PROMOTION));
-					}
-					else moves->push_back(Move(pinnedPos, to, CAPTURE));
-					popBit(pawnMoves, to);
-				}
+				BitBoard pawnMoves = getPawnMoves(pinnedPos, brd, isWhite) & pinnedMask & checkMask;		
+				BitBoard pawnEp = getPawnEP(1ULL << pinnedPos, st.EP, isWhite) & pinnedMask & checkMask;
+
+				addPawnMoves(pawnMoves, pawnAttacks, pawnEp, pinnedPos, isWhite, moves);
 
 				popBit(pawns, pinnedPos);
 			}
 			else if (getBit(knights, pinnedPos)) {
-				BitBoard knightMoves = knightAttacks(1ULL << pinnedPos) & pinnedMask & checkMask;
+				BitBoard knightMoves = knightAttacks(1ULL << pinnedPos) & EnemyAndEmpty(brd, isWhite) & pinnedMask & checkMask;
+				BitBoard knightAttacks = knightMoves & brd.occupied[!isWhite];
+				knightMoves ^= knightAttacks;
 
-				int to;
-				while (knightMoves) {
-					to = bitScanForward(knightMoves);
-					if (brd.occupied[!isWhite] & (1ULL << to))
-						moves->push_back(Move(pinnedPos, to, CAPTURE));
-					else moves->push_back(Move(pinnedPos, to, QUIET));
-					popBit(knightMoves, to);
-				}
+				addMoves<KNIGHT>(knightMoves, knightAttacks, pinnedPos, moves);
 
 				popBit(knights, pinnedPos);
 			}
 			else if (getBit(bishops, pinnedPos)) {
 				BitBoard bishopMoves = getBishopAttacks(brd.occupied[BOTH], pinnedPos) & EnemyAndEmpty(brd, isWhite) & pinnedMask & checkMask;
-				
-				int to;
-				while (bishopMoves) {
-					to = bitScanForward(bishopMoves);
-					if (brd.occupied[!isWhite] & (1ULL << to))
-						moves->push_back(Move(pinnedPos, to, CAPTURE));
-					else moves->push_back(Move(pinnedPos, to, QUIET));
-					popBit(bishopMoves, to);
-				}
+				BitBoard bishopAttacks = bishopMoves & brd.occupied[!isWhite];
+				bishopMoves ^= bishopAttacks;
+
+				addMoves<BISHOP>(bishopMoves, bishopAttacks, pinnedPos, moves);
 
 				popBit(bishops, pinnedPos);
 			}
 			else if (getBit(rooks, pinnedPos)) {
 				BitBoard rookMoves = getRookAttacks(brd.occupied[BOTH], pinnedPos) & EnemyAndEmpty(brd, isWhite) & pinnedMask & checkMask;
+				BitBoard rookAttacks = rookMoves & brd.occupied[!isWhite];
+				rookMoves ^= rookAttacks;
 
-				int to;
-				while (rookMoves) {
-					to = bitScanForward(rookMoves);
-					if (brd.occupied[!isWhite] & (1ULL << to))
-						moves->push_back(Move(pinnedPos, to, CAPTURE));
-					else moves->push_back(Move(pinnedPos, to, QUIET));
-					popBit(rookMoves, to);
-				}
+				addMoves<ROOK>(rookMoves, rookAttacks, pinnedPos, moves);
 
 				popBit(rooks, pinnedPos);
 			}
 			else if (getBit(queens, pinnedPos)) {
 				BitBoard queenMoves = (getRookAttacks(brd.occupied[BOTH], pinnedPos) | getBishopAttacks(brd.occupied[BOTH], pinnedPos)) & EnemyAndEmpty(brd, isWhite) & pinnedMask & checkMask;
-				
-				int to;
-				while (queenMoves) {
-					to = bitScanForward(queenMoves);
-					if (brd.occupied[!isWhite] & (1ULL << to))
-						moves->push_back(Move(pinnedPos, to, CAPTURE));
-					else moves->push_back(Move(pinnedPos, to, QUIET));
-					popBit(queenMoves, to);
-				}
+				BitBoard queenAttacks = queenMoves & brd.occupied[!isWhite];
+				queenMoves ^= queenAttacks;
+
+				addMoves<QUEEN>(queenMoves, queenAttacks, pinnedPos, moves);
 				
 				popBit(queens, pinnedPos);
 			}
@@ -579,29 +607,9 @@ namespace CHENG {
 
 			BitBoard pawnAttacks = getPawnAttacks(1ULL << from, isWhite) & brd.occupied[!isWhite] & checkMask;
 			BitBoard pawnMoves = getPawnMoves(from, brd, isWhite) & checkMask;
+			BitBoard pawnEp = getPawnEP(1ULL << from, st.EP, isWhite) & checkMask;
 
-			while (pawnMoves) {
-				to = bitScanForward(pawnMoves);
-				if ((1ULL << to) & pawnPromRank(isWhite)) {
-					moves->push_back(Move(from, to, KNIGHT_PROMOTION));
-					moves->push_back(Move(from, to, BISHOP_PROMOTION));
-					moves->push_back(Move(from, to, ROOK_PROMOTION));
-					moves->push_back(Move(from, to, QUEEN_PROMOTION));
-				}
-				else moves->push_back(Move(from, to, QUIET));
-				popBit(pawnMoves, to);
-			}
-			while (pawnAttacks) {
-				to = bitScanForward(pawnAttacks);
-				if ((1ULL << to) & pawnPromRank(isWhite)) {
-					moves->push_back(Move(from, to, CAPTURE | KNIGHT_PROMOTION));
-					moves->push_back(Move(from, to, CAPTURE | BISHOP_PROMOTION));
-					moves->push_back(Move(from, to, CAPTURE | ROOK_PROMOTION));
-					moves->push_back(Move(from, to, CAPTURE | QUEEN_PROMOTION));
-				}
-				else moves->push_back(Move(from, to, CAPTURE));
-				popBit(pawnMoves, to);
-			}
+			addPawnMoves(pawnMoves, pawnAttacks, pawnEp, from, isWhite, moves);
 		}
 
 		while (knights) {
@@ -609,14 +617,10 @@ namespace CHENG {
 			popBit(knights, from);
 
 			BitBoard knightMoves = knightAttacks(1ULL << from) & EnemyAndEmpty(brd, isWhite) & checkMask;
-			
-			while (knightMoves) {
-				to = bitScanForward(knightMoves);
-				if (brd.occupied[!isWhite] & (1ULL << to))
-					moves->push_back(Move(from, to, CAPTURE));
-				else moves->push_back(Move(from, to, QUIET));
-				popBit(knightMoves, to);
-			}
+			BitBoard knightAttacks = knightMoves & brd.occupied[!isWhite];
+			knightMoves ^= knightAttacks;
+
+			addMoves<KNIGHT>(knightMoves, knightAttacks, from, moves);
 		}
 
 		while (bishops) {
@@ -624,63 +628,48 @@ namespace CHENG {
 			popBit(bishops, from);
 
 			BitBoard bishopMoves = getBishopAttacks(brd.occupied[BOTH], from) & EnemyAndEmpty(brd, isWhite) & checkMask;
+			BitBoard bishopAttacks = bishopMoves & brd.occupied[!isWhite];
+			bishopMoves ^= bishopAttacks;
 
-			while (bishopMoves) {
-				to = bitScanForward(bishopMoves);
-				if (brd.occupied[!isWhite] & (1ULL << to))
-					moves->push_back(Move(from, to, CAPTURE));
-				else moves->push_back(Move(from, to, QUIET));
-				popBit(bishopMoves, to);
-			}
+			addMoves<BISHOP>(bishopMoves, bishopAttacks, from, moves);
 		}
 
 		while (rooks) {
 			from = bitScanForward(rooks);
 			popBit(rooks, from);
 
-			BitBoard rookMoves = getBishopAttacks(brd.occupied[BOTH], from) & EnemyAndEmpty(brd, isWhite) & checkMask;
-
-			while (rookMoves) {
-				to = bitScanForward(rookMoves);
-				if (brd.occupied[!isWhite] & (1ULL << to))
-					moves->push_back(Move(from, to, CAPTURE));
-				else moves->push_back(Move(from, to, QUIET));
-				popBit(rookMoves, to);
-			}
+			BitBoard rookMoves = getRookAttacks(brd.occupied[BOTH], from) & EnemyAndEmpty(brd, isWhite) & checkMask;
+			BitBoard rookAttacks = rookMoves & brd.occupied[!isWhite];
+			rookMoves ^= rookAttacks;
+			
+			addMoves<ROOK>(rookMoves, rookAttacks, from, moves);
 		}
 
 		while (queens) {
 			from = bitScanForward(queens);
 			popBit(queens, from);
 
-			BitBoard rookMoves = getBishopAttacks(brd.occupied[BOTH], from) & EnemyAndEmpty(brd, isWhite) & checkMask;
+			BitBoard queenMoves = (getBishopAttacks(brd.occupied[BOTH], from) | getRookAttacks(brd.occupied[BOTH], from)) & EnemyAndEmpty(brd, isWhite) & checkMask;
+			BitBoard queenAttacks = queenMoves & brd.occupied[!isWhite];
+			queenMoves ^= queenAttacks;
 
-			while (rookMoves) {
-				to = bitScanForward(rookMoves);
-				if (brd.occupied[!isWhite] & (1ULL << to))
-					moves->push_back(Move(from, to, CAPTURE));
-				else moves->push_back(Move(from, to, QUIET));
-				popBit(rookMoves, to);
-			}
+			addMoves<QUEEN>(queenMoves, queenAttacks, from, moves);
 		}
 
 		from = bitScanForward(king);
 		
 		BitBoard kingMoves = kingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~kingBan;
-
-		while (kingMoves) {
-			to = bitScanForward(kingMoves);
-			if (brd.occupied[!isWhite] & (1ULL << to))
-				moves->push_back(Move(from, to, CAPTURE));
-			else moves->push_back(Move(from, to, QUIET));
-			popBit(kingMoves, to);
-		}
+		BitBoard kingAttacks = kingMoves & brd.occupied[!isWhite];
+		kingMoves ^= kingAttacks;
+		
+		addMoves<KING>(kingMoves, kingAttacks, from, moves);
 
 		if (st.kingCastleRights(brd.occupied[BOTH], kingBan, isWhite)) {
-			moves->push_back(Move(kingPos, kingPos + 2, KING_CASTLE));
+			moves->push_back(Move(kingPos, kingPos + 2, KING_CASTLE, KING));
 		}
+
 		if (st.queenCastleRights(brd.occupied[BOTH], kingBan, isWhite)) {
-			moves->push_back(Move(kingPos, kingPos - 2, QUEEN_CASTLE));
+			moves->push_back(Move(kingPos, kingPos - 2, QUEEN_CASTLE, KING));
 		}
 
 	}

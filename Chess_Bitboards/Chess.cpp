@@ -2,53 +2,33 @@
 
 using namespace CHENG;
 
-Chess::Chess() : board()
+Chess::Chess()
 {
-
 	initRays();
 	initMagics();
-	
-	processFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-	//std::cout << "White Pawns:\n" << _BitBoard(board.pieceLocations[WHITE][PAWN]) << std::endl;
-	//std::cout << "White Knights:\n" << _BitBoard(board.pieceLocations[WHITE][KNIGHT]) << std::endl;
-	//std::cout << "White Bishops:\n" << _BitBoard(board.pieceLocations[WHITE][BISHOP]) << std::endl;
-	//std::cout << "White Rooks:\n" << _BitBoard(board.pieceLocations[WHITE][ROOK]) << std::endl;
-	//std::cout << "White Queens:\n" << _BitBoard(board.pieceLocations[WHITE][QUEEN]) << std::endl;
-	//std::cout << "White Kings:\n" << _BitBoard(board.pieceLocations[WHITE][KING]) << std::endl;
-	//
-	//std::cout << "Black Pawns:\n" << _BitBoard(board.pieceLocations[BLACK][PAWN]) << std::endl;
-	//std::cout << "Black Knights:\n" << _BitBoard(board.pieceLocations[BLACK][KNIGHT]) << std::endl;
-	//std::cout << "Black Bishops:\n" << _BitBoard(board.pieceLocations[BLACK][BISHOP]) << std::endl;
-	//std::cout << "Black Rooks:\n" << _BitBoard(board.pieceLocations[BLACK][ROOK]) << std::endl;
-	//std::cout << "Black Queens:\n" << _BitBoard(board.pieceLocations[BLACK][QUEEN]) << std::endl;
-	//std::cout << "Black Kings:\n" << _BitBoard(board.pieceLocations[BLACK][KING]) << std::endl;
-	//
-	//std::cout << "\n\n";
+	processFEN("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - - -");
 
+	//printBoard();
 
-	board.mergeBoth();
+	std::cout << _BitBoard(positions[ply].board.occupied[BOTH]) << std::endl;
 
-	
-
-	isWhite = true;
-
-	generateMoves();
-
-	for (auto move : moves)
-	{
-		std::cout << _BitBoard((1ULL << move.to) | (1ULL << move.from)) << std::endl;
-	}
-
+	std::cout << "Ply 1: " << perft(1) << std::endl;
+	std::cout << "Ply 2: " << perft(2) << std::endl;
+	std::cout << "Ply 3: " << perft(3) << std::endl;
+	std::cout << "Ply 4: " << perft(4) << std::endl;
+	std::cout << "Ply 5: " << perft(5) << std::endl;
+	std::cout << "Ply 6: " << perft(6) << std::endl;
 }
 
 Chess::~Chess()
 {
-	
 }
 
 void Chess::processFEN(std::string FEN)
 {
+	moves.clear();
+	ply = 0;
 
 	std::stringstream fenStream;
 	fenStream.str(FEN);
@@ -65,7 +45,6 @@ void Chess::processFEN(std::string FEN)
 		std::cout << "Invalid FEN syntax\n";
 		return;
 	}
-
 
 	if ((count(fenBoard, '/') != 7) || (count(fenBoard, 'k') != 1) || (count(fenBoard, 'K') != 1)) {
 		std::cout << "Invalid number of kings or ranks\n";
@@ -94,105 +73,102 @@ void Chess::processFEN(std::string FEN)
 				break;
 
 			case 'p':
-				setBit(board.pieceLocations[BLACK][PAWN], bIndex);
+				setBit(positions[ply].board.pieceLocations[BLACK][PAWN], bIndex);
 				break;
 
 			case 'P':
-				setBit(board.pieceLocations[WHITE][PAWN], bIndex);
+				setBit(positions[ply].board.pieceLocations[WHITE][PAWN], bIndex);
 				break;
 
 			case 'n':
-				setBit(board.pieceLocations[BLACK][KNIGHT], bIndex);
+				setBit(positions[ply].board.pieceLocations[BLACK][KNIGHT], bIndex);
 				break;
 
 			case 'N':
-				setBit(board.pieceLocations[WHITE][KNIGHT], bIndex);
+				setBit(positions[ply].board.pieceLocations[WHITE][KNIGHT], bIndex);
 				break;
 
 			case 'b':
-				setBit(board.pieceLocations[BLACK][BISHOP], bIndex);
+				setBit(positions[ply].board.pieceLocations[BLACK][BISHOP], bIndex);
 				break;
 
 			case 'B':
-				setBit(board.pieceLocations[WHITE][BISHOP], bIndex);
+				setBit(positions[ply].board.pieceLocations[WHITE][BISHOP], bIndex);
 				break;
 
 			case 'r':
-				setBit(board.pieceLocations[BLACK][ROOK], bIndex);
+				setBit(positions[ply].board.pieceLocations[BLACK][ROOK], bIndex);
 				break;
 
 			case 'R':
-				setBit(board.pieceLocations[WHITE][ROOK], bIndex);
+				setBit(positions[ply].board.pieceLocations[WHITE][ROOK], bIndex);
 				break;
 
 			case 'q':
-				setBit(board.pieceLocations[BLACK][QUEEN], bIndex);
+				setBit(positions[ply].board.pieceLocations[BLACK][QUEEN], bIndex);
 				break;
 
 			case 'Q':
-				setBit(board.pieceLocations[WHITE][QUEEN], bIndex);
+				setBit(positions[ply].board.pieceLocations[WHITE][QUEEN], bIndex);
 				break;
 
 			case 'k':
-				setBit(board.pieceLocations[BLACK][KING], bIndex);
+				setBit(positions[ply].board.pieceLocations[BLACK][KING], bIndex);
 				break;
 
 			case 'K':
-				setBit(board.pieceLocations[WHITE][KING], bIndex);
+				setBit(positions[ply].board.pieceLocations[WHITE][KING], bIndex);
 				break;
 			}
 			bIndex = !((bIndex + 1) % 8) ? bIndex - 15 : bIndex + 1;
 		}
 	}
-	
-	board.mergeBoth();
+
+	positions[ply].board.mergeBoth();
 
 	if (fenTurn != "w" && fenTurn != "b") {
 		std::cout << "Invalid colour\n";
 		return;
 	}
 
-	isWhite = fenTurn == "w" ? true : false;
+	positions[ply].status.isWhite = fenTurn == "w" ? true : false;
 
-	status.BKcastle = false;
-	status.BQcastle = false;
-	status.WKcastle = false;
-	status.WQcastle = false;
+	positions[ply].status.BKcastle = false;
+	positions[ply].status.BQcastle = false;
+	positions[ply].status.WKcastle = false;
+	positions[ply].status.WQcastle = false;
 
 	if (instr(fenCastling, 'K')) {
-		status.WKcastle = true;
+		positions[ply].status.WKcastle = true;
 	}
 	if (instr(fenCastling, 'Q')) {
-		status.WQcastle = true;
+		positions[ply].status.WQcastle = true;
 	}
 	if (instr(fenCastling, 'k')) {
-		status.BKcastle = true;
+		positions[ply].status.BKcastle = true;
 	}
 	if (instr(fenCastling, 'q')) {
-		status.BQcastle = true;
+		positions[ply].status.BQcastle = true;
 	}
 
 	if (fenEP != "-") {
-
 		if (!is_number(fenEP) && (std::stoi(fenEP) > 64 || std::stoi(fenEP) < 1)) {
 			std::cout << "Invalid en passant square\n";
 			return;
 		}
 
-		status.EP = std::stoi(fenEP);
+		positions[ply].status.EP = std::stoi(fenEP);
 	}
 
 	if (!is_number(fenHalfmove)) {
-		halfMoves = 0;
+		positions[ply].halfMoves = 0;
 	}
 
-	halfMoves = atoi(fenHalfmove.c_str());
+	positions[ply].halfMoves = atoi(fenHalfmove.c_str());
 
 	if (!is_number(fenFullmove)) {
-		fullMoves = 0;
+		positions[ply].fullMoves = 0;
 	}
 
-	fullMoves = atoi(fenFullmove.c_str());
+	positions[ply].fullMoves = atoi(fenFullmove.c_str());
 }
-
-
