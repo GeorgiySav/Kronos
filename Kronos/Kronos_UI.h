@@ -119,7 +119,7 @@ public:
 		return &boardSprite;
 	}
 
-	void setPositions(sf::Vector2f pos) {
+	void setPosition(sf::Vector2f pos) {
 		boardPosition = pos;
 	}
 

@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "SFML/Graphics.hpp"
+#include "imgui.h"
 #include "imgui-SFML.h"
 
 #include "Kronos Engine/Kronos.h"

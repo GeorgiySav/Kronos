@@ -7,6 +7,7 @@
 #define popBit(bb, i) (bb &= ~(1ULL << i))
 
 #define sinline static inline
+#define CompileTime static constexpr
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -21,11 +22,8 @@ static int count(const std::string& str, char aChar)
 	for (int i = 0; i < str.length(); i++) {
 		if (str.at(i) == aChar) {
 			count++;
-
 		}
-
 	}
-
 	return count;
 }
 

@@ -90,64 +90,66 @@ namespace KRONOS {
 		return count;
 	}
 
-	static u64 northOne(u64 b) { return (b << 8); }
-	static u64 southOne(u64 b) { return (b >> 8); }
-	static u64 eastOne(u64 b)  { return (b << 1) & notAFile; }
-	static u64 westOne(u64 b)  { return (b >> 1) & notHFile; }
-	static u64 NEOne(u64 b)    { return (b << 9) & notAFile; }
-	static u64 NWOne(u64 b)    { return (b << 7) & notHFile; }
-	static u64 SEOne(u64 b)    { return (b >> 7) & notAFile; }
-	static u64 SWOne(u64 b)    { return (b >> 9) & notHFile; }
+	CompileTime u64 northOne(u64 b) { return (b << 8); }
+	CompileTime u64 southOne(u64 b) { return (b >> 8); }
+	CompileTime u64 eastOne(u64 b)  { return (b << 1) & notAFile; }
+	CompileTime u64 westOne(u64 b)  { return (b >> 1) & notHFile; }
+	CompileTime u64 NEOne(u64 b)    { return (b << 9) & notAFile; }
+	CompileTime u64 NWOne(u64 b)    { return (b << 7) & notHFile; }
+	CompileTime u64 SEOne(u64 b)    { return (b >> 7) & notAFile; }
+	CompileTime u64 SWOne(u64 b)    { return (b >> 9) & notHFile; }
 
-	static u64 flipX(u64 b)	   { static const u64 k1 = 0x00FF00FF00FF00FF;
-								 static const u64 k2 = 0x0000FFFF0000FFFF;
-								 b = ((b >> 8) & k1) | ((b & k1) << 8);
-								 b = ((b >> 16) & k2) | ((b & k2) << 16);
-								 b = (b >> 32) | (b << 32);
-								 return b; }
-	static u64 flipY(u64 b)	   { static const u64 k1 = 0x5555555555555555;
-						         static const u64 k2 = 0x3333333333333333;
-						         static const u64 k4 = 0x0f0f0f0f0f0f0f0f;
-						         b = ((b >> 1) & k1) | ((b & k1) << 1);
-						         b = ((b >> 2) & k2) | ((b & k2) << 2);
-						         b = ((b >> 4) & k4) | ((b & k4) << 4);
-						         return b; }
-	static u64 flipA1H8(u64 b) { u64 t;
-								 static const u64 k1 = 0x5500550055005500;
-								 static const u64 k2 = 0x3333000033330000;
-								 static const u64 k4 = 0x0f0f0f0f00000000;
-								 t = k4 & (b ^ (b << 28));
-								 b ^= t ^ (t >> 28);
-								 t = k2 & (b ^ (b << 14));
-								 b ^= t ^ (t >> 14);
-								 t = k1 & (b ^ (b << 7));
-								 b ^= t ^ (t >> 7);
-								 return b; }	
-	static u64 flipA8H1(u64 b) { u64 t;
-								 static const u64 k1 = 0xaa00aa00aa00aa00;
-								 static const u64 k2 = 0xcccc0000cccc0000;
-								 static const u64 k4 = 0xf0f0f0f00f0f0f0f;
-								 t = b ^ (b << 36);
-								 b ^= k4 & (t ^ (b >> 36));
-								 t = k2 & (b ^ (b << 18));
-								 b ^= t ^ (t >> 18);
-								 t = k1 & (b ^ (b << 9));
-								 b ^= t ^ (t >> 9);
-								 return b; }
+	CompileTime u64 flipX(u64 b)	   { constexpr u64 k1 = 0x00FF00FF00FF00FF;
+								         constexpr u64 k2 = 0x0000FFFF0000FFFF;
+								         b = ((b >> 8) & k1) | ((b & k1) << 8);
+								         b = ((b >> 16) & k2) | ((b & k2) << 16);
+								         b = (b >> 32) | (b << 32);
+								         return b; }
+	CompileTime u64 flipY(u64 b)	   { constexpr u64 k1 = 0x5555555555555555;
+						                 constexpr u64 k2 = 0x3333333333333333;
+						                 constexpr u64 k4 = 0x0f0f0f0f0f0f0f0f;
+						                 b = ((b >> 1) & k1) | ((b & k1) << 1);
+						                 b = ((b >> 2) & k2) | ((b & k2) << 2);
+						                 b = ((b >> 4) & k4) | ((b & k4) << 4);
+						                 return b; }
+	CompileTime u64 flipA1H8(u64 b) { u64 t = 0ULL;
+								      constexpr u64 k1 = 0x5500550055005500;
+								      constexpr u64 k2 = 0x3333000033330000;
+								      constexpr u64 k4 = 0x0f0f0f0f00000000;
+								      t = k4 & (b ^ (b << 28));
+								      b ^= t ^ (t >> 28);
+								      t = k2 & (b ^ (b << 14));
+								      b ^= t ^ (t >> 14);
+								      t = k1 & (b ^ (b << 7));
+								      b ^= t ^ (t >> 7);
+								      return b; }	
+	CompileTime u64 flipA8H1(u64 b) { u64 t = 0ULL;
+								      constexpr u64 k1 = 0xaa00aa00aa00aa00;
+								      constexpr u64 k2 = 0xcccc0000cccc0000;
+								      constexpr u64 k4 = 0xf0f0f0f00f0f0f0f;
+								      t = b ^ (b << 36);
+								      b ^= k4 & (t ^ (b >> 36));
+								      t = k2 & (b ^ (b << 18));
+								      b ^= t ^ (t >> 18);
+								      t = k1 & (b ^ (b << 9));
+								      b ^= t ^ (t >> 9);
+								      return b; }
 
-	static u64 rotate180(u64 b)  { return flipX(flipY(b)); }
-	static u64 rotate90C(u64 b)  { return flipX(flipA1H8(b)); }
-	static u64 rotate90AC(u64 b) { return flipA1H8(flipY(b)); }
+	CompileTime u64 rotate180(u64 b)  { return flipX(flipY(b)); }
+	CompileTime u64 rotate90C(u64 b)  { return flipX(flipA1H8(b)); }
+	CompileTime u64 rotate90AC(u64 b) { return flipA1H8(flipY(b)); }
 
-	static u64 shiftNorth(u64 b, int n) { for (int i = 0; i < n; i++) b = northOne(b); return b; }
-	static u64 shiftSouth(u64 b, int n) { for (int i = 0; i < n; i++) b = southOne(b); return b; }
-	static u64 shiftEast(u64 b, int n)  { for (int i = 0; i < n; i++) b = eastOne(b); return b; }
-	static u64 shiftWest(u64 b, int n)  { for (int i = 0; i < n; i++) b = westOne(b); return b; }
+	CompileTime u64 shiftNorth(u64 b, int n) { for (int i = 0; i < n; i++) b = northOne(b); return b; }
+	CompileTime u64 shiftSouth(u64 b, int n) { for (int i = 0; i < n; i++) b = southOne(b); return b; }
+	CompileTime u64 shiftEast(u64 b, int n)  { for (int i = 0; i < n; i++) b = eastOne(b); return b; }
+	CompileTime u64 shiftWest(u64 b, int n)  { for (int i = 0; i < n; i++) b = westOne(b); return b; }
 
-	static u64 shiftNE(u64 b, int n) { for (int i = 0; i < n; i++) b = NEOne(b); return b; }
-	static u64 shiftNW(u64 b, int n) { for (int i = 0; i < n; i++) b = NWOne(b); return b; }
-	static u64 shiftSE(u64 b, int n) { for (int i = 0; i < n; i++) b = SEOne(b); return b; }
-	static u64 shiftSW(u64 b, int n) { for (int i = 0; i < n; i++) b = SWOne(b); return b; }
+	CompileTime u64 shiftNE(u64 b, int n) { for (int i = 0; i < n; i++) b = NEOne(b); return b; }
+	CompileTime u64 shiftNW(u64 b, int n) { for (int i = 0; i < n; i++) b = NWOne(b); return b; }
+	CompileTime u64 shiftSE(u64 b, int n) { for (int i = 0; i < n; i++) b = SEOne(b); return b; }
+	CompileTime u64 shiftSW(u64 b, int n) { for (int i = 0; i < n; i++) b = SWOne(b); return b; }
+
+	
 
 	static std::string _BitBoard(u64 b) {
 		std::string str = "";

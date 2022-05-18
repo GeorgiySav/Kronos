@@ -68,16 +68,20 @@ namespace KRONOS {
 			occupied[BOTH] = occupied[WHITE] | occupied[BLACK];
 		}
 
-		void mergeWhite() {
-			occupied[WHITE] = pieceLocations[WHITE][PAWN] | pieceLocations[WHITE][KNIGHT] | pieceLocations[WHITE][BISHOP] | pieceLocations[WHITE][ROOK] | pieceLocations[WHITE][QUEEN] | pieceLocations[WHITE][KING];
+		constexpr Board(const Board& other) :
+			pieceLocations{ { other.pieceLocations[WHITE][PAWN], other.pieceLocations[WHITE][KNIGHT], other.pieceLocations[WHITE][BISHOP], other.pieceLocations[WHITE][ROOK], other.pieceLocations[WHITE][QUEEN], other.pieceLocations[WHITE][KING] }, { other.pieceLocations[BLACK][PAWN], other.pieceLocations[BLACK][KNIGHT], other.pieceLocations[BLACK][BISHOP], other.pieceLocations[BLACK][ROOK], other.pieceLocations[BLACK][QUEEN], other.pieceLocations[BLACK][KING] } },
+			occupied{ other.occupied[WHITE], other.occupied[BLACK], other.occupied[BOTH] }
+		{
+
 		}
 
-		void mergeBlack() {
-			occupied[BLACK] = pieceLocations[BLACK][PAWN] | pieceLocations[BLACK][KNIGHT] | pieceLocations[BLACK][BISHOP] | pieceLocations[BLACK][ROOK] | pieceLocations[BLACK][QUEEN] | pieceLocations[BLACK][KING];
+		template<bool isWhite>
+		constexpr void mergeColour() {
+			occupied[isWhite] = pieceLocations[isWhite][PAWN] | pieceLocations[isWhite][KNIGHT] | pieceLocations[isWhite][BISHOP] | pieceLocations[isWhite][ROOK] | pieceLocations[isWhite][QUEEN] | pieceLocations[isWhite][KING];
 		}
 
-		void mergeBoth() {
-			mergeBlack(); mergeWhite();
+		constexpr void mergeBoth() {
+			mergeColour<WHITE>(); mergeColour<BLACK>();
 			occupied[BOTH] = occupied[WHITE] | occupied[BLACK];
 		}
 

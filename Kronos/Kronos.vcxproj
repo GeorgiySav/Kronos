@@ -142,6 +142,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)/Kronos/ImGui;$(SolutionDir)/SFML/include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,12 +175,15 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="Kronos Engine\BitBoard.h" />
     <ClInclude Include="Kronos Engine\Board.h" />
+    <ClInclude Include="Kronos Engine\Evaluation.h" />
     <ClInclude Include="Kronos Engine\Kronos.h" />
     <ClInclude Include="Kronos Engine\Magic.h" />
     <ClInclude Include="Kronos Engine\Magic_Vars.h" />
     <ClInclude Include="Kronos Engine\Move_Generation.h" />
     <ClInclude Include="Kronos Engine\Rays.h" />
+    <ClInclude Include="Kronos Engine\Search.h" />
     <ClInclude Include="Kronos Engine\utility.h" />
+    <ClInclude Include="Kronos Engine\Zobrist_Hashing.h" />
     <ClInclude Include="Kronos_Application.h" />
     <ClInclude Include="Kronos_UI.h" />
   </ItemGroup>

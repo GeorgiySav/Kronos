@@ -15,8 +15,10 @@
 #include "Rays.h"
 #include "Board.h"
 #include "Move_Generation.h"
+#include "Zobrist_Hashing.h"
+#include "Search.h"
 
-#define MAX_POSITIONS 200
+#define MAX_POSITIONS 100
 
 namespace KRONOS
 {
@@ -51,13 +53,6 @@ namespace KRONOS
 
 	};
 
-	struct Position {
-		Board board;
-		BoardStatus status;
-		uShort halfMoves;
-		uShort fullMoves;
-	};
-
 	class KronosEngine
 	{
 
@@ -76,145 +71,78 @@ namespace KRONOS
 			return ((coord[1] - '1') * 8) + (coord[0] - 'a');
 		}
 
+		std::string BoardIndexToCoords(int index) {
+			return std::string(1, 'a' + (index % 8)) + std::string(1, '1' + (index / 8));
+		}
+
 		void processFEN(std::string FEN);
 		
-		void generateMoves() {
+		inline void generateMoves() {
 			moves.clear();
 			KRONOS::generateMoves(positions[ply].status.isWhite, positions[ply].board, positions[ply].status, &moves);
 		}
 
-		void makeMove(Move move) {
+		inline void makeMove(Move move) {
 			ply++;
-			positions[ply] = positions[ply - 1];
-			moveHistory[ply] = move;
-
-			positions[ply].status.EP = no_Tile;
-
-			if (move.moved_Piece == PAWN && abs(move.to - move.from) == 16) {
-				positions[ply].status.EP = move.to + (positions[ply].status.isWhite ? -8 : 8);
-			}
-			else if (move.moved_Piece == ROOK) {
-				if (positions[ply].status.isWhite) {
-					if (move.from == A1) {
-						positions[ply].status.WQcastle = false;
-					}
-					else if (move.from == H1) {
-						positions[ply].status.WKcastle = false;
-
-					}
-				}
-				else {
-					if (move.from == A8) {
-						positions[ply].status.BQcastle = false;
-					}
-					else if (move.from == H8) {
-						positions[ply].status.BKcastle = false;
-					}
-				}
-			}
-			else if (move.flag == KING_CASTLE) {
-				setBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][ROOK], ((positions[ply].status.isWhite) ? F1 : F8));
-				popBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][ROOK], ((positions[ply].status.isWhite) ? H1 : H8));
-				if (positions[ply].status.isWhite) { positions[ply].status.WKcastle = false; positions[ply].status.WQcastle = false; }
-				else { positions[ply].status.BKcastle = false; positions[ply].status.BQcastle = false; }
-			}
-			else if (move.flag == QUEEN_CASTLE) {
-				setBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][ROOK], ((positions[ply].status.isWhite) ? D1 : D8));
-				popBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][ROOK], ((positions[ply].status.isWhite) ? A1 : A8));
-				if (positions[ply].status.isWhite) { positions[ply].status.WQcastle = false; positions[ply].status.WKcastle = false; }
-				else { positions[ply].status.BQcastle = false; positions[ply].status.BKcastle = false; }
-			}
-			else if (move.flag == ENPASSANT) {
-				popBit(positions[ply].board.pieceLocations[!positions[ply].status.isWhite][PAWN], ((positions[ply].status.isWhite) ? (move.to - 8) : (move.to + 8)));
-			}
-			else if (move.flag & PROMOTION) {
-				popBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][PAWN], move.from);
-				if ((move.flag & 0b1011) == KNIGHT_PROMOTION) {
-					setBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][KNIGHT], move.to);
-				}
-				else if ((move.flag & 0b1011) == BISHOP_PROMOTION) {
-					setBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][BISHOP], move.to);
-				}
-				else if ((move.flag & 0b1011) == ROOK_PROMOTION) {
-					setBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][ROOK], move.to);
-				}
-				else {
-					setBit(positions[ply].board.pieceLocations[positions[ply].status.isWhite][QUEEN], move.to);
-				}
-			}
-			else if (move.moved_Piece == KING) {
-				if (positions[ply].status.isWhite) {
-					positions[ply].status.WKcastle = false;
-					positions[ply].status.WQcastle = false;
-				}
-				else {
-					positions[ply].status.BKcastle = false;
-					positions[ply].status.BQcastle = false;
-				}
-			}
+			positions[ply] = positions[(ply - 1)];
+			//moveHistory[ply] = move;
 			
-			BitBoard moveBB = u64(1ULL << move.from) | u64(1ULL << move.to);
-			
-			if (move.flag & CAPTURE && move.flag != ENPASSANT) {
-				BitBoard notTaken = ~(1ULL << move.to);
-				for (BitBoard& enemyPieceBB : positions[ply].board.pieceLocations[!positions[ply].status.isWhite]) {
-					enemyPieceBB &= notTaken;
-				}
-			}
-			if (!(move.flag & PROMOTION)) {
-				positions[ply].board.pieceLocations[positions[ply].status.isWhite][move.moved_Piece] ^= moveBB;
-			}
-			
-
-			positions[ply].status.isWhite = !positions[ply].status.isWhite;
-			positions[ply].halfMoves++;
-			if (positions[ply].status.isWhite)
-				positions[ply].fullMoves++;
-
-			positions[ply].board.mergeBoth();
-
+			updatePosition(positions[ply], move);
 		}			
 		
-		void unmakeMove() {
+		constexpr void unmakeMove() {
 			ply = ply - 1;
 		}
 
-		perftResults perft(int depth) {
+
+
+		int perft(int depth) {
 			if (depth == 0) {
-				perftResults result = perftResults();
-				if (moveHistory[ply].flag == ENPASSANT) {
-					result.eps++;
-				}
-				else if (moveHistory[ply].flag & PROMOTION) {
-					result.promotions++;
-				}
-				else if (moveHistory[ply].flag == KING_CASTLE || moveHistory[ply].flag == QUEEN_CASTLE) {
-					result.castles++;
-				}
-				else {
-					//std::cout << _BitBoard(positions[ply - 1].board.occupied[BOTH]) << std::endl;
-					//std::cout << _BitBoard(positions[ply].board.occupied[BOTH]) << std::endl;
-					//std::cout << moveHistory[ply].from << " " << moveHistory[ply].to << std::endl;
-				}
-
-				if (moveHistory[ply].flag & CAPTURE) {
-					result.captures++;
-				}
-
-				result.nodes++;
-				return result;
-				
+				//perftResults result = perftResults();
+				//if (moveHistory[ply].flag == ENPASSANT) {
+				//	result.eps++;
+				//}
+				//else if (moveHistory[ply].flag & PROMOTION) {
+				//	result.promotions++;
+				//}
+				//else if (moveHistory[ply].flag == KING_CASTLE || moveHistory[ply].flag == QUEEN_CASTLE) {
+				//	result.castles++;
+				//}
+				//
+				//if (moveHistory[ply].flag & CAPTURE) {
+				//	result.captures++;
+				//}
+				//
+				//result.nodes++;
+				//return result;
+				return 1;
 			}
 
+			int count = 0;
+
+			generateMoves();
+			std::vector<Move> moves = this->moves;
+
+			for (Move move : moves) {
+				makeMove(move);
+				count += perft(depth - 1);
+				unmakeMove();
+			}
+
+			return count;
+
+		}
+
+		perftResults perftDiv(int depth) {
+			
 			perftResults count = perftResults();
 
 			generateMoves();
 			std::vector<Move> moves = this->moves;
-			
+
 			for (Move move : moves) {
 				makeMove(move);
-				//std::cout << _BitBoard(positions[ply].board.occupied[BOTH]) << std::endl;
-				count = count + perft(depth - 1);
+				std::cout << BoardIndexToCoords(move.from) << BoardIndexToCoords(move.to) << ":\n" << perft(depth - 1) << '\n';
 				unmakeMove();
 			}
 

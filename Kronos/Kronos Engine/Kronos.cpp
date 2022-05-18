@@ -4,31 +4,38 @@ using namespace KRONOS;
 
 KronosEngine::KronosEngine()
 {
-	initRays();
-	initMagics();
-
-	//processFEN("8/8/8/8/k2Pp2/8/8/3K4 b - d3 0 1");
+	KRONOS::initRays();
+	KRONOS::initMagics();
+	KRONOS::ZOBRIST::initZobrists();
 	
-	//std::cout << _BitBoard(positions[ply].board.occupied[BOTH]) << std::endl;
-	//
-	//auto begin = std::chrono::steady_clock::now();
-	//std::cout << "Ply 1: " << perft(1);
-	//std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
-	//
-	//begin = std::chrono::steady_clock::now();
-	//std::cout << "Ply 2: " << perft(2);
-	//std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
-	//
-	//begin = std::chrono::steady_clock::now();
-	//std::cout << "Ply 3: " << perft(3);
-	//std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
-	//
-	//begin = std::chrono::steady_clock::now();
-	//std::cout << "Ply 4: " << perft(4);
-	//std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
-	//
-	//std::cout << "Ply 5: " << perft(5) << std::endl;
-	//std::cout << "Ply 6: " << perft(6) << std::endl;
+	processFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+	
+	std::cout << _BitBoard(positions[ply].board.occupied[BOTH]) << std::endl;
+	
+	auto begin = std::chrono::steady_clock::now();
+	
+	std::cout << "Ply 1: " << perft(1) << std::endl;
+	std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
+	
+	begin = std::chrono::steady_clock::now();
+	std::cout << "Ply 2: " << perft(2) << std::endl;
+	std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
+	
+	begin = std::chrono::steady_clock::now();
+	std::cout << "Ply 3: " << perft(3) << std::endl;
+	std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
+	
+	begin = std::chrono::steady_clock::now();
+	std::cout << "Ply 4: " << perft(4) << std::endl;
+	std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
+	
+	begin = std::chrono::steady_clock::now();
+	std::cout << "Ply 5: " << perft(5) << std::endl;
+	std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
+	
+	begin = std::chrono::steady_clock::now();
+	std::cout << "Ply 6: " << perft(6) << std::endl;
+	std::cout << "In: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "ms\n" << std::endl;
 }
 
 KronosEngine::~KronosEngine()
@@ -37,6 +44,8 @@ KronosEngine::~KronosEngine()
 
 void KronosEngine::processFEN(std::string FEN)
 {
+	positions[0] = Position();
+
 	moves.clear();
 	ply = 0;
 
@@ -164,6 +173,8 @@ void KronosEngine::processFEN(std::string FEN)
 	if (fenEP != "-") {
 		positions[ply].status.EP = BoardCoordsToIndex(fenEP);
 	}
+	else
+		positions[ply].status.EP = no_Tile;
 
 	if (!is_number(fenHalfmove)) {
 		positions[ply].halfMoves = 0;

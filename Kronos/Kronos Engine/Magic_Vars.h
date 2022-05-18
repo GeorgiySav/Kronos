@@ -7,7 +7,7 @@ namespace KRONOS {
 	/*
     
         Magics are the value used in the magic bitboard
-		the index bits are used to tell how many blocker combinations there could be
+		the index bits are used to tell how many blocker combinations there could be and the shift
     
     */
 	

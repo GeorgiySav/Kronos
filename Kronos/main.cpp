@@ -1,5 +1,8 @@
+#define _CRTDBG_MAP_ALLOC
+
 #include <iostream>
 #include <memory>
+#include <crtdbg.h>
 
 #include "Kronos_Application.h"
 #include "Kronos Engine/Kronos.h"
@@ -7,12 +10,13 @@
 int main() {
 	
  
-	static std::unique_ptr<Kronos_Application> app = std::make_unique<Kronos_Application>();
+	std::unique_ptr<Kronos_Application> app = std::make_unique<Kronos_Application>();
 
 	app->run();
-	
+
 	//KRONOS::KronosEngine chess;
 	
+	_CrtDumpMemoryLeaks();
 
 	return 0;
 }

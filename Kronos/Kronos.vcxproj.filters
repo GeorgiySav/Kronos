@@ -98,6 +98,15 @@
     <ClInclude Include="Kronos_UI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Kronos Engine\Zobrist_Hashing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Search.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Evaluation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\chess_sprite_sheet.png">

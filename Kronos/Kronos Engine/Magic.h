@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <array>
 
 #include "utility.h"
 #include "BitBoard.h"
@@ -16,8 +17,8 @@ namespace KRONOS {
 		uShort shift;
 	};
 
-	static Magic mRookTable[64];
-	static Magic mBishopTable[64];
+	static std::array<Magic, 64> mRookTable;
+	static std::array<Magic, 64> mBishopTable;
 
 	static u64 generateBishopMask(int tile) {
 		u64 mask = 0;
@@ -117,14 +118,14 @@ namespace KRONOS {
 
 	}
 
-	static BitBoard getRookAttacks(BitBoard occ, int tile) {
+	CompileTime BitBoard getRookAttacks(BitBoard occ, int tile) {
 		occ &= mRookTable[tile].mask;
 		occ *= rookMagics[tile];
 		occ >>= mRookTable[tile].shift;
 		return rookAttacks[tile][occ];
 	}
 	
-	static BitBoard getBishopAttacks(BitBoard occ, int tile) {
+	CompileTime BitBoard getBishopAttacks(BitBoard occ, int tile) {
 		occ &= mBishopTable[tile].mask;
 		occ *= bishopMagics[tile];
 		occ >>= mBishopTable[tile].shift;
