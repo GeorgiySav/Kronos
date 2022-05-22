@@ -62,6 +62,8 @@ namespace KRONOS
 
 		std::vector<Move> moves;
 
+		SEARCH::SearchTree search;
+
 	public:
 
 		KronosEngine();
@@ -148,6 +150,10 @@ namespace KRONOS
 
 			return count;
 
+		}
+
+		Move getBestMove() {
+			return search.search(positions[ply], 5, 4000);
 		}
 
 		void printBoard() {

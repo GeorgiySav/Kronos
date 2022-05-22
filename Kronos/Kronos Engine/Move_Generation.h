@@ -130,6 +130,10 @@ namespace KRONOS {
 		constexpr Move() : from(0), to(0), flag(0), moved_Piece(PAWN) {}
 		constexpr Move(int from, int to, int flag, Pieces moved_Piece) : from(from), to(to), flag(flag), moved_Piece(moved_Piece) {}
 		constexpr ~Move() {}
+
+		friend bool operator == (const Move& lhs, const Move& rhs) {
+			return lhs.from == rhs.from && lhs.to == rhs.to && lhs.flag == rhs.flag && lhs.moved_Piece == rhs.moved_Piece;
+		}
 	};
 
 	sinline void updatePosition(Position& position, Move move) {
@@ -253,8 +257,7 @@ namespace KRONOS {
 		return moves;
 	}
 
-	CompileTime BitBoard knightAttacks(BitBoard brd) {
-
+	CompileTime BitBoard getKnightAttacks(BitBoard brd) {
 		constexpr u64 notABfile = 18229723555195321596ULL;
 		constexpr u64 notGHfile = 4557430888798830399ULL;
 
@@ -269,8 +272,7 @@ namespace KRONOS {
 
 	}
 
-	CompileTime BitBoard kingAttacks(BitBoard brd) {
-		
+	CompileTime BitBoard getKingAttacks(BitBoard brd) {
 		BitBoard attacks = 0ULL;
 
 		attacks |= (westOne(brd) | NWOne(brd) | SWOne(brd)) & notHFile;
@@ -278,7 +280,6 @@ namespace KRONOS {
 		attacks |= (northOne(brd) | southOne(brd));
 
 		return attacks;
-
 	}
 
 	CompileTime void bishopCheckMask(const int bishopPos, const int kingPos, BitBoard& checkMask, BitBoard& kingBan) {
@@ -446,6 +447,13 @@ namespace KRONOS {
 		}
 	}
 
+	CompileTime bool inCheck(Position& position) {
+		return (getPawnAttacks(position.board.pieceLocations[position.status.isWhite][KING], !position.status.isWhite) & position.board.pieceLocations[!position.status.isWhite][PAWN])
+			|| (getKnightAttacks(position.board.pieceLocations[position.status.isWhite][KING]) & position.board.pieceLocations[!position.status.isWhite][KNIGHT])
+			|| (getRookAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[position.status.isWhite][KING])) & (position.board.pieceLocations[!position.status.isWhite][ROOK] | position.board.pieceLocations[!position.status.isWhite][QUEEN]))
+			|| (getBishopAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[position.status.isWhite][KING])) & (position.board.pieceLocations[!position.status.isWhite][BISHOP] | position.board.pieceLocations[!position.status.isWhite][QUEEN]));
+	}
+
 	sinline void generateMoves(bool isWhite, Board& brd, BoardStatus& st, std::vector<Move>* moves) {
 
 		// temporary bitboard
@@ -466,7 +474,7 @@ namespace KRONOS {
 		
 		BitBoard ePwnAtkL = pawnAttackLeft(brd.pieceLocations[!isWhite][PAWN], !isWhite);
 		BitBoard ePwnAtkR = pawnAttackRight(brd.pieceLocations[!isWhite][PAWN], !isWhite);
-		BitBoard eKnightAtk = knightAttacks(brd.pieceLocations[!isWhite][KNIGHT]);
+		BitBoard eKnightAtk = getKnightAttacks(brd.pieceLocations[!isWhite][KNIGHT]);
 
 		BitBoard eB = brd.pieceLocations[!isWhite][BISHOP];
 		BitBoard eBishopAtk = 0ULL;
@@ -492,7 +500,7 @@ namespace KRONOS {
 			eQueenAtk |= getBishopAttacks(brd.occupied[BOTH], tile) | getRookAttacks(brd.occupied[BOTH], tile);
 		}
 
-		BitBoard eKingAtk = kingAttacks(brd.pieceLocations[!isWhite][KING]);
+		BitBoard eKingAtk = getKingAttacks(brd.pieceLocations[!isWhite][KING]);
 
 		kingBan = ePwnAtkL | ePwnAtkR | eKnightAtk | eBishopAtk | eRookAtk | eQueenAtk | eKingAtk;
 
@@ -502,7 +510,7 @@ namespace KRONOS {
 		BitBoard pawnCheckMask = UNIVERSE;
 
 		// get position of checks made by a knight or pawn
-		BitBoard checkers = (knightAttacks(1ULL << kingPos) & brd.pieceLocations[!isWhite][KNIGHT])
+		BitBoard checkers = (getKnightAttacks(1ULL << kingPos) & brd.pieceLocations[!isWhite][KNIGHT])
 						   |(getPawnAttacks(king, isWhite) & brd.pieceLocations[!isWhite][PAWN]);
 
 		// sliding checks candidates
@@ -553,7 +561,7 @@ namespace KRONOS {
 			}
 
 			if (numCheckers > 1) {
-				BitBoard kingMoves = kingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~(kingBan);
+				BitBoard kingMoves = getKingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~(kingBan);
 				BitBoard kingAttacks = kingMoves & brd.occupied[!isWhite];
 				kingMoves ^= kingAttacks;
 
@@ -677,7 +685,7 @@ namespace KRONOS {
 
 			posBB = 1ULL << from;
 
-			quietMoves = knightAttacks(posBB) & EnemyAndEmpty(brd, isWhite) & checkMask;
+			quietMoves = getKnightAttacks(posBB) & EnemyAndEmpty(brd, isWhite) & checkMask;
 			attacks = quietMoves & brd.occupied[!isWhite];
 			quietMoves ^= attacks;
 
@@ -719,7 +727,7 @@ namespace KRONOS {
 
 		from = bitScanForward(king);
 		
-		quietMoves = kingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~kingBan;
+		quietMoves = getKingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~kingBan;
 		attacks = quietMoves & brd.occupied[!isWhite];
 		quietMoves ^= attacks;
 		

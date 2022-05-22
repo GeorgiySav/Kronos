@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <limits>
 
 #define getBit(bb, i) (bb & (1ULL << i)) 
 #define setBit(bb, i) (bb |= (1ULL << i))

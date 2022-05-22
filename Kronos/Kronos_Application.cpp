@@ -13,7 +13,7 @@ Kronos_Application::Kronos_Application()
 
 	ImGui::SFML::Init(window);
 
-	kronosEngine->processFEN("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+	kronosEngine->processFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	kronosEngine->generateMoves();
 
 	boardUI.setScale(0.75);
@@ -118,7 +118,7 @@ void Kronos_Application::run()
 void Kronos_Application::render()
 {
 	window.clear();
-	boardUI.renderKronosBoard(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getStatusPointer()->isWhite);
+	boardUI.renderKronosBoard(window, kronosEngine->getBitBoardsPointer(), true);
 	ImGui::SFML::Render(window);
 	window.display();
 }
@@ -143,6 +143,13 @@ void Kronos_Application::processInputs() {
 					//pgnMoves.pop_back();
 					kronosEngine->generateMoves();
 				}
+			}
+		}
+
+		if (events.type == sf::Event::KeyPressed) {
+			if (events.key.code == sf::Keyboard::G) {
+				kronosEngine->makeMove(kronosEngine->getBestMove());
+				kronosEngine->generateMoves();
 			}
 		}
 		

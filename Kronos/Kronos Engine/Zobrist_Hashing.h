@@ -10,11 +10,15 @@ namespace KRONOS {
 	namespace ZOBRIST {
 		
 		static u64 zobristHashVals[2][6][64];
+		static u64 moveBlack;
+		static u64 castlingRights[4];
+		static u64 enPassantFiles[8];
 
 		static void initZobrists() {
 
 			std::random_device rd;
 			std::mt19937_64 e2(rd());
+			e2.seed(NULL);
 			std::uniform_int_distribution<u64> dist(0ULL, 0xFFFFFFFFFFFFFFFFULL);
 
 			for (int c = 0; c < 2; c++) {
@@ -25,6 +29,17 @@ namespace KRONOS {
 				}
 			}
 
+			moveBlack = dist(e2);
+			
+			castlingRights[0] = dist(e2);
+			castlingRights[1] = dist(e2);
+			castlingRights[2] = dist(e2);
+			castlingRights[3] = dist(e2);
+
+			for (int i = 0; i < 8; i++) {
+				enPassantFiles[i] = dist(e2);
+			}
+			
 		}
 
 		sinline u64 getHash(Position position) {
@@ -39,12 +54,21 @@ namespace KRONOS {
 					}
 				}
 			}
+
+			hash ^= (position.status.WKcastle ? castlingRights[0] : 0ULL);
+			hash ^= (position.status.WQcastle ? castlingRights[1] : 0ULL);
+			hash ^= (position.status.BKcastle ? castlingRights[2] : 0ULL);
+			hash ^= (position.status.BQcastle ? castlingRights[3] : 0ULL);
+
+			hash ^= position.status.EP != no_Tile ? enPassantFiles[position.status.EP % 8] : 0ULL;
+
+			hash ^= (!position.status.isWhite ? moveBlack : 0ULL);
+			
 			return hash;
 		}
 
-		CompileTime void updateHash(u64& hash, int from, int to, bool isWhite, int piece) {
-			hash ^= zobristHashVals[isWhite][piece][from];
-			hash ^= zobristHashVals[isWhite][piece][to];
+		sinline u64 updateHash(u64 hash, Move move, BoardStatus newStatus) {
+			
 		}
 
 	}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <functional>
 
 #include "utility.h"
 
@@ -44,11 +45,11 @@ namespace KRONOS {
 		RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
 	};
 
-	static uint64_t getFileMask(int tile) {
+	CompileTime uint64_t getFileMask(int tile) {
 		return fileMask[(tile % 8)];
 	}
 	
-	static uint64_t getRankMask(int tile) {
+	CompileTime uint64_t getRankMask(int tile) {
 		return rankMask[tile / 8];
 	}
 
@@ -65,12 +66,12 @@ namespace KRONOS {
 
 	static const u64 debruijn64 = 0x03f79d71b4cb0a89;
 
-	static int bitScanForward(u64 bb) {
+	CompileTime int bitScanForward(u64 bb) {
 		assert(bb != 0);
 		return BitTable[((bb ^ (bb - 1)) * debruijn64) >> 58];
 	}
 
-	static int bitScanReverse(u64 bb) {
+	CompileTime int bitScanReverse(u64 bb) {
 		assert(bb != 0);
 		bb |= bb >> 1;
 		bb |= bb >> 2;
@@ -81,7 +82,7 @@ namespace KRONOS {
 		return BitTable[(bb * debruijn64) >> 58];
 	}
 
-	static int populationCount(u64 bb) {
+	CompileTime int populationCount(u64 bb) {
 		int count = 0;
 		while (bb) {
 			count++;
@@ -149,7 +150,22 @@ namespace KRONOS {
 	CompileTime u64 shiftSE(u64 b, int n) { for (int i = 0; i < n; i++) b = SEOne(b); return b; }
 	CompileTime u64 shiftSW(u64 b, int n) { for (int i = 0; i < n; i++) b = SWOne(b); return b; }
 
-	
+	CompileTime u64 northFill(u64 b)   { return b |= b << 8, b |= b << 16, b |= b << 32; }
+	CompileTime u64 southFill(u64 b)   { return b |= b >> 8, b |= b >> 16, b |= b >> 32;  }
+	CompileTime u64 northFillEx(u64 b) { return b |= b << 8, b |= b << 16, (b |= b << 32) << 8; }
+	CompileTime u64 southFillEx(u64 b) { return b |= b >> 8, b |= b >> 16, (b |= b >> 32) >> 8; }
+
+	CompileTime u64 pawnFill(u64 brd, bool isWhite) {
+		if (isWhite) return northFill(brd);
+		else return southFill(brd);
+	}
+
+	CompileTime u64 pawnFillEx(u64 brd, bool isWhite) {
+		if (isWhite) return northFillEx(brd);
+		else return southFillEx(brd);
+	}
+
+	CompileTime u64 fileFill(u64 b) { return northFill(b) | southFill(b); }
 
 	static std::string _BitBoard(u64 b) {
 		std::string str = "";
