@@ -121,7 +121,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)/Kronos/ImGui;$(SolutionDir)/SFML/include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -139,10 +139,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)/Kronos/ImGui;$(SolutionDir)/SFML/include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,9 +160,17 @@
     <ClCompile Include="ImGui\imgui_draw.cpp" />
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Kronos Engine\Evaluation.cpp" />
     <ClCompile Include="Kronos Engine\Kronos.cpp" />
+    <ClCompile Include="Kronos Engine\Magic.cpp" />
+    <ClCompile Include="Kronos Engine\Move_Generation.cpp" />
+    <ClCompile Include="Kronos Engine\polyBook.cpp" />
+    <ClCompile Include="Kronos Engine\polyBook.h" />
+    <ClCompile Include="Kronos Engine\Zobrist_Hashing.cpp" />
     <ClCompile Include="Kronos_Application.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Kronos Engine\Transposition_Table.cpp" />
+    <ClCompile Include="Kronos Engine\Search.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig-SFML.h" />
@@ -176,16 +185,19 @@
     <ClInclude Include="Kronos Engine\BitBoard.h" />
     <ClInclude Include="Kronos Engine\Board.h" />
     <ClInclude Include="Kronos Engine\Evaluation.h" />
+    <ClInclude Include="Kronos Engine\Eval_Params.h" />
     <ClInclude Include="Kronos Engine\Kronos.h" />
+	<ClInclude Include="Kronos Engine\Rays.h" />
     <ClInclude Include="Kronos Engine\Magic.h" />
     <ClInclude Include="Kronos Engine\Magic_Vars.h" />
     <ClInclude Include="Kronos Engine\Move_Generation.h" />
-    <ClInclude Include="Kronos Engine\Rays.h" />
+    <ClInclude Include="Kronos Engine\polyKeys.h" />
     <ClInclude Include="Kronos Engine\Search.h" />
     <ClInclude Include="Kronos Engine\utility.h" />
     <ClInclude Include="Kronos Engine\Zobrist_Hashing.h" />
     <ClInclude Include="Kronos_Application.h" />
     <ClInclude Include="Kronos_UI.h" />
+    <ClInclude Include="Kronos Engine\Transposition_Table.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\ChessPiecesArray.png" />
@@ -197,6 +209,8 @@
   <ItemGroup>
     <None Include="imgui.ini" />
     <None Include="openal32.dll" />
+    <None Include="Opening Books\baron30.bin" />
+    <None Include="Opening Books\Titans.bin" />
     <None Include="sfml-audio-2.dll" />
     <None Include="sfml-audio-d-2.dll" />
     <None Include="sfml-graphics-2.dll" />

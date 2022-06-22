@@ -2,14 +2,11 @@
 
 Kronos_Application::Kronos_Application()
 	: window(sf::RenderWindow(sf::VideoMode(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT), "Chess"))
-	, kronosEngine(std::make_unique<KRONOS::KronosEngine>(KRONOS::KronosEngine()))
 	, boardUI(Kronos_Board_UI())
 	, events(sf::Event())
 {
-	// must initialise these values for move generation to work
-	KRONOS::initRays();
-	KRONOS::initMagics();
-	KRONOS::ZOBRIST::initZobrists();
+
+	kronosEngine = std::make_unique<KRONOS::KronosEngine>();
 
 	ImGui::SFML::Init(window);
 
@@ -152,18 +149,25 @@ void Kronos_Application::processInputs() {
 				kronosEngine->generateMoves();
 			}
 		}
+
+		if (events.type == sf::Event::KeyPressed) {
+			if (events.key.code == sf::Keyboard::E) {
+				system("cls");
+				kronosEngine->traceEval();
+			}
+		}
 		
 		if (events.type == sf::Event::MouseButtonPressed) {
 			if (events.key.code == sf::Mouse::Left) {
 				if (boardUI.getBoardSpritePointer()->getGlobalBounds().contains(sf::Vector2f(mousePos))) {
-					boardUI.selectPiece(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getMovesPointer(), kronosEngine->getStatusPointer()->isWhite, kronosEngine->getStatusPointer()->isWhite);
+					boardUI.selectPiece(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getMovesPointer(), kronosEngine->getStatusPointer()->isWhite, true);
 				}
 			}
 		}
 
 		if (events.type == sf::Event::MouseButtonReleased) {
 			if (events.key.code == sf::Mouse::Left) {
-				if (auto move = boardUI.dropPiece(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getStatusPointer()->isWhite)) {
+				if (auto move = boardUI.dropPiece(window, kronosEngine->getBitBoardsPointer(), true)) {
 					kronosEngine->makeMove(move.value());
 					kronosEngine->generateMoves();
 				}

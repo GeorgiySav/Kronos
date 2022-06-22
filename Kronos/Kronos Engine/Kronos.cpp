@@ -1,13 +1,14 @@
 #include "Kronos.h"
 
+#include "polyBook.h"
+
 using namespace KRONOS;
 
 KronosEngine::KronosEngine()
 {
 	KRONOS::initRays();
 	KRONOS::initMagics();
-	KRONOS::ZOBRIST::initZobrists();
-	
+
 	//processFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
 	//
 	//std::cout << _BitBoard(positions[ply].board.occupied[BOTH]) << std::endl;
@@ -40,6 +41,8 @@ KronosEngine::KronosEngine()
 
 KronosEngine::~KronosEngine()
 {
+	deleteMagics();
+	deleteRays();
 }
 
 void KronosEngine::processFEN(std::string FEN)

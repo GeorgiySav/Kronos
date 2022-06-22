@@ -39,6 +39,30 @@
     <ClCompile Include="Kronos_Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Kronos Engine\Transposition_Table.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Search.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Zobrist_Hashing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Evaluation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Magic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Move_Generation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\polyBook.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\polyBook.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kronos Engine\Kronos.h">
@@ -107,6 +131,15 @@
     <ClInclude Include="Kronos Engine\Evaluation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Kronos Engine\Eval_Params.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Transposition_Table.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\polyKeys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\chess_sprite_sheet.png">
@@ -138,5 +171,11 @@
     <None Include="sfml-window-2.dll" />
     <None Include="sfml-window-d-2.dll" />
     <None Include="imgui.ini" />
+    <None Include="Opening Books\baron30.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Opening Books\Titans.bin">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

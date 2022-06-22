@@ -153,7 +153,7 @@ namespace KRONOS
 		}
 
 		Move getBestMove() {
-			return search.search(positions[ply], 5, 4000);
+			return search.search(positions[ply], 5, 10000);
 		}
 
 		void printBoard() {
@@ -188,6 +188,12 @@ namespace KRONOS
 			return ply;
 		}
 		
+		void traceEval() {
+			search.evaluate.tracedEval(positions[ply]);
+			search.setPosition(positions[ply]);
+			std::cout << "Evaluate at a depth of 5: " << search.searchWithAlphaBeta(5) << std::endl << std::endl;
+		}
+
 		friend std::ostream& operator<<(std::ostream& os, const KronosEngine& bb) {
 
 			//os << "White Pawns: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][PAWN]) << std::endl;

@@ -7,8 +7,6 @@
 
 namespace KRONOS {
 	
-	typedef u64 BitBoard;
-	
 	const u64 EMPTY = 0ULL;
 	const u64 UNIVERSE = 0xFFFFFFFFFFFFFFFFULL;
 	
