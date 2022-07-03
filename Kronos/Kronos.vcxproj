@@ -124,7 +124,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)/Kronos/ImGui;$(SolutionDir)/SFML/include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,8 +142,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)/Kronos/ImGui;$(SolutionDir)/SFML/include</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <LanguageStandard_C>Default</LanguageStandard_C>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -171,6 +170,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Kronos Engine\Transposition_Table.cpp" />
     <ClCompile Include="Kronos Engine\Search.cpp" />
+    <ClCompile Include="Kronos Engine\Move.cpp" />
+    <ClCompile Include="Kronos Engine\SyzygyTB.cpp" />
+    <ClCompile Include="Syzygy endgame tablebases\tbchess.cpp" />
+    <ClCompile Include="Syzygy endgame tablebases\tbprobe.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig-SFML.h" />
@@ -184,10 +187,11 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="Kronos Engine\BitBoard.h" />
     <ClInclude Include="Kronos Engine\Board.h" />
+    <ClInclude Include="Kronos Engine\consts.h" />
     <ClInclude Include="Kronos Engine\Evaluation.h" />
     <ClInclude Include="Kronos Engine\Eval_Params.h" />
     <ClInclude Include="Kronos Engine\Kronos.h" />
-	<ClInclude Include="Kronos Engine\Rays.h" />
+    <ClInclude Include="Kronos Engine\Rays.h" />
     <ClInclude Include="Kronos Engine\Magic.h" />
     <ClInclude Include="Kronos Engine\Magic_Vars.h" />
     <ClInclude Include="Kronos Engine\Move_Generation.h" />
@@ -198,6 +202,11 @@
     <ClInclude Include="Kronos_Application.h" />
     <ClInclude Include="Kronos_UI.h" />
     <ClInclude Include="Kronos Engine\Transposition_Table.h" />
+    <ClInclude Include="Kronos Engine\Move.h" />
+    <ClInclude Include="Kronos Engine\SyzygyTB.h" />
+    <ClInclude Include="Syzygy endgame tablebases\stdendian.h" />
+    <ClInclude Include="Syzygy endgame tablebases\tbconfig.h" />
+    <ClInclude Include="Syzygy endgame tablebases\tbprobe.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\ChessPiecesArray.png" />
@@ -207,6 +216,7 @@
     <Image Include="Images\window_icon.png" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Simplified_Overview.cd" />
     <None Include="imgui.ini" />
     <None Include="openal32.dll" />
     <None Include="Opening Books\baron30.bin" />

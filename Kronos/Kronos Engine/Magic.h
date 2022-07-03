@@ -8,22 +8,27 @@
 
 namespace KRONOS {
 
-	template <int T>
 	struct Magic {
 		BitBoard mask;
 		int shift;
-		u64 attacks[T];
+		std::vector<u64> attacks = {};
 		
 		Magic() : mask(0), shift(0) {
-			memset(attacks, 0, sizeof(attacks));
+			
 		}
 
 		~Magic() {}
 
+		void addAttack(int index, u64 attack) {
+			if (index >= attacks.size())
+				attacks.resize(size_t(index + 1));		
+			attacks[index] = attack;
+		}
+
 	};
 
-	inline std::array<Magic< 512>, 64> mBishopTable;
-	inline std::array<Magic<4096>, 64> mRookTable;
+	inline std::array<Magic, 64> mBishopTable;
+	inline std::array<Magic, 64> mRookTable;
 
 	u64 generateBishopMask(int tile);	
 	u64 generateRookMask(int tile);

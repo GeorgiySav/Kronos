@@ -5,9 +5,69 @@
 namespace KRONOS
 {
 
+	inline Move MoveIntToMove(uint16_t move, const Position* position)
+	{
+		Move newMove;
+
+		newMove.from = (move & 0b1111'1100'0000) >> 6;
+		newMove.to = (move & 0b11'1111);
+
+		switch ((move & 0b1111'0000'0000'0000) >> 12)
+		{
+		case QUEEN_PROMOTION:
+			newMove.flag = QUEEN_PROMOTION;
+			break;
+		case ROOK_PROMOTION:
+			newMove.flag = ROOK_PROMOTION;
+			break;
+		case BISHOP_PROMOTION:
+			newMove.flag = BISHOP_PROMOTION;
+			break;
+		case KNIGHT_PROMOTION:
+			newMove.flag = KNIGHT_PROMOTION;
+			break;
+		}
+
+		for (int p = 0; p < 6; p++) {
+			if (position->board.pieceLocations[position->status.isWhite][p] & (1ULL << newMove.from)) {
+				newMove.moved_Piece = p;
+				break;
+			}
+		}
+
+		if (newMove.moved_Piece == PAWN) {
+			// check for enpassant
+			if ((abs(newMove.to - newMove.from) == 7 || abs(newMove.to - newMove.from) == 0) && !((1ULL << newMove.to) & position->board.occupied[BOTH])) {
+				newMove.flag = ENPASSANT;
+			}
+		}
+		else if (newMove.moved_Piece == KING) {
+			if (newMove.from == E1)
+				if (newMove.to == G1)
+					newMove.flag = KING_CASTLE;
+				else if (newMove.to == C1)
+					newMove.flag = QUEEN_CASTLE;
+				else if (newMove.from == E8)
+					if (newMove.to == G8)
+						newMove.flag = KING_CASTLE;
+					else if (newMove.to == C8)
+						newMove.flag = QUEEN_CASTLE;
+		}
+
+		if ((1ULL << newMove.to) && position->board.occupied[BOTH])
+			newMove.flag |= CAPTURE;
+
+		return newMove;
+
+	}
+
 	inline void updatePosition(Position& position, Move move) {
 
 		position.status.EP = no_Tile;
+		
+		position.halfMoves++;
+		if (position.status.isWhite)
+			position.fullMoves++;
 
 		if (move.moved_Piece == PAWN) {
 			if (abs(move.to - move.from) == 16) position.status.EP = move.to + (position.status.isWhite ? -8 : 8);
@@ -20,6 +80,7 @@ namespace KRONOS
 			}
 			else if (move.flag == ENPASSANT)
 				popBit(position.board.pieceLocations[!position.status.isWhite][PAWN], ((position.status.isWhite) ? (move.to - 8) : (move.to + 8)));
+			position.halfMoves = 0;
 		}
 		else if (move.moved_Piece == ROOK) {
 			if (position.status.isWhite) {
@@ -50,15 +111,13 @@ namespace KRONOS
 			BitBoard notTaken = ~(1ULL << move.to);
 			for (BitBoard& enemyPieceBB : position.board.pieceLocations[!position.status.isWhite])
 				enemyPieceBB &= notTaken;
+			position.halfMoves = 0;
 		}
 		if (!(move.flag & PROMOTION)) {
 			position.board.pieceLocations[position.status.isWhite][move.moved_Piece] ^= moveBB;
 		}
 
 		position.status.isWhite = !position.status.isWhite;
-		position.halfMoves++;
-		if (position.status.isWhite)
-			position.fullMoves++;
 
 		position.board.mergeBoth();
 

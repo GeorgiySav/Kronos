@@ -60,7 +60,7 @@ namespace KRONOS
 			}
 		}
 
-		u64 Opening_Book::polyKeyFromPosition(const Position& position)
+		u64 Opening_Book::polyKeyFromPosition(const Position* position)
 		{
 			/*
 				black pawn    0
@@ -79,13 +79,10 @@ namespace KRONOS
 			
 			u64 polyKey = 0ULL;
 
-			for (int p = 0; p < 6; p++)
-			{
-				for (int c = 0; c < 2; c++)
-				{
-					BitBoard pBB = position.board.pieceLocations[c][p];
-					while (pBB)
-					{
+			for (int p = 0; p < 6; p++)	{
+				for (int c = 0; c < 2; c++) {
+					BitBoard pBB = position->board.pieceLocations[c][p];
+					while (pBB) {
 						int tile = bitScanForward(pBB);
 						popBit(pBB, tile);
 						int offset = 64 * ((2 * p) + c) + 8 * std::floor(tile / 8) + (tile % 8);
@@ -94,27 +91,24 @@ namespace KRONOS
 				}
 			}
 
-			polyKey ^= (position.status.WKcastle ? polyNums[768] : 0ULL);
-			polyKey ^= (position.status.WQcastle ? polyNums[769] : 0ULL);
-			polyKey ^= (position.status.BKcastle ? polyNums[770] : 0ULL);
-			polyKey ^= (position.status.BQcastle ? polyNums[771] : 0ULL);
+			polyKey ^= (position->status.WKcastle ? polyNums[768] : 0ULL);
+			polyKey ^= (position->status.WQcastle ? polyNums[769] : 0ULL);
+			polyKey ^= (position->status.BKcastle ? polyNums[770] : 0ULL);
+			polyKey ^= (position->status.BQcastle ? polyNums[771] : 0ULL);
 
-			if (position.status.EP != no_Tile)
-			{
-				if ((1ULL << position.status.EP) & (getPawnAttacks(position.board.pieceLocations[position.status.isWhite][PAWN], position.status.isWhite)))
-				{
-					int offset = 772 + (position.status.EP % 8);
+			if (position->status.EP != no_Tile) {
+				if ((1ULL << position->status.EP) & (getPawnAttacks(position->board.pieceLocations[position->status.isWhite][PAWN], position->status.isWhite))) {
+					int offset = 772 + (position->status.EP % 8);
 					polyKey ^= polyNums[offset];
 				}
 			}
 
-			polyKey ^= (position.status.isWhite ? polyNums[780] : 0ULL);
-
+			polyKey ^= (position->status.isWhite ? polyNums[780] : 0ULL);
 			return polyKey;
 
 		}
 
-		constexpr Move Opening_Book::decodeU16Move(u16 move, const Position& position)
+		constexpr Move Opening_Book::decodeU16Move(u16 move, const Position* position)
 		{
 
 			/*
@@ -141,14 +135,14 @@ namespace KRONOS
 
 			int flag = 0;
 
-			if (position.status.EP != no_Tile
-				&& (((1ULL << dMove.from) & position.board.pieceLocations[position.status.isWhite][PAWN]) && ((1ULL << dMove.to) & (1ULL << position.status.EP)))) {
+			if (position->status.EP != no_Tile
+				&& (((1ULL << dMove.from) & position->board.pieceLocations[position->status.isWhite][PAWN]) && ((1ULL << dMove.to) & (1ULL << position->status.EP)))) {
 				flag = ENPASSANT;
 				dMove.moved_Piece = PAWN;
 			}
 			else {
 
-				if ((1ULL << dMove.from) & position.board.pieceLocations[position.status.isWhite][KING]) {
+				if ((1ULL << dMove.from) & position->board.pieceLocations[position->status.isWhite][KING]) {
 					if (dMove.from == E1)
 					{
 						if (dMove.to == A1) {
@@ -160,7 +154,7 @@ namespace KRONOS
 							dMove.to = G1;
 						}
 					}
-					else if (dMove.to == E8)
+					else if (dMove.from == E8)
 					{
 						if (dMove.to == A8) {
 							flag = QUEEN_CASTLE;
@@ -175,7 +169,7 @@ namespace KRONOS
 				}
 				else
 				{
-					if ((1ULL << dMove.to) & position.board.occupied[!position.status.isWhite]) {
+					if ((1ULL << dMove.to) & position->board.occupied[!position->status.isWhite]) {
 						flag = CAPTURE;
 					}
 
@@ -199,7 +193,7 @@ namespace KRONOS
 					}
 
 					for (int p = 0; p < 5; p++) {
-						if ((1ULL << dMove.from) & position.board.pieceLocations[position.status.isWhite][p]) {
+						if ((1ULL << dMove.from) & position->board.pieceLocations[position->status.isWhite][p]) {
 							dMove.moved_Piece = p;
 							break;
 						}
@@ -222,12 +216,12 @@ namespace KRONOS
 		u64 endian_swap_u64(u64 x)
 		{
 			x = (x >> 56) |
-				((x << 40) & 0x00FF000000000000) |
-				((x << 24) & 0x0000FF0000000000) |
-				((x << 8) & 0x000000FF00000000) |
-				((x >> 8) & 0x00000000FF000000) |
-				((x >> 24) & 0x0000000000FF0000) |
-				((x >> 40) & 0x000000000000FF00) |
+			   ((x << 40) & 0x00FF000000000000) |
+			   ((x << 24) & 0x0000FF0000000000) |
+			   ((x << 8) & 0x000000FF00000000) |
+			   ((x >> 8) & 0x00000000FF000000) |
+			   ((x >> 24) & 0x0000000000FF0000) |
+			   ((x >> 40) & 0x000000000000FF00) |
 				(x << 56);
 			return x;
 		}
@@ -248,51 +242,38 @@ namespace KRONOS
 			return current;
 		}
 
-		Move Opening_Book::getBookMove(const Position& position)
+		Move Opening_Book::getBookMove(const Position* position)
 		{
 			u64 polyKey = polyKeyFromPosition(position);
 			std::vector<POLY_BOOK_ENTRY> entries;
 
-			for (int i = 0; i < numEntries; i++)
-			{
-				if (polyKey == endian_swap_u64(book[i].key))
-				{
-						
+			for (int i = 0; i < numEntries; i++) {
+				if (polyKey == endian_swap_u64(book[i].key)) {		
 					entries.push_back(book[i]);
 				}
 			}
 
-			if (!entries.empty())
-			{
-				
-				if (mode == POLY_MODE::RANDOM)
-				{
+			if (!entries.empty()) {
+				if (mode == POLY_MODE::RANDOM) {
 					return decodeU16Move(endian_swap_u16(getRandomMove(&entries)->move), position);
 				}
-				else
-				{
+				else {
 				    std::sort(entries.begin(), entries.end(), [](const POLY_BOOK_ENTRY& X, const POLY_BOOK_ENTRY& Y) -> bool { return X.weight > Y.weight; });
 					
 					int upperLimit = 0;
 					
 					while (upperLimit < entries.size() - 1 && entries[upperLimit].weight == entries[upperLimit + 1].weight)
-					{
 						upperLimit++;
-					}
 
 					if (upperLimit)
 						return decodeU16Move(endian_swap_u16(entries[rand() % upperLimit].move), position);
 					else
 						return decodeU16Move(endian_swap_u16(entries[0].move), position);
 				}
-
-
 			}
-			else
-			{
+			else {
 				return Move();
 			}
-
 
 		}
 	}

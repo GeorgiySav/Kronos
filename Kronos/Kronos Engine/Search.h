@@ -4,6 +4,7 @@
 #include <optional>
 #include <cmath>
 
+#include "consts.h"
 #include "utility.h"
 #include "Transposition_Table.h"
 #include "Evaluation.h"
@@ -15,24 +16,17 @@
 namespace KRONOS {
 	
 	namespace SEARCH {
-		
-#define MAX_ITERATIVE_DEPTH 7
-#define MAX_SEARCH_DEPTH 30
-#define MAX_TRANSPOSITION_TABLE_SIZE 1000003
-#define DEFAULT_TRANSPOSITION_TABLE_SIZE 1000003
-
-#define immediateMateScore 1000000
 
 #define USE_TRANSPOSITION_TABLE 
 #define USE_OPENING_BOOK
-
-		static const int infinity = std::numeric_limits<basic_score>::max();
+#define USE_SYZYGY
 
 		class SearchTree {
 		private:
 
+			std::vector<Position>* positions;
+
 			int ply;
-			std::array<Position, MAX_SEARCH_DEPTH> positions;
 
 			HASH::ZobristGenerator zobrist;
 
@@ -50,8 +44,13 @@ namespace KRONOS {
 
 			POLY::Opening_Book openingBook;
 
+			bool resourcesLeft;
+
+			void checkResources();
 			inline int quiescenceSearch(int alpha, int beta, int plyFromRoot);
+			template <bool isPV>
 			int alphaBeta(int depth, int plyFromRoot, int alpha, int beta);
+			int searchRoot(int depth, int alpha, int beta);
 		public:
 			EVALUATION::Evaluation evaluate;
 			SearchTree();
@@ -61,17 +60,14 @@ namespace KRONOS {
 
 			inline void iterativeDeepening(int targetDepth);
 
-			Move search(Position position, int depth, int MAX_TIME);
+			Move search(std::vector<Position>* position, int ply, int depth, int MAX_TIME);
 
-			inline int searchWithAlphaBeta(int depth) {
-				max_time = infinity;
-				//transpositionTable.setAncient();
+			inline int searchWithAlphaBeta(std::vector<Position>* positions, int ply, int depth) {
+				max_time = INFINITE;
+				this->positions = positions;
+				this->ply = ply;
 				startPoint = clock.now();
-				return alphaBeta(depth, 0, -infinity, infinity);
-			}
-
-			constexpr void setPosition(const Position& pos) {
-				positions[0] = pos;
+				return alphaBeta(depth, 0, -INFINITE, INFINITE);
 			}
 
 		};

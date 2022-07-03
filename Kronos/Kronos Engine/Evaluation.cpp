@@ -10,6 +10,11 @@ namespace KRONOS {
 		
 		using namespace PARAMS;
 
+		const u64 COLOURED_SQUARE_BB[2] = {
+			12273903644374837845ULL,
+		   ~12273903644374837845ULL
+		}; 
+
 		Evaluation::Evaluation()
 			: position(Position()), ally(false), enem(false) 
 		{
@@ -141,7 +146,24 @@ namespace KRONOS {
 				}
 
 				int mobility = populationCount(atks & mobilityMask);
-				score += getMobilityScore<pieceType>(mobility);
+				score += MOBILITY_BONUS[pieceType][mobility];
+
+				if constexpr (pieceType == BISHOP)
+				{
+					// punish the bishop if too many pawns are on its coloured square
+					int colouredTile = ((int)std::floor(tile / 8) % 2) == ((tile % 8) % 2);
+					score -= BISHOP_PAWN_PENALTY * populationCount(COLOURED_SQUARE_BB[colouredTile] & position.board.pieceLocations[side][PAWN]);
+				}
+				else if constexpr (pieceType == ROOK)
+				{
+					// reward if the rook is on a half or fully open file
+					if (((position.board.pieceLocations[WHITE][PAWN] | position.board.pieceLocations[BLACK][PAWN]) & fileMask[tile % 8]) == 0ULL) {
+						score += ROOK_OPEN_FILE_BONUS;
+					}
+					else if ((position.board.pieceLocations[side][PAWN] & fileMask[tile % 8]) == 0ULL) {
+						score += ROOK_SEMI_OPEN_FILE_BONUS;
+					}
+				}
 
 			}
 

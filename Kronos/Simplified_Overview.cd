@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="KRONOS::KronosEngine">
+    <Position X="10.75" Y="0.75" Width="2" />
+    <TypeIdentifier>
+      <HashCode>QgAAABCAADCAAAAAAAAwoAAIQAgAAAAAACIEQAACADA=</HashCode>
+      <FileName>Kronos Engine\Kronos.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="search" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="KRONOS::SEARCH::SearchTree">
+    <Position X="10.75" Y="7" Width="2" />
+    <AssociationLine Name="transpositionTable" Type="KRONOS::HASH::Transposition_Table" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="11.688" Y="11.632" />
+        <Point X="11.688" Y="12.25" />
+      </Path>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>AAQACEAAIABAAAggABAAICECAQIAAAAAQGgCQQAAAAA=</HashCode>
+      <FileName>Kronos Engine\Search.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="evaluate" />
+      <Field Name="transpositionTable" />
+      <Field Name="openingBook" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="KRONOS::EVALUATION::Evaluation">
+    <Position X="15.75" Y="12.25" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>CAEAgAoAARAARAEAAAFiIAAAABIBIAABAAgEAEQAAAA=</HashCode>
+      <FileName>Kronos Engine\Evaluation.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="position" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="KRONOS::HASH::Transposition_Table">
+    <Position X="10.75" Y="12.25" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AAAAIAAAAAACAAhAAIAABAAAAAAAAAAAAABACAAAgAA=</HashCode>
+      <FileName>Kronos Engine\Transposition_Table.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="table" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="KRONOS::POLY::Opening_Book">
+    <Position X="7" Y="12.25" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAACAAgMAQAAAIAABACAABAAAAAAAgAA=</HashCode>
+      <FileName>Kronos Engine\polyBook.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="book" />
+    </ShowAsAssociation>
+  </Class>
+  <Struct Name="KRONOS::BoardStatus">
+    <Position X="14.25" Y="21.75" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAQAAAIAQAAAAAAUiAAAAEAAAAACAAAAAAAA=</HashCode>
+      <FileName>Kronos Engine\Move_Generation.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="KRONOS::Position">
+    <Position X="16" Y="18.5" Width="2" />
+    <AssociationLine Name="status" Type="KRONOS::BoardStatus" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="16.562" Y="20.632" />
+        <Point X="16.562" Y="21.007" />
+        <Point X="15.375" Y="21.007" />
+        <Point X="15.375" Y="21.75" />
+      </Path>
+    </AssociationLine>
+    <AssociationLine Name="board" Type="KRONOS::Board" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="17.5" Y="20.632" />
+        <Point X="17.5" Y="21.007" />
+        <Point X="18.406" Y="21.007" />
+        <Point X="18.406" Y="21.75" />
+      </Path>
+    </AssociationLine>
+    <TypeIdentifier>
+      <HashCode>AAQCAAAAAAAAAAAiAAAAACAAAAAAAAAAIAAAAIAAAAA=</HashCode>
+      <FileName>Kronos Engine\Move_Generation.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="status" />
+      <Field Name="board" />
+    </ShowAsAssociation>
+  </Struct>
+  <Struct Name="KRONOS::Board">
+    <Position X="17.25" Y="21.75" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAQABAAAAAAAAAAAAAAAAAgAAAAAAAAAAgAACAAAAA=</HashCode>
+      <FileName>Kronos Engine\Board.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="KRONOS::HASH::TransCluster">
+    <Position X="11" Y="15.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAEAA=</HashCode>
+      <FileName>Kronos Engine\Transposition_Table.h</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="entrys" />
+    </ShowAsAssociation>
+  </Struct>
+  <Struct Name="KRONOS::HASH::TransEntry">
+    <Position X="11" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAgAAAgAAAAAAgAAAAAgAAAAAAAAAAAAAACIEAAAAA=</HashCode>
+      <FileName>Kronos Engine\Transposition_Table.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="KRONOS::POLY::POLY_BOOK_ENTRY">
+    <Position X="7" Y="15.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAACAAAAEAAAAAAAAAACgAAAAAAAAAAA=</HashCode>
+      <FileName>Kronos Engine\polyBook.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="KRONOS::Score">
+    <Position X="16.25" Y="2.75" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAgAAAAAAQAAAAAAIAAAABAgAAAAAAA=</HashCode>
+      <FileName>Kronos Engine\utility.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="KRONOS::Move">
+    <Position X="14" Y="2.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAIAAAAAAAIAAAAgAAAAAAAAAAAAAAABBAAA=</HashCode>
+      <FileName>Kronos Engine\utility.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

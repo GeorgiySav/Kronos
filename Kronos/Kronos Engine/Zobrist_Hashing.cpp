@@ -61,7 +61,6 @@ namespace KRONOS {
 			hash ^= sideToMove[position.status.isWhite];
 
 			return hash;
-
 		}
 
 	} // namsapce HASH

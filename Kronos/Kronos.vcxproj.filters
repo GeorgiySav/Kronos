@@ -63,6 +63,18 @@
     <ClCompile Include="Kronos Engine\polyBook.h">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Kronos Engine\SyzygyTB.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Move.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Syzygy endgame tablebases\tbchess.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Syzygy endgame tablebases\tbprobe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kronos Engine\Kronos.h">
@@ -140,6 +152,24 @@
     <ClInclude Include="Kronos Engine\polyKeys.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Kronos Engine\SyzygyTB.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Move.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\consts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Syzygy endgame tablebases\stdendian.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Syzygy endgame tablebases\tbconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Syzygy endgame tablebases\tbprobe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\chess_sprite_sheet.png">
@@ -177,5 +207,6 @@
     <None Include="Opening Books\Titans.bin">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Simplified_Overview.cd" />
   </ItemGroup>
 </Project>

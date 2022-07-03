@@ -35,7 +35,7 @@ namespace KRONOS {
 				return tile / 8;
 			}
 
-			const Score pawnPST[64] = {
+			static Score pawnPST[64] = {
 				Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0),
 				Score(  2, -8), Score(  4, -6), Score( 11,  9), Score( 18,  5), Score( 16, 16), Score( 21,  6), Score(  9, -6), Score( -3,-18),
 				Score( -9, -9), Score(-15, -7), Score( 11,-10), Score( 15,  5), Score( 31,  2), Score( 23,  3), Score(  6, -8), Score(-20, -5),
@@ -46,7 +46,7 @@ namespace KRONOS {
 				Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0), Score(  0,  0)
 			};
 
-			const Score knightPST[64] = {
+			static Score knightPST[64] = {
 				 Score(-175, -96), Score(-92,-65), Score(-74,-49), Score(-73,-21), Score(-73,-21), Score(-74,-49), Score(-92,-65), Score(-175, -96),
 				 Score( -77, -67), Score(-41,-54), Score(-27,-18), Score(-15,  8), Score(-15,  8), Score(-27,-18), Score(-41,-54), Score( -77, -67),
 				 Score( -61, -40), Score(-17,-27), Score(  6, -8), Score( 12, 29), Score( 12, 29), Score(  6, -8), Score(-17,-27), Score( -61, -40),
@@ -57,7 +57,7 @@ namespace KRONOS {
 				 Score(-201,-100), Score(-83,-88), Score(-56,-56), Score(-26,-17), Score(-26,-17), Score(-56,-56), Score(-83,-88), Score(-201,-100),
 			};
 
-			const Score bishopPST[64] = {
+			static Score bishopPST[64] = {
 				 Score(-37,-40), Score(-4 ,-21), Score( -6,-26), Score(-16, -8), Score(-16, -8), Score( -6,-26), Score(-4 ,-21), Score(-37,-40),
 				 Score(-11,-26), Score(  6, -9), Score( 13,-12), Score(  3,  1), Score(  3,  1), Score( 13,-12), Score(  6, -9), Score(-11,-26),
 				 Score(-5 ,-11), Score( 15, -1), Score( -4, -1), Score( 12,  7), Score( 12,  7), Score( -4, -1), Score( 15, -1), Score(-5 ,-11),
@@ -69,7 +69,7 @@ namespace KRONOS {
 			};
 
 
-			const Score rookPST[64] = {
+			static Score rookPST[64] = {
 				 Score(-31, -9), Score(-20,-13), Score(-14,-10), Score(-5, -9), Score(-5, -9),  Score(-14,-10), Score(-20,-13), Score(-31, -9),
 				 Score(-21,-12), Score(-13, -9), Score( -8, -1), Score( 6, -2),	Score( 6, -2),  Score( -8, -1),	Score(-13, -9), Score(-21,-12),
 				 Score(-25,  6), Score(-11, -8), Score( -1, -2), Score( 3, -6),	Score( 3, -6),  Score( -1, -2),	Score(-11, -8), Score(-25,  6),
@@ -80,7 +80,7 @@ namespace KRONOS {
 				 Score(-17, 18), Score(-19,  0), Score( -1, 19), Score( 9, 13),	Score( 9, 13),  Score( -1, 19),	Score(-19,  0), Score(-17, 18),
 			};
 
-			const Score queenPST[64] = {
+			static Score queenPST[64] = {
 				 Score( 3,-69), Score(-5,-57), Score(-5,-47), Score( 4,-26), Score( 4,-26), Score(-5,-47), Score(-5,-57), Score( 3,-69),
 				 Score(-3,-54), Score( 5,-31), Score( 8,-22), Score(12, -4), Score(12, -4),	Score( 8,-22), Score( 5,-31), Score(-3,-54),
 				 Score(-3,-39), Score( 6,-18), Score(13, -9), Score( 7,  3), Score( 7,  3),	Score(13, -9), Score( 6,-18), Score(-3,-39),
@@ -91,7 +91,7 @@ namespace KRONOS {
 				 Score(-2,-74), Score(-2,-52), Score( 1,-43), Score(-2,-34), Score(-2,-34),	Score( 1,-43), Score(-2,-52), Score(-2,-74),
 			};
 
-			const Score kingPST[64] = {
+			static Score kingPST[64] = {
 				Score(271,  1), Score(327, 45), Score(271, 85), Score(198, 76),	Score(198, 76),	Score(271, 85),	Score(327, 45),	Score(271,  1),
 			    Score(278, 53), Score(303,100), Score(234,133), Score(179,135),	Score(179,135),	Score(234,133),	Score(303,100),	Score(278, 53),
 			    Score(195, 88), Score(258,130), Score(169,169), Score(120,175),	Score(120,175),	Score(169,169),	Score(258,130),	Score(195, 88),
@@ -102,34 +102,45 @@ namespace KRONOS {
 			    Score( 59, 11), Score( 89, 59), Score( 45, 73), Score( -1, 78),	Score( -1, 78),	Score( 45, 73),	Score( 89, 59),	Score( 59, 11),
 			};
 
-			static Score KNIGHT_MOBILITY_WEIGHT = { 14, 15 };
-			static Score BISHOP_MOBILITY_WEIGHT = { 9, 11 };
-			static Score ROOK_MOBILITY_WEIGHT = { 9, 16 };
-			static Score QUEEN_MOBILITY_WEIGHT = { 37, 43 };
-
-			template<Pieces pieceType>
-			CompileTime Score getMobilityScore(int numMoves) {
-				if constexpr (pieceType == KNIGHT) {
-					//return Score(-80, -80) + KNIGHT_MOBILITY_WEIGHT * numMoves;
-					return SCORE_ZERO + 0.5 * numMoves;
-				}
-				else if constexpr (pieceType == BISHOP) {
-					//return Score(-60, -90) + BISHOP_MOBILITY_WEIGHT * numMoves;
-					return SCORE_ZERO + 0.4 * numMoves;
-				}
-				else if constexpr (pieceType == ROOK) {
-					//return Score(-100, -150) - ROOK_VALUE + ROOK_MOBILITY_WEIGHT * numMoves;
-					return SCORE_ZERO + 0.3 * numMoves;
-				}
-				else if constexpr (pieceType == QUEEN) {
-					//return Score(-700, -1000) + QUEEN_MOBILITY_WEIGHT * numMoves;
-					return Score(-500, -800) + 0.5 * numMoves;
-				}
-			}
+			static Score MOBILITY_BONUS[6][32] = {
+					{}, // PAWN
+					{   // KNIGHT
+						{-41, -65}, {-38, -120}, {-35, -47}, {-30, -23},
+						{-14, -15}, { -9,   -1}, { -1,   9}, {  5,  13},
+						{ 14,  -2}
+					},
+					{   // BISHOP
+						{-40, -37}, {-40, -47}, {-10, -40}, {-6, -14},
+						{  9,   5}, { 18,  19}, { 25,  28}, {26,  34},
+						{ 27,  42}, { 28,  41}, { 24,  43}, {62,  17},
+						{ 23,  31}, {221, -98}
+					},
+					{   // ROOK
+						{-88, 19}, {-14, -22}, {  1,  1}, { 0, 22},
+						{  4, 35}, {  1,  55}, {  4, 56}, {10, 63},
+						{ 17, 74}, { 23,  78}, { 19, 87}, {15, 96},
+						{ 31, 90}, { 49,  82}, {133, 53}
+					},
+					{   // QUEEN
+						{-662, -587}, {-18, 125}, {-14, 38}, { -9, -20},
+						{   6,  -29}, {  5,   4}, { 11, 20}, { 18,  29},
+						{  24,   53}, { 32,  52}, { 41, 53}, { 46,  66},
+						{  51,   73}, { 49,  75}, { 47, 83}, { 46,  89},
+						{  46,   86}, { 36,  92}, { 28, 88}, { 50,  79},
+						{  55,   69}, { 67,  53}, { 78, 42}, {126,   6},
+						{ 127,   -2}, {115,   6}, {166, 36}, { 84, -12},
+						{ 189,  298}
+					}
+			};
 
 			static basic_score SAFE_CHECK_SCORE[][2] = {
 				{}, {805, 1292}, {650, 984}, {1071, 1886}, {730, 1128}
 		    };
+
+			static Score BISHOP_PAWN_PENALTY = { 6, 7 };
+			static Score ROOK_SEMI_OPEN_FILE_BONUS = { 10, -7 };
+			static Score ROOK_OPEN_FILE_BONUS = { 24, 13 };
+
 
 			static Score FLANK_ATTACKS = Score(8, 0);
 			static Score PAWNLESS_FLANK = Score(19, 97);

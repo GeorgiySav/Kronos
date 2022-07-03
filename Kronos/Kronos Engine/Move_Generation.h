@@ -7,6 +7,7 @@
 #include "Magic.h"
 #include "BitBoard.h"
 #include "Board.h"
+#include "Move.h"
 
 namespace KRONOS {
 
@@ -121,6 +122,8 @@ namespace KRONOS {
 		PROMOTION        = 0b1000,
 
 	};
+
+	extern inline Move MoveIntToMove(uint16_t move, const Position* position);
 
 	extern inline void updatePosition(Position& position, Move move);
 	extern inline Position newPosition(Position curPos, Move move);

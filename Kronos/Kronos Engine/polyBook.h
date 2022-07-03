@@ -30,14 +30,14 @@ namespace KRONOS
 			POLY_BOOK_ENTRY* book = nullptr;
 			int numEntries = 0;
 			POLY_MODE mode;
-			constexpr Move decodeU16Move(u16 move, const Position& position);
+			constexpr Move decodeU16Move(u16 move, const Position* position);
 		public:
 			Opening_Book();
 			~Opening_Book();
 			void setMode(POLY_MODE mode);
 			void readBook(const char* filename);
-			u64 polyKeyFromPosition(const Position& position);
-			Move getBookMove(const Position& position);
+			u64 polyKeyFromPosition(const Position* position);
+			Move getBookMove(const Position* position);
 		};
 
 

@@ -18,8 +18,6 @@
 #include "Zobrist_Hashing.h"
 #include "Search.h"
 
-#define MAX_POSITIONS 100
-
 namespace KRONOS
 {
 	
@@ -57,8 +55,8 @@ namespace KRONOS
 	{
 
 		int ply = 0;
-		std::array<Position, MAX_POSITIONS> positions;
-		std::array<Move, MAX_POSITIONS> moveHistory;
+		std::vector<Position> positions;
+		std::vector<Move> moveHistory;
 
 		std::vector<Move> moves;
 
@@ -78,6 +76,7 @@ namespace KRONOS
 		}
 
 		void processFEN(std::string FEN);
+		std::string boardToFen(Position* position);
 		
 		inline void generateMoves() {
 			moves.clear();
@@ -153,7 +152,7 @@ namespace KRONOS
 		}
 
 		Move getBestMove() {
-			return search.search(positions[ply], 5, 10000);
+			return search.search(&positions, ply, 5, 10000);
 		}
 
 		void printBoard() {
@@ -190,8 +189,7 @@ namespace KRONOS
 		
 		void traceEval() {
 			search.evaluate.tracedEval(positions[ply]);
-			search.setPosition(positions[ply]);
-			std::cout << "Evaluate at a depth of 5: " << search.searchWithAlphaBeta(5) << std::endl << std::endl;
+			std::cout << "Evaluate at a depth of 5: " << search.searchWithAlphaBeta(&positions, ply, 5) << std::endl << std::endl;
 		}
 
 		friend std::ostream& operator<<(std::ostream& os, const KronosEngine& bb) {

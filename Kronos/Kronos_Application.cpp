@@ -11,6 +11,7 @@ Kronos_Application::Kronos_Application()
 	ImGui::SFML::Init(window);
 
 	kronosEngine->processFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+	//kronosEngine->processFEN("4k3/5q2/8/8/8/8/3Q4/4K3 w - - 0 1");
 	kronosEngine->generateMoves();
 
 	boardUI.setScale(0.75);
