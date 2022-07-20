@@ -23,6 +23,8 @@ namespace KRONOS
 		}
 	};
 
+	static const Move NULL_MOVE(0, 0, 0, 0);
+
 } // namespace KRONOS
 
 

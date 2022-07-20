@@ -111,6 +111,7 @@ namespace KRONOS
 			BitBoard notTaken = ~(1ULL << move.to);
 			for (BitBoard& enemyPieceBB : position.board.pieceLocations[!position.status.isWhite])
 				enemyPieceBB &= notTaken;
+			assert(position.board.pieceLocations[!position.status.isWhite][KING] != 0ULL);
 			position.halfMoves = 0;
 		}
 		if (!(move.flag & PROMOTION)) {
@@ -668,6 +669,18 @@ namespace KRONOS
 			moves->push_back(Move(kingPos, kingPos - 2, QUEEN_CASTLE, KING));
 		}
 
+	}
+
+	inline BitBoard generateAttacksToSquare(Position* position, int tile)
+	{
+		BitBoard attackers = 0ULL;
+		attackers |= (getPawnAttacks((1ULL << tile), BLACK) & position->board.pieceLocations[WHITE][PAWN]);
+		attackers |= (getPawnAttacks((1ULL << tile), WHITE) & position->board.pieceLocations[BLACK][PAWN]);
+		attackers |= (getKnightAttacks(1ULL << tile) & (position->board.pieceLocations[WHITE][KNIGHT] | position->board.pieceLocations[BLACK][KNIGHT]));
+		attackers |= (getBishopAttacks(position->board.occupied[BOTH], tile) & (position->board.pieceLocations[WHITE][BISHOP] | position->board.pieceLocations[BLACK][BISHOP] | position->board.pieceLocations[WHITE][QUEEN] | position->board.pieceLocations[BLACK][QUEEN]));
+		attackers |=   (getRookAttacks(position->board.occupied[BOTH], tile) & (position->board.pieceLocations[WHITE][ROOK] | position->board.pieceLocations[BLACK][ROOK] | position->board.pieceLocations[WHITE][QUEEN] | position->board.pieceLocations[BLACK][QUEEN]));
+		attackers |= (getKingAttacks((1ULL << tile)) & (position->board.pieceLocations[WHITE][KING] | position->board.pieceLocations[BLACK][KING]));
+		return attackers;
 	}
 
 } // namespace KRONOS

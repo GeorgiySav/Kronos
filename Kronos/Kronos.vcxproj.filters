@@ -75,6 +75,9 @@
     <ClCompile Include="Syzygy endgame tablebases\tbprobe.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Kronos Engine\Move_Ordering.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kronos Engine\Kronos.h">
@@ -168,6 +171,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Syzygy endgame tablebases\tbprobe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Move_Ordering.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

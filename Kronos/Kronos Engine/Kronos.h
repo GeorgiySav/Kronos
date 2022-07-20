@@ -189,7 +189,7 @@ namespace KRONOS
 		
 		void traceEval() {
 			search.evaluate.tracedEval(positions[ply]);
-			std::cout << "Evaluate at a depth of 5: " << search.searchWithAlphaBeta(&positions, ply, 5) << std::endl << std::endl;
+			//std::cout << "Evaluate at a depth of 5: " << search.searchWithAlphaBeta(&positions, ply, 5) << std::endl << std::endl;
 		}
 
 		friend std::ostream& operator<<(std::ostream& os, const KronosEngine& bb) {

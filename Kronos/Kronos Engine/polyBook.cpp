@@ -135,6 +135,10 @@ namespace KRONOS
 
 			int flag = 0;
 
+			if ((1ULL << dMove.to) & position->board.occupied[!position->status.isWhite]) {
+				flag = CAPTURE;
+			}
+
 			if (position->status.EP != no_Tile
 				&& (((1ULL << dMove.from) & position->board.pieceLocations[position->status.isWhite][PAWN]) && ((1ULL << dMove.to) & (1ULL << position->status.EP)))) {
 				flag = ENPASSANT;
@@ -169,9 +173,6 @@ namespace KRONOS
 				}
 				else
 				{
-					if ((1ULL << dMove.to) & position->board.occupied[!position->status.isWhite]) {
-						flag = CAPTURE;
-					}
 
 					if (move & promoMask) {
 						switch ((move & promoMask) >> 12)

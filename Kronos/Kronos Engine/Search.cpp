@@ -8,6 +8,7 @@
 #include "Zobrist_Hashing.h"
 
 #include "SyzygyTB.h"
+#include "Move_Ordering.h"
 
 namespace KRONOS {
 	
@@ -79,7 +80,7 @@ namespace KRONOS {
 					}
 				}
 			}
-
+			int bestScore = -INFINITE;
 			for (const Move& move : moves) {
 				if (move.flag & CAPTURE) {
 					ply++;
@@ -88,15 +89,14 @@ namespace KRONOS {
 					int score = -quiescenceSearch(-beta, -alpha, plyFromRoot + 1);
 					ply--;
 
-					if (!resourcesLeft)
-						return CANCELLED;
-
-					if (score >= beta) {
-						// beta cut off
-						return beta;
+					if (score >= beta) {				
+						return score;
 					}
-					if (score > alpha) {
-						alpha = score;
+					if (score > bestScore) {
+						bestScore = score;
+						if (score > alpha) {
+							alpha = score;
+						}
 					}
 				}
 			}
@@ -128,7 +128,7 @@ namespace KRONOS {
 
 		}
 
-		template<bool isPV>
+		template<int node_type>
 		int SearchTree::alphaBeta(int depth, int plyFromRoot, int alpha, int beta) {
 
 			// check for repeats
@@ -137,16 +137,14 @@ namespace KRONOS {
 			}
 
 			basic_score staticEval = evaluate.evaluate(positions->at(ply));
-			bool isPV = alpha != beta - 1;
 
 			// mate distance pruning
-			if (plyFromRoot) {
-				alpha = std::max(alpha, -MATE + plyFromRoot);
-				beta = std::min(beta, MATE - plyFromRoot - 1);
-				if (alpha >= beta) {
-					return alpha;
-				}
+			alpha = std::max(alpha, -MATE + plyFromRoot);
+			beta = std::min(beta, MATE - plyFromRoot - 1);
+			if (alpha >= beta) {
+				return alpha;
 			}
+			
 
 			#ifdef USE_TRANSPOSITION_TABLE			
 				u64 posHash = zobrist.generateHash(positions->at(ply));
@@ -158,13 +156,7 @@ namespace KRONOS {
 					if (transEntry.second->depth >= depth) {
 						int score = HASH::TranspositionTableToScore(transEntry.second->eval, ply);
 						int flag = transEntry.second->flag();
-						if (plyFromRoot == 0) {
-							if (transEntry.second->bestMove != 0) {
-								bestMoveThisIteration = MoveIntToMove(transEntry.second->bestMove, &positions->at(ply));
-								return score;
-							}
-						}
-						else if ((flag  == (int)HASH::BOUND::EXACT ||
+							if ((flag  == (int)HASH::BOUND::EXACT ||
 						        (flag  == (int)HASH::BOUND::BETA  && score >= beta) ||
 						        (flag  == (int)HASH::BOUND::ALPHA && score <= alpha))) {
 							return score;
@@ -197,8 +189,15 @@ namespace KRONOS {
 				return quiescenceSearch(alpha, beta, plyFromRoot + 1);
 			}
 
+			if (node_type != PV_NODE)
+			{
+
+			}
+
 			std::vector<Move> moves;
 			generateMoves(positions->at(ply).status.isWhite, positions->at(ply).board, positions->at(ply).status, &moves);
+			sortMoves(&positions->at(ply), &moves, (transEntry.first && transEntry.second->bestMove != 0) ? MoveIntToMove(transEntry.second->bestMove, &positions->at(ply)) : NULL_MOVE);
+			
 			if (moves.size() == 0) {
 				if (moves.size() == 0) {
 					if (inCheck(positions->at(ply))) {
@@ -209,43 +208,54 @@ namespace KRONOS {
 					}
 				}
 			}
-			else if (moves.size() == 1)
-				return -alphaBeta(depth - 1, plyFromRoot + 1, -beta, -alpha);
 
 			HASH::BOUND bound = HASH::BOUND::ALPHA;
 			Move bestMoveInThisPosition;
 			basic_score bestScore = -INFINITE;
+			int index = 0;
 
 			for (const Move& move : moves) {
+				// make move
 				ply++;
 				positions->at(ply) = positions->at(ply - 1);
 				updatePosition(positions->at(ply), move);
-				int score = -alphaBeta(depth - 1, plyFromRoot + 1, -beta, -alpha);
+				
+				int score = 0;
+				if (index == 0) {
+					score = -alphaBeta<-node_type>(depth - 1, plyFromRoot + 1, -beta, -alpha);
+				}
+				else {
+					score = -alphaBeta<CUT_NODE>(depth - 1, plyFromRoot + 1, -alpha - 1, -alpha);
+					if (score > alpha && score < beta) {
+						score = -alphaBeta<PV_NODE>(depth - 1, plyFromRoot + 1, -beta, -alpha);
+					}
+				}
+				
+				// undo move
 				ply--;
 
 				if (!resourcesLeft)
 					return CANCELLED;
 
-				if (score >= beta) {
+				if (score >= beta)
+				{
 #ifdef USE_TRANSPOSITION_TABLE
-					transEntry.second->saveEntry(posHash, bestMoveInThisPosition, depth, HASH::ScoreToTranpositionTable(score, ply), staticEval, (int)HASH::BOUND::BETA, transpositionTable.getGeneration());
-#endif // USE_TRANSPOSITION_TABLE
-					// beta cut off
+					bound = HASH::BOUND::BETA;
+					transEntry.second->saveEntry(posHash, move, depth, HASH::ScoreToTranpositionTable(score, ply), staticEval, (int)bound, transpositionTable.getGeneration());
+#endif				
 					return score;
 				}
-				if (score > bestScore) {
+				if (score > bestScore)
+				{
 					bestScore = score;
 					if (score > alpha) {
-						bound = HASH::BOUND::EXACT;
 						alpha = score;
 						bestMoveInThisPosition = move;
-						if (plyFromRoot == 0) {
-							bestMoveThisIteration = move;
-						}
 					}
 				}
 			}
 
+			cut:
 #ifdef USE_TRANSPOSITION_TABLE
 			transEntry.second->saveEntry(posHash, bestMoveInThisPosition, depth, HASH::ScoreToTranpositionTable(bestScore, ply), staticEval, (int)bound, transpositionTable.getGeneration());
 #endif // USE_TRANSPOSITION_TABLE
@@ -273,6 +283,10 @@ namespace KRONOS {
 
 			std::vector<Move> moves;
 			generateMoves(positions->at(ply).status.isWhite, positions->at(ply).board, positions->at(ply).status, &moves);
+			sortMoves(&positions->at(ply), &moves, (transEntry.first == true) ? MoveIntToMove(transEntry.second->bestMove, &positions->at(ply)) : NULL_MOVE);
+			
+			int bestScore = -INFINITE;
+			HASH::BOUND bound = HASH::BOUND::ALPHA;
 
 			for (int i = 0; i < moves.size(); i++)
 			{
@@ -283,9 +297,14 @@ namespace KRONOS {
 
 				int score = 0;
 				// introduces principal variation
-				if (i == 0 ||
-				   (-alphaBeta<false>(depth - 1, 0, -alpha - 1, -alpha) > alpha)) {
-					score = -alphaBeta<true>(depth - 1, 0, -beta, -alpha);
+				if (i == 0) {
+					score = -alphaBeta<PV_NODE>(depth - 1, 1, -beta, -alpha);
+				}
+				else {
+					score = -alphaBeta<CUT_NODE>(depth - 1, 1, -alpha - 1, -alpha) > alpha;
+					if (score > alpha && score < beta) {
+						score = -alphaBeta<PV_NODE>(depth - 1, 1, -beta, -alpha);
+					}
 				}
 
 				// undo the move
@@ -294,11 +313,12 @@ namespace KRONOS {
 				if (!resourcesLeft)
 					return CANCELLED;
 
-				if (score > alpha)
-				{
-					if (score >= beta)
-					{
-
+				if (score > bestScore) {
+					bestScore = score;
+					if (score > alpha) {
+						bound = HASH::BOUND::EXACT;
+						alpha = score;
+						bestMoveThisIteration = moves[i];
 					}
 				}
 

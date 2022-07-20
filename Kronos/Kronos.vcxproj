@@ -163,6 +163,7 @@
     <ClCompile Include="Kronos Engine\Kronos.cpp" />
     <ClCompile Include="Kronos Engine\Magic.cpp" />
     <ClCompile Include="Kronos Engine\Move_Generation.cpp" />
+    <ClCompile Include="Kronos Engine\Move_Ordering.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.h" />
     <ClCompile Include="Kronos Engine\Zobrist_Hashing.cpp" />
@@ -191,6 +192,7 @@
     <ClInclude Include="Kronos Engine\Evaluation.h" />
     <ClInclude Include="Kronos Engine\Eval_Params.h" />
     <ClInclude Include="Kronos Engine\Kronos.h" />
+    <ClInclude Include="Kronos Engine\Move_Ordering.h" />
     <ClInclude Include="Kronos Engine\Rays.h" />
     <ClInclude Include="Kronos Engine\Magic.h" />
     <ClInclude Include="Kronos Engine\Magic_Vars.h" />

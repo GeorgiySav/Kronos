@@ -21,6 +21,12 @@ namespace KRONOS {
 #define USE_OPENING_BOOK
 #define USE_SYZYGY
 
+		enum NODE_TYPE : u8 {
+			PV_NODE = 0,
+			CUT_NODE = 1,
+			ALL_NODE = -1
+		};
+
 		class SearchTree {
 		private:
 
@@ -48,7 +54,7 @@ namespace KRONOS {
 
 			void checkResources();
 			inline int quiescenceSearch(int alpha, int beta, int plyFromRoot);
-			template <bool isPV>
+			template <int node_type>
 			int alphaBeta(int depth, int plyFromRoot, int alpha, int beta);
 			int searchRoot(int depth, int alpha, int beta);
 		public:
@@ -62,13 +68,13 @@ namespace KRONOS {
 
 			Move search(std::vector<Position>* position, int ply, int depth, int MAX_TIME);
 
-			inline int searchWithAlphaBeta(std::vector<Position>* positions, int ply, int depth) {
-				max_time = INFINITE;
-				this->positions = positions;
-				this->ply = ply;
-				startPoint = clock.now();
-				return alphaBeta(depth, 0, -INFINITE, INFINITE);
-			}
+			//inline int searchWithAlphaBeta(std::vector<Position>* positions, int ply, int depth) {
+			//	max_time = INFINITE;
+			//	this->positions = positions;
+			//	this->ply = ply;
+			//	startPoint = clock.now();
+			//	return alphaBeta(depth, 0, -INFINITE, INFINITE);
+			//}
 
 		};
 

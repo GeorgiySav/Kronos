@@ -28,6 +28,8 @@ namespace KRONOS {
 			u8 depth;			    // 1 byte
 									// 10 bytes
 
+			TransEntry() : bestMove(0), hashLower(0), eval(0), static_eval(0), ageFlag(0), depth(0) {}
+
 			void saveEntry(uint64_t hash, Move move, int depth, int score, int static_eval, uint8_t flag, uint8_t generation);
 			
 			inline u8 flag() { return (u8)(ageFlag & 3); }

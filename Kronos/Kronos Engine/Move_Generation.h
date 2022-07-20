@@ -104,6 +104,14 @@ namespace KRONOS {
 			this->fullMoves = other.fullMoves;
 		}
 		constexpr void setHash(u64 newHash) { this->hash = newHash; }
+		constexpr u8 getPieceType(int tile) {
+			u64 toBB = 1ULL << tile;
+			for (u8 p = 0; p < 6; p++) {
+				if ((board.pieceLocations[BLACK][p] | board.pieceLocations[WHITE][p]) & toBB) {
+					return p;
+				}
+			}
+		}
 	};
 
 	enum MoveFlagsAndMasks {
@@ -149,4 +157,5 @@ namespace KRONOS {
 	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, std::vector<Move>* moves);
 	extern constexpr bool inCheck(Position& position);
 	extern inline void generateMoves(bool isWhite, Board& brd, BoardStatus& st, std::vector<Move>* moves);
+	extern inline BitBoard generateAttacksToSquare(Position* position, int tile);
 }
