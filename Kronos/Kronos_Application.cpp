@@ -10,9 +10,7 @@ Kronos_Application::Kronos_Application()
 
 	ImGui::SFML::Init(window);
 
-	kronosEngine->processFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 	//kronosEngine->processFEN("4k3/5q2/8/8/8/8/3Q4/4K3 w - - 0 1");
-	kronosEngine->generateMoves();
 
 	boardUI.setScale(0.75);
 	boardUI.setPosition({ 5, 25 });
@@ -20,6 +18,7 @@ Kronos_Application::Kronos_Application()
 	// imgui styling
 	{
 		ImGuiStyle& style = ImGui::GetStyle();
+
 		style.Alpha = 1.0;
 		style.Alpha = 0.83f;
 		style.ChildRounding = 3;
@@ -75,7 +74,11 @@ Kronos_Application::~Kronos_Application()
 void Kronos_Application::run()
 {
 	while (running) {
-	
+		
+		if (kronosEngine->searchFinished()) {
+			kronosEngine->makeMove(kronosEngine->getBestMove());
+		}
+
 		processInputs();
 		ImGui::SFML::Update(window, deltaClock.restart());
 
@@ -109,6 +112,20 @@ void Kronos_Application::run()
 			ImGui::EndMainMenuBar();
 		}
 
+		if (ImGui::Begin("Param 1 Editor"))
+		{
+			renderParamEditor(kronosEngine->getEvalParam1());
+
+			ImGui::End();
+		}
+
+		if (ImGui::Begin("Param 2 Editor"))
+		{
+			renderParamEditor(kronosEngine->getEvalParam2());
+
+			ImGui::End();
+		}
+
 		render();
 	}
 }
@@ -136,18 +153,20 @@ void Kronos_Application::processInputs() {
 
 		if (events.type == sf::Event::KeyPressed) {
 			if (events.key.code == sf::Keyboard::Backspace) {
-				if (kronosEngine->getPly() > 0) {
 					kronosEngine->unmakeMove();
-					//pgnMoves.pop_back();
-					kronosEngine->generateMoves();
-				}
+					//pgnMoves.pop_back();	
 			}
 		}
 
 		if (events.type == sf::Event::KeyPressed) {
 			if (events.key.code == sf::Keyboard::G) {
-				kronosEngine->makeMove(kronosEngine->getBestMove());
-				kronosEngine->generateMoves();
+				kronosEngine->startSearchForBestMove();
+			}
+		}
+
+		if (events.type == sf::Event::KeyPressed) {
+			if (events.key.code == sf::Keyboard::P) {
+				kronosEngine->beginAutoGame();
 			}
 		}
 
@@ -170,11 +189,196 @@ void Kronos_Application::processInputs() {
 			if (events.key.code == sf::Mouse::Left) {
 				if (auto move = boardUI.dropPiece(window, kronosEngine->getBitBoardsPointer(), true)) {
 					kronosEngine->makeMove(move.value());
-					kronosEngine->generateMoves();
 				}
 			}
 		}
 
 	}
 
+}
+
+void renderParamEditor(KRONOS::EVALUATION::PARAMS::Eval_Parameters* param)
+{
+	
+	ImGui::BeginChild(" ", { 0, 0 }, false, ImGuiWindowFlags_HorizontalScrollbar);
+
+	ImGui::PushItemWidth(100);
+	ImGui::Text("PAWN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##0", &param->PAWN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##1", &param->PAWN_VALUE.endGame);
+	
+	ImGui::Text("KNIGHT VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##2", &param->KNIGHT_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##3", &param->KNIGHT_VALUE.endGame);
+	
+	ImGui::Text("BISHOP VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##4", &param->BISHOP_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##5", &param->BISHOP_VALUE.endGame);
+	
+	ImGui::Text("ROOK VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##6", &param->ROOK_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##7", &param->ROOK_VALUE.endGame);
+
+	ImGui::Text("QUEEN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##8", &param->QUEEN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##9", &param->QUEEN_VALUE.endGame);
+	
+	ImGui::Text("KING VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##10", &param->KING_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##11", &param->KING_VALUE.endGame);
+	
+	ImGui::Text("CONNECTED PAWN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##12", &param->CONNECTED_PAWN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##13", &param->CONNECTED_PAWN_VALUE.endGame);
+	
+	ImGui::Text("DOUBLED PAWN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##16", &param->DOUBLED_PAWN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##17", &param->DOUBLED_PAWN_VALUE.endGame);
+	
+	ImGui::Text("ISOLATED PAWN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##18", &param->ISOLATED_PAWN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##19", &param->ISOLATED_PAWN_VALUE.endGame);
+
+	ImGui::Text("BACKWARD PAWN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##22", &param->BACKWARD_PAWN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##23", &param->BACKWARD_PAWN_VALUE.endGame);
+	
+	ImGui::Text("PASSED ISOLATED PAWN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##24", &param->PASSED_ISOLATED_PAWN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##25", &param->PASSED_ISOLATED_PAWN_VALUE.endGame);
+	
+	ImGui::Text("PASSED BACKWARD PAWN VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##26", &param->PASSED_BACKWARD_PAWN_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##27", &param->PASSED_BACKWARD_PAWN_VALUE.endGame);
+	
+	ImGui::Text("BISHOP_PAWN_PENALTY: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##32", &param->BISHOP_PAWN_PENALTY.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##33", &param->BISHOP_PAWN_PENALTY.endGame);
+
+	ImGui::Text("ROOK_SEMI_OPEN_FILE_BONUS: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##34", &param->ROOK_SEMI_OPEN_FILE_BONUS.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##35", &param->ROOK_SEMI_OPEN_FILE_BONUS.endGame);
+
+	ImGui::Text("ROOK_OPEN_FILE_BONUS: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##36", &param->ROOK_OPEN_FILE_BONUS.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##37", &param->ROOK_OPEN_FILE_BONUS.endGame);
+
+	ImGui::Text("FLANK_ATTACKS: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##38", &param->FLANK_ATTACKS.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##39", &param->FLANK_ATTACKS.endGame);
+	
+	ImGui::Text("PAWNLESS_FLANK: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##40", &param->PAWNLESS_FLANK.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##41", &param->PAWNLESS_FLANK.endGame);
+	
+	ImGui::Text("THREAT_PAWN_PUSH_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##42", &param->THREAT_PAWN_PUSH_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##43", &param->THREAT_PAWN_PUSH_VALUE.endGame);
+	
+	ImGui::Text("THREAT_WEAK_PAWNS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##44", &param->THREAT_WEAK_PAWNS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##45", &param->THREAT_WEAK_PAWNS_VALUE.endGame);
+	
+	ImGui::Text("THREAT_PAWNSxMINORS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##46", &param->THREAT_PAWNSxMINORS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##47", &param->THREAT_PAWNSxMINORS_VALUE.endGame);
+	
+	ImGui::Text("THREAT_MINORSxMINORS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##48", &param->THREAT_MINORSxMINORS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##49", &param->THREAT_MINORSxMINORS_VALUE.endGame);
+	
+	ImGui::Text("THREAT_MAJORSxWEAK_MINORS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##50", &param->THREAT_MAJORSxWEAK_MINORS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##51", &param->THREAT_MAJORSxWEAK_MINORS_VALUE.endGame);
+	
+	ImGui::Text("THREAT_PAWN_MINORSxMAJORS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##52", &param->THREAT_PAWN_MINORSxMAJORS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##53", &param->THREAT_PAWN_MINORSxMAJORS_VALUE.endGame);
+
+	ImGui::Text("THREAT_ALLxQUEENS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##54", &param->THREAT_ALLxQUEENS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##55", &param->THREAT_ALLxQUEENS_VALUE.endGame);
+	
+	ImGui::Text("THREAT_KINGxMINORS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##56", &param->THREAT_KINGxMINORS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##57", &param->THREAT_KINGxMINORS_VALUE.endGame);
+
+	ImGui::Text("THREAT_KINGxROOKS_VALUE: ");
+	ImGui::SameLine();
+	ImGui::InputInt("##58", &param->THREAT_KINGxROOKS_VALUE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##59", &param->THREAT_KINGxROOKS_VALUE.endGame);
+	
+	ImGui::Text("PIECE SPACE");
+	ImGui::SameLine();
+	ImGui::InputInt("##60", &param->PIECE_SPACE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##61", &param->PIECE_SPACE.endGame);
+	
+	ImGui::Text("EMPTY SPACE");
+	ImGui::SameLine();
+	ImGui::InputInt("##62", &param->EMPTY_SPACE.middleGame);
+	ImGui::SameLine();
+	ImGui::InputInt("##63", &param->EMPTY_SPACE.endGame);
+	
+	if (ImGui::Button("Save params")) {
+		param->saveParams();
+	}
+
+	static char buffer[50];
+	if (ImGui::InputText("Enter filename", buffer, 50, ImGuiInputTextFlags_EnterReturnsTrue)) {
+		param->loadParams("../Kronos/Eval Parameters/" + std::string(buffer));
+	}
+
+	ImGui::EndChild();
 }

@@ -21,7 +21,7 @@ namespace KRONOS {
 #define USE_OPENING_BOOK
 #define USE_SYZYGY
 
-		enum NODE_TYPE : u8 {
+		enum NODE_TYPE {
 			PV_NODE = 0,
 			CUT_NODE = 1,
 			ALL_NODE = -1
@@ -33,8 +33,6 @@ namespace KRONOS {
 			std::vector<Position>* positions;
 
 			int ply;
-
-			HASH::ZobristGenerator zobrist;
 
 			HASH::Transposition_Table transpositionTable;
 
@@ -50,23 +48,27 @@ namespace KRONOS {
 
 			POLY::Opening_Book openingBook;
 
+			EVALUATION::Evaluation evaluate;
+			
 			bool resourcesLeft;
 
 			void checkResources();
-			inline int quiescenceSearch(int alpha, int beta, int plyFromRoot);
-			template <int node_type>
-			int alphaBeta(int depth, int plyFromRoot, int alpha, int beta);
+			inline int quiescenceSearch(int alpha, int beta, int plyFromRoot, bool inPV);
+			int alphaBeta(int depth, int plyFromRoot, int alpha, int beta, bool inPV);
 			int searchRoot(int depth, int alpha, int beta);
 		public:
-			EVALUATION::Evaluation evaluate;
 			SearchTree();
 			~SearchTree();
 
 			bool repeated();
 
-			inline void iterativeDeepening(int targetDepth);
+			inline void iterativeDeepening();
 
-			Move search(std::vector<Position>* position, int ply, int depth, int MAX_TIME);
+			Move search(std::vector<Position>* position, int ply, int MAX_TIME);
+
+			void setEvalParams(EVALUATION::PARAMS::Eval_Parameters* params) {
+				evaluate.setParams(params);
+			}
 
 			//inline int searchWithAlphaBeta(std::vector<Position>* positions, int ply, int depth) {
 			//	max_time = INFINITE;

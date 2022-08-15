@@ -7,8 +7,6 @@
 namespace KRONOS {
 	
 	namespace EVALUATION {
-		
-		using namespace PARAMS;
 
 		const u64 COLOURED_SQUARE_BB[2] = {
 			12273903644374837845ULL,
@@ -19,29 +17,7 @@ namespace KRONOS {
 			: position(Position()), ally(false), enem(false) 
 		{
 
-			totalPhase = PAWN_PHASE * 16 + KNIGHT_PHASE * 4 + BISHOP_PHASE * 4 + ROOK_PHASE * 4 + QUEEN_PHASE * 2;
-
-			memset(PST, 0, sizeof(PST));
-
-			for (int tile = 0; tile < 64; tile++) {
-
-				int bTile = ((7 - std::floor(tile / 8)) * 8) + (tile % 8);
-
-				PST[WHITE][PAWN][tile] = PARAMS::pawnPST[tile];
-				PST[WHITE][KNIGHT][tile] = knightPST[tile];
-				PST[WHITE][BISHOP][tile] = bishopPST[tile];
-				PST[WHITE][ROOK][tile] = rookPST[tile];
-				PST[WHITE][QUEEN][tile] = queenPST[tile];
-				PST[WHITE][KING][tile] = kingPST[tile];
-
-				PST[BLACK][PAWN][bTile] = pawnPST[tile];
-				PST[BLACK][KNIGHT][bTile] = knightPST[tile];
-				PST[BLACK][BISHOP][bTile] = bishopPST[tile];
-				PST[BLACK][ROOK][bTile] = rookPST[tile];
-				PST[BLACK][QUEEN][bTile] = queenPST[tile];
-				PST[BLACK][KING][bTile] = kingPST[tile];
-
-			}
+			totalPhase = PARAM.QUEEN_PHASE * 2 + PARAM.ROOK_PHASE * 4 + PARAM.BISHOP_PHASE * 4 + PARAM.KNIGHT_PHASE * 4;
 
 		}
 
@@ -51,7 +27,7 @@ namespace KRONOS {
 
 		constexpr void Evaluation::initialise(bool side) {
 
-			phase = totalPhase;
+			phase = 0;
 
 			BitBoard kingBB = position.board.pieceLocations[side][KING];
 
@@ -63,38 +39,34 @@ namespace KRONOS {
 			attacks[side][6] = attacks[side][PAWN] | attacks[side][KING];
 			attackedBy2[side] = doublePawnAttacks;
 
-			// by default the king's position, however, if on the outer edges, it is pushed out
-			int kingPos = bitScanForward(kingBB);;
-			BitBoard kingRingOrigin = (std::clamp(getFileMask(kingPos), fileMask[B], fileMask[G])
-				& std::clamp(getRankMask(kingPos), rankMask[RANK_2], rankMask[RANK_7]));
-			kingRing[side] = getKingAttacks(kingRingOrigin) | kingRingOrigin;
-
-			kingAttackersCount[!side] = populationCount(kingRing[side] & getPawnAttacks(position.board.pieceLocations[!side][PAWN], !side));
-			kingAttackersWeight[!side] = kingAttacksCount[!side] = 0;
-
-			kingRing[side] &= ~doublePawnAttacks;
+			atksOnKingScore[side] = 0;
+			kingRing[side] = KING_RING[side][bitScanForward(position.board.pieceLocations[side][KING])];
 		}
 
 		constexpr Score Evaluation::countMaterial(bool side) {
 
-			Score score;
-			score += PAWN_VALUE * populationCount(position.board.pieceLocations[side][PAWN]);
+			Score score = SCORE_ZERO;
+			score += PARAM.PAWN_VALUE * populationCount(position.board.pieceLocations[side][PAWN]);
 
 			int pieceCount = populationCount(position.board.pieceLocations[side][KNIGHT]);
-			score += KNIGHT_VALUE * pieceCount;
-			phase -= pieceCount * KNIGHT_PHASE;
+			score += PARAM.KNIGHT_VALUE * pieceCount;
+			pieceCountImb[side][KNIGHT] = pieceCount;
+			phase += pieceCount * PARAM.KNIGHT_PHASE;
 
 			pieceCount = populationCount(position.board.pieceLocations[side][BISHOP]);
-			score += BISHOP_VALUE * pieceCount;
-			phase -= pieceCount * BISHOP_PHASE;
+			score += PARAM.BISHOP_VALUE * pieceCount;
+			pieceCountImb[side][BISHOP] = pieceCount > 1;
+			phase += pieceCount * PARAM.BISHOP_PHASE;
 
 			pieceCount = populationCount(position.board.pieceLocations[side][ROOK]);
-			score += ROOK_VALUE * pieceCount;
-			phase -= pieceCount * ROOK_PHASE;
+			score += PARAM.ROOK_VALUE * pieceCount;
+			pieceCountImb[side][ROOK] = pieceCount;
+			phase += pieceCount * PARAM.ROOK_PHASE;
 
 			pieceCount = populationCount(position.board.pieceLocations[side][QUEEN]);
-			score += QUEEN_VALUE * pieceCount;
-			phase -= pieceCount * QUEEN_PHASE;
+			score += PARAM.QUEEN_VALUE * pieceCount;
+			pieceCountImb[side][QUEEN] = pieceCount;
+			phase += pieceCount * PARAM.QUEEN_PHASE;
 
 
 			return score;
@@ -103,8 +75,10 @@ namespace KRONOS {
 		template <Pieces pieceType>
 		constexpr Score Evaluation::evaluatePiece(bool side) {
 
+			constexpr BitBoard centerTiles = (1ULL << D4) | (1ULL << D5) | (1ULL << E4) | (1ULL << E5);
+
 			BitBoard pBB = position.board.pieceLocations[side][pieceType];
-			BitBoard atks;
+			BitBoard atks = EMPTY;
 			Score score = SCORE_ZERO;
 
 			attacks[side][pieceType] = 0ULL;
@@ -114,7 +88,7 @@ namespace KRONOS {
 				int tile = bitScanForward(pBB);
 				popBit(pBB, tile);
 
-				score += (PST[side][pieceType][tile]);
+				score += (PARAM.PST[side][pieceType][tile]);
 
 				if constexpr (pieceType == KNIGHT) {
 					atks = getKnightAttacks(1ULL << tile);
@@ -134,34 +108,46 @@ namespace KRONOS {
 				attacks[side][6] |= atks;
 
 				if (atks & kingRing[!side]) {
-					kingAttackersCount[side]++;
-					kingAttackersWeight[side] += kingAttackWeights[pieceType];
-					kingAttackersCount[side] += populationCount(atks & attacks[!side][KING]);
-				}
-				else if (pieceType == ROOK && (getFileMask(tile) & kingRing[!side])) {
-					score += ROOK_ON_KING_RING;
-				}
-				else if (pieceType == BISHOP && (getBishopAttacks(position.board.occupied[BOTH] ^ position.board.pieceLocations[!side][PAWN], tile) & kingRing[!side])) {
-					score += BISHOP_ON_KING_RING;
+					atksOnKingScore[side] += PARAM.ATK_ON_KING_WEIGHT[pieceType] * populationCount(atks & kingRing[!side]);
 				}
 
 				int mobility = populationCount(atks & mobilityMask);
-				score += MOBILITY_BONUS[pieceType][mobility];
+				score += PARAM.MOBILITY_BONUS[pieceType] * mobility;
 
+				if constexpr (pieceType == KNIGHT)
+				{
+					if ((1ULL << tile) & outpostTiles)
+						score += PARAM.KNIGHT_OUTPOST_BONUS;
+					else if (atks & outpostTiles & ~position.board.occupied[side])
+						score += PARAM.KNIGHT_X_OUTPOST_BONUS;
+						
+				}
 				if constexpr (pieceType == BISHOP)
 				{
+					if ((1ULL << tile) & outpostTiles)
+						score += PARAM.BISHOP_OUTPOST_BONUS;
+
+					if (populationCount(atks & centerTiles) >= 2) score += PARAM.BISHOP_CENTER_CONTROL;
 					// punish the bishop if too many pawns are on its coloured square
 					int colouredTile = ((int)std::floor(tile / 8) % 2) == ((tile % 8) % 2);
-					score -= BISHOP_PAWN_PENALTY * populationCount(COLOURED_SQUARE_BB[colouredTile] & position.board.pieceLocations[side][PAWN]);
+					score -= PARAM.BISHOP_PAWN_PENALTY * populationCount(COLOURED_SQUARE_BB[colouredTile] & position.board.pieceLocations[side][PAWN]);
+				
 				}
 				else if constexpr (pieceType == ROOK)
 				{
-					// reward if the rook is on a half or fully open file
-					if (((position.board.pieceLocations[WHITE][PAWN] | position.board.pieceLocations[BLACK][PAWN]) & fileMask[tile % 8]) == 0ULL) {
-						score += ROOK_OPEN_FILE_BONUS;
+
+					if ((1ULL << tile) & ((side == WHITE) ? (rankMask[RANK_7]) : rankMask[RANK_2])) {
+						if (position.board.pieceLocations[!side][KING] & ((side == WHITE) ? (rankMask[RANK_7] | rankMask[RANK_8]) : (rankMask[RANK_1] | rankMask[RANK_2])))
+							score += PARAM.ROOK_ON_7TH;
 					}
-					else if ((position.board.pieceLocations[side][PAWN] & fileMask[tile % 8]) == 0ULL) {
-						score += ROOK_SEMI_OPEN_FILE_BONUS;
+
+					if (!(fileMask[tile % 8] & position.board.pieceLocations[side][PAWN])) {
+						if (!(fileMask[tile % 8] & position.board.pieceLocations[!side][PAWN])) {
+							score += PARAM.ROOK_OPEN_FILE_BONUS;
+						}
+						else {
+							score += PARAM.ROOK_SEMI_OPEN_FILE_BONUS;
+						}
 					}
 				}
 
@@ -181,7 +167,7 @@ namespace KRONOS {
 				int tile = bitScanForward(allyPawns);
 				popBit(allyPawns, tile);
 
-				score += (PST[side][PAWN][tile]);
+				score += (PARAM.PST[side][PAWN][tile]);
 			}
 
 			allyPawns = position.board.pieceLocations[side][PAWN];
@@ -190,123 +176,117 @@ namespace KRONOS {
 			BitBoard aAtk = getPawnAttacks(allyPawns, side);
 
 			BitBoard passedPawns = allyPawns & ~(allyPawns & pawnFill(enemyPawns, !side));
-			BitBoard connectedPawns = allyPawns & aAtk;
-			BitBoard halfConnectedPawns = allyPawns & pawnPush(aAtk, !side);
+			BitBoard connectedPawns = allyPawns & (aAtk | pawnPush(aAtk, !side));
 			BitBoard doubledPawns = allyPawns & (pawnFillEx(allyPawns, !side));
+			BitBoard isolatedPawns = allyPawns & ~fileFill(aAtk);
+			BitBoard backwardPawns = allyPawns & ~isolatedPawns & pawnPush(getPawnAttacks(enemyPawns, !side) | enemyPawns, !side) & ~pawnFill(aAtk, side);
 
-			BitBoard noWestNeighbour = allyPawns & ~(westOne(fileFill(allyPawns)));
-			BitBoard noEastNeighbour = allyPawns & ~(eastOne(fileFill(allyPawns)));
-			BitBoard isolatedPawns = noWestNeighbour & noEastNeighbour;
-			BitBoard halfIsolatedPawns = noWestNeighbour ^ noEastNeighbour;
-
-			BitBoard backwardPawns = (allyPawns & ~isolatedPawns) & (pawnPush(allyPawns, side) & attacks[!side][6])
-				& ~pawnFillEx(getPawnAttacks(allyPawns, !side), side);
-
-
-			score += CONNECTED_PAWN_VALUE * populationCount(connectedPawns);
-			score += HALF_CONNECTED_PAWN_VALUE * populationCount(halfConnectedPawns);
-			score += DOUBLED_PAWN_VALUE * populationCount(doubledPawns);
-			score += ISOLATED_PAWN_VALUE * populationCount(isolatedPawns & ~passedPawns);
-			score += HALF_ISOLATED_PAWN_VALUE * populationCount(halfIsolatedPawns & ~passedPawns);
-			score += BACKWARD_PAWN_VALUE * populationCount(backwardPawns & ~passedPawns);
-			score += PASSED_ISOLATED_PAWN_VALUE * populationCount(passedPawns & isolatedPawns);
-			score += PASSED_BACKWARD_PAWN_VALUE * populationCount(passedPawns & backwardPawns);
+			score += PARAM.CONNECTED_PAWN_VALUE * populationCount(connectedPawns);
+			score += PARAM.DOUBLED_PAWN_VALUE * populationCount(doubledPawns);
+			score += PARAM.ISOLATED_PAWN_VALUE * populationCount(isolatedPawns & ~passedPawns);
+			score += PARAM.BACKWARD_PAWN_VALUE * populationCount(backwardPawns & ~passedPawns);
+			score += PARAM.PASSED_ISOLATED_PAWN_VALUE * populationCount(passedPawns & isolatedPawns);
+			score += PARAM.PASSED_BACKWARD_PAWN_VALUE * populationCount(passedPawns & backwardPawns);
 
 			return score;
 		}
 
-		inline Score Evaluation::kingSafety(bool side) {
+		/*
+			Evaluates the pawn storm in the enemy king and their pawn shelter
+		*/
+		constexpr basic_score Evaluation::pawnStorm(bool side, int tile) 
+		{
+			
+			basic_score shelter = 0;
+			int file = FILE_TO_SHELTER[tile % 8];
 
-			// temp
-			BitBoard b0, b1, b2;
+			BitBoard kingFileMask = fileMask[tile % 8];
 
-			const BitBoard Camp = (side == WHITE ? (UNIVERSE ^ rankMask[RANK_6] ^ rankMask[RANK_7] ^ rankMask[RANK_8])
-				: (UNIVERSE ^ rankMask[RANK_1] ^ rankMask[RANK_2] ^ rankMask[RANK_3]));
+			BitBoard kingShelter = position.board.pieceLocations[!side][PAWN];
+			BitBoard kingStorm = position.board.pieceLocations[side][PAWN];
 
-			BitBoard weakTiles, safeTiles, unsafeChecks = 0ULL;
-			BitBoard rookChecks, bishopChecks, queenChecks, knightChecks;
-			basic_score kingDanger = 0;
-			int kingPos = bitScanForward(position.board.pieceLocations[side][KING]);
+			BitBoard shelterMask1 = KING_SHELTER_MASK_1[!side][file];
+			BitBoard shelterMask2 = KING_SHELTER_MASK_2[!side][file];
+			BitBoard shelterMask3 = KING_SHELTER_MASK_3[!side][file];
+
+			shelter += PARAM.KING_SHELTER_1 * populationCount(kingShelter & shelterMask1 & ~kingFileMask);
+			shelter += PARAM.KING_SHELTER_F1 * populationCount(kingShelter & shelterMask1 & kingFileMask);
+			shelter += PARAM.KING_SHELTER_2 * populationCount(kingShelter & shelterMask2 & ~kingFileMask);
+			shelter += PARAM.KING_SHELTER_F2 * populationCount(kingShelter & shelterMask2 & kingFileMask);
+			shelter += PARAM.KingStorm1 * populationCount(kingStorm & shelterMask2);
+			shelter += PARAM.KingStorm2 * populationCount(kingStorm & shelterMask3);
+
+			return shelter;
+
+		}
+		
+		// evaluates the ally's pressure on the enemy king 
+		inline Score Evaluation::kingPressure(bool side) {
+
+			if (atksOnKingScore[side] > (position.board.pieceLocations[side][QUEEN] ? 0 : 20)) {
+
+				BitBoard kingAtks = getKingAttacks(position.board.pieceLocations[!side][KING]);
+				// weak tiles are tiles that are attacked by the ally, and that isn't defended by enemy pieces
+				BitBoard weakTiles = attacks[side][6] & ~attackedBy2[!side] & (~attacks[!side][6] | kingAtks);
+				// safe tiles are tiles that aren't occupied by our pieces, aren't attacked by their pieces and are attacked twice by us
+				// essentially that are tiles that are safe for us to move into
+				BitBoard safeTiles = ~position.board.occupied[side] & (~attacks[!side][6] | (weakTiles & attackedBy2[side]));
+
+				int kingPos = bitScanForward(position.board.pieceLocations[!side][KING]);
+				BitBoard knightThreats = getKnightAttacks(position.board.pieceLocations[!side][KING]);
+				BitBoard bishopThreats = getBishopAttacks(position.board.occupied[BOTH], kingPos);
+				BitBoard rookThreats = getRookAttacks(position.board.occupied[BOTH], kingPos);
+				BitBoard queenThreats = bishopThreats | rookThreats;
+
+				basic_score score = 0;
+				score += atksOnKingScore[side];
+				score += PARAM.WEAK_TILE * populationCount(weakTiles & kingAtks);
+				score += PARAM.ENEMY_PAWN * populationCount(position.board.pieceLocations[!side][PAWN] & kingAtks & ~weakTiles);
+				score += PARAM.QUEEN_SAFE_CHECK * populationCount(queenThreats & attacks[side][QUEEN] & safeTiles);
+				score += PARAM.ROOK_SAFE_CHECK * populationCount(rookThreats & attacks[side][ROOK] & safeTiles);
+				score += PARAM.BISHOP_SAFE_CHECK * populationCount(bishopThreats & attacks[side][BISHOP] & safeTiles);
+				score += PARAM.KNIGHT_SAFE_CHECK * populationCount(knightThreats & attacks[side][KNIGHT] & safeTiles);
+				score += pawnStorm(side, kingPos);
+
+				if (score > 0) return Score(score * score / 1024, score / 20);
+
+			}
+			return SCORE_ZERO;
+		}
+
+		constexpr Score Evaluation::passedPawns(bool side) {
+			BitBoard passers = position.board.pieceLocations[side][PAWN] & ~pawnFillEx(position.board.pieceLocations[side][PAWN], !side) & ~pawnFill(attacks[!side][PAWN], !side);
+			if (passers == EMPTY)
+				return SCORE_ZERO;
 
 			Score score = SCORE_ZERO;
+			const BitBoard notBlocked = ~pawnPush(position.board.occupied[BOTH], !side);
+			const BitBoard safePush = ~pawnPush(attacks[!side][6], !side);
+			const BitBoard safeProm = ~pawnFillEx(attacks[!side][6] | position.board.occupied[!side], !side);
+			
+			int kingPos = bitScanForward(position.board.pieceLocations[side][KING]);
+			int enemKingPos = bitScanForward(position.board.pieceLocations[!side][KING]);
+			while (passers) {
+				int tile = bitScanForward(passers);
+				popBit(passers, tile);
 
-			score += PST[side][KING][kingPos];
-
-			// attacked squares defended by at most one queen or king
-			weakTiles = attacks[!side][6]
-				& ~attackedBy2[side]
-				& (~attacks[side][6] | attacks[side][KING] | attacks[side][QUEEN]);
-
-			// find safe enemy checks
-			safeTiles = ~position.board.occupied[side];
-			safeTiles &= ~attacks[side][6] | (weakTiles & attackedBy2[!side]);
-
-			b0 = getRookAttacks(position.board.occupied[BOTH] ^ position.board.pieceLocations[side][QUEEN], kingPos);
-			b1 = getBishopAttacks(position.board.occupied[BOTH] ^ position.board.pieceLocations[side][QUEEN], kingPos);
-
-			// find enemy rook checks
-			rookChecks = b0 & attacks[!side][ROOK] & safeTiles;
-			if (rookChecks) {
-				kingDanger += SAFE_CHECK_SCORE[ROOK][populationCount(rookChecks) > 1 ? 1 : 0];
+				int rank = side == WHITE ? tile / 8 : 7 - tile / 8;
+				score += PARAM.PASSER_DIST_ALLY[rank] * std::max(std::abs(int(kingPos / 8) - int(tile / 8)), std::abs((kingPos % 8) - (tile % 8)));
+				score += PARAM.PASSER_DIST_ENEMY[rank] * std::max(std::abs(int(enemKingPos / 8) - int(tile / 8)), std::abs((enemKingPos % 8) - (tile % 8)));
+				score += PARAM.PASSER_BONUS[rank];
+				
+				if ((1ull << tile) & notBlocked)
+					score += PARAM.UNBLOCKED_PASSER[rank];
+				if ((1ull << tile) & safePush)
+					score += PARAM.PASSER_SAFE_PUSH[rank];
+				if ((1ull << tile) & safeProm)
+					score += PARAM.PASSER_SAFE_PROM[rank];
 			}
-			else {
-				unsafeChecks |= b0 & attacks[!side][ROOK];
-			}
-
-			queenChecks = (b0 | b1) & attacks[!side][QUEEN] & safeTiles & ~(attacks[side][QUEEN] | rookChecks);
-			if (queenChecks) {
-				kingDanger += SAFE_CHECK_SCORE[QUEEN][populationCount(queenChecks) > 1 ? 1 : 0];;
-			}
-
-			bishopChecks = b1 & attacks[!side][BISHOP] & safeTiles & ~queenChecks;
-			if (bishopChecks) {
-				kingDanger += SAFE_CHECK_SCORE[BISHOP][populationCount(bishopChecks) > 1 ? 1 : 0];;
-			}
-			else {
-				unsafeChecks |= b1 & attacks[!side][BISHOP];
-			}
-
-			knightChecks = getKnightAttacks(position.board.pieceLocations[side][KING]) & attacks[!side][KNIGHT];
-			if (knightChecks & safeTiles) {
-				kingDanger += SAFE_CHECK_SCORE[KNIGHT][populationCount(knightChecks) > 1 ? 1 : 0];;
-			}
-			else {
-				unsafeChecks |= knightChecks;
-			}
-
-			// find tiles that the opponent can attack our king from the flank, tiles that they attack twice in that flank, and tiles we defend
-			BitBoard kingFlank = (eastOne(westOne(pawnPush(position.board.pieceLocations[side][KING], !side))));
-			b0 = attacks[!side][6] & kingFlank & Camp;
-			b1 = b0 & attackedBy2[!side];
-			b2 = attacks[side][6] & kingFlank;
-
-			int kingFlankAttack = populationCount(b0) + populationCount(b1);
-			int kingFlankDefence = populationCount(b2);
-
-			kingDanger += kingAttackersCount[!side] * kingAttackersWeight[!side]
-				+ 183 * populationCount(kingRing[side] & weakTiles)
-				+ 148 * populationCount(unsafeChecks)
-				//+  98 * populationCount()
-				+ 69 * kingAttacksCount[!side]
-				+ 3 * kingFlankAttack * kingFlankAttack / 8
-				- 100 * (attacks[side][KNIGHT] & attacks[side][KING] ? 1 : 0)
-				- 4 * kingFlankDefence
-				+ 37;
-
-			if (kingDanger > 75)
-				score -= Score(kingDanger * kingDanger / 4096, kingDanger / 16);
-
-			if (!(position.board.pieceLocations[side][PAWN] & kingFlank))
-				score -= PAWNLESS_FLANK;
-
-			score -= FLANK_ATTACKS * kingFlankAttack;
 
 			return score;
-
-
 		}
 
-		constexpr Score Evaluation::threats(bool side) {
+		constexpr Score Evaluation::threats(bool side) { 
 			Score score = SCORE_ZERO;
 			BitBoard minors = position.board.pieceLocations[!side][KNIGHT] | position.board.pieceLocations[!side][BISHOP];
 			BitBoard weakTiles = (attacks[side][6] & ~attacks[!side][6]) | (attackedBy2[side] & ~attackedBy2[!side] & ~attacks[!side][PAWN]);
@@ -314,68 +294,92 @@ namespace KRONOS {
 			BitBoard pushTarget = getPawnAttacks(position.board.occupied[!side] & ~position.board.pieceLocations[!side][PAWN], !side) & (attacks[side][6] | ~attacks[!side][6]);
 			BitBoard push = pawnPush(position.board.pieceLocations[side][PAWN], side) & safePush;
 			push |= pawnPush(push, side) & epRank(side) & safePush;
-			score += THREAT_PAWN_PUSH_VALUE * populationCount(push & pushTarget);
-			score += THREAT_WEAK_PAWNS_VALUE * populationCount(position.board.pieceLocations[!side][PAWN] & weakTiles);
-			score += THREAT_PAWNSxMINORS_VALUE * populationCount(attacks[side][PAWN] & minors);
-			score += THREAT_MINORSxMINORS_VALUE * populationCount((attacks[side][KNIGHT] | attacks[side][BISHOP]) & minors);
-			score += THREAT_MAJORSxWEAK_MINORS_VALUE * populationCount((attacks[side][ROOK] | attacks[side][QUEEN]) & minors & weakTiles);
-			score += THREAT_PAWN_MINORSxMAJORS_VALUE * populationCount((attacks[side][PAWN] | attacks[side][KNIGHT] | attacks[side][BISHOP]) & (position.board.pieceLocations[!side][ROOK] | position.board.pieceLocations[!side][QUEEN]));
-			score += THREAT_ALLxQUEENS_VALUE * populationCount(attacks[side][6] & position.board.pieceLocations[!side][QUEEN]);
-			score += THREAT_KINGxMINORS_VALUE * populationCount(getKingAttacks(position.board.pieceLocations[side][KING]) & minors & weakTiles);
-			score += THREAT_KINGxROOKS_VALUE * populationCount(getKingAttacks(position.board.pieceLocations[side][KING]) & position.board.pieceLocations[!side][ROOK] & weakTiles);
+			score += PARAM.THREAT_PAWN_PUSH_VALUE * populationCount(push & pushTarget);
+			score += PARAM.THREAT_WEAK_PAWNS_VALUE * populationCount(position.board.pieceLocations[!side][PAWN] & weakTiles);
+			score += PARAM.THREAT_PAWNSxMINORS_VALUE * populationCount(attacks[side][PAWN] & minors);
+			score += PARAM.THREAT_MINORSxMINORS_VALUE * populationCount((attacks[side][KNIGHT] | attacks[side][BISHOP]) & minors);
+			score += PARAM.THREAT_MAJORSxWEAK_MINORS_VALUE * populationCount((attacks[side][ROOK] | attacks[side][QUEEN]) & minors & weakTiles);
+			score += PARAM.THREAT_PAWN_MINORSxMAJORS_VALUE * populationCount((attacks[side][PAWN] | attacks[side][KNIGHT] | attacks[side][BISHOP]) & (position.board.pieceLocations[!side][ROOK] | position.board.pieceLocations[!side][QUEEN]));
+			score += PARAM.THREAT_ALLxQUEENS_VALUE * populationCount(attacks[side][6] & position.board.pieceLocations[!side][QUEEN]);
+			score += PARAM.THREAT_KINGxMINORS_VALUE * populationCount(getKingAttacks(position.board.pieceLocations[side][KING]) & minors & weakTiles);
+			score += PARAM.THREAT_KINGxROOKS_VALUE * populationCount(getKingAttacks(position.board.pieceLocations[side][KING]) & position.board.pieceLocations[!side][ROOK] & weakTiles);
 			return score;
 		}
 
 		constexpr Score Evaluation::control(bool side) {
 			Score score = SCORE_ZERO;
 			BitBoard controlledTiles = attackedBy2[side] & attacks[!side][6] & ~attackedBy2[!side] & ~attacks[!side][PAWN];
-			score += PIECE_SPACE * populationCount(controlledTiles & position.board.occupied[BOTH]);
-			score += EMPTY_SPACE * populationCount(controlledTiles & ~position.board.occupied[BOTH]);
+			score += PARAM.PIECE_SPACE * populationCount(controlledTiles & position.board.occupied[BOTH]);
+			score += PARAM.EMPTY_SPACE * populationCount(controlledTiles & ~position.board.occupied[BOTH]);
 			return score;
 		}
 
 		int Evaluation::evaluate(const Position& position) {
+			
+			static const BitBoard OutpostMask[2] = { rankMask[RANK_5] | rankMask[RANK_4] | rankMask[RANK_3], rankMask[RANK_4] | rankMask[RANK_5] | rankMask[RANK_6] };
+
 			this->position = position;
 			ally = position.status.isWhite;
 			enem = !ally;
 
+			int scale = 32;
 
 			Score eval;
 
 			initialise(ally); initialise(enem);
 
-			eval += countMaterial(ally) - countMaterial(enem);
+			matidx1 = PARAM.MAT_MUL[PAWN] * populationCount(position.board.pieceLocations[WHITE][PAWN]) +
+					  PARAM.MAT_MUL[KNIGHT] * populationCount(position.board.pieceLocations[WHITE][KNIGHT]) +
+					  PARAM.MAT_MUL[BISHOP] * populationCount(position.board.pieceLocations[WHITE][BISHOP]) +
+					  PARAM.MAT_MUL[ROOK] * populationCount(position.board.pieceLocations[WHITE][ROOK]) +
+					  PARAM.MAT_MUL[QUEEN] * populationCount(position.board.pieceLocations[WHITE][QUEEN]);
 
-			mobilityMask = ~attacks[enem][PAWN] & EnemyAndEmpty(position.board, ally);
-			eval += evaluatePiece<KNIGHT>(ally);
-			eval += evaluatePiece<BISHOP>(ally);
+			matidx2 = PARAM.MAT_MUL[PAWN] * populationCount(position.board.pieceLocations[BLACK][PAWN]) +
+					  PARAM.MAT_MUL[KNIGHT] * populationCount(position.board.pieceLocations[BLACK][KNIGHT]) +
+					  PARAM.MAT_MUL[BISHOP] * populationCount(position.board.pieceLocations[BLACK][BISHOP]) +
+					  PARAM.MAT_MUL[ROOK] * populationCount(position.board.pieceLocations[BLACK][ROOK]) +
+					  PARAM.MAT_MUL[QUEEN] * populationCount(position.board.pieceLocations[BLACK][QUEEN]);
 
-			mobilityMask = ~attacks[ally][PAWN] & EnemyAndEmpty(position.board, enem);
-			eval -= evaluatePiece<KNIGHT>(enem);
-			eval -= evaluatePiece<BISHOP>(enem);
-
-			mobilityMask = ~attacks[enem][PAWN] | ~attacks[enem][BISHOP] | ~attacks[enem][KNIGHT] & EnemyAndEmpty(position.board, ally);
-			eval += evaluatePiece<ROOK>(ally);
-
-			mobilityMask = ~attacks[ally][PAWN] | ~attacks[ally][BISHOP] | ~attacks[ally][KNIGHT] & EnemyAndEmpty(position.board, enem);
-			eval -= evaluatePiece<ROOK>(enem);
-
-			mobilityMask = ~attacks[enem][PAWN] | ~attacks[enem][ROOK] | ~attacks[enem][KNIGHT] | ~attacks[enem][BISHOP] & EnemyAndEmpty(position.board, ally);
-			eval += evaluatePiece<QUEEN>(ally);
-
-			mobilityMask = ~attacks[ally][PAWN] | ~attacks[ally][ROOK] | ~attacks[ally][KNIGHT] | ~attacks[ally][BISHOP] & EnemyAndEmpty(position.board, enem);
-			eval -= evaluatePiece<QUEEN>(enem);
+			if (matidx1 < 486 && matidx2 < 486) {
+				Material& mat = PARAM.getMaterial(matidx1, matidx2);
+				phase = mat.phase;
+				eval += mat.value[ally];
+				if (mat.flags & 1) return 0;
+				if (mat.flags & 2) scale = 1;
+				if (mat.flags & 4 && populationCount((position.board.pieceLocations[WHITE][BISHOP] | position.board.pieceLocations[BLACK][BISHOP]) & COLOURED_SQUARE_BB[WHITE]) == 1) scale = 16;
+			}
+			else {
+				eval += countMaterial(ally) - countMaterial(enem);
+				if (phase > totalPhase) phase = totalPhase;
+				eval += PARAM.imbalance(pieceCountImb, ally) - PARAM.imbalance(pieceCountImb, enem);
+			}
 
 			eval += pawnStructure(ally) - pawnStructure(enem);
+			
+			mobilityMask = ~attacks[enem][PAWN] & EnemyAndEmpty(position.board, ally);
+			outpostTiles = OutpostMask[ally] & attacks[ally][PAWN] & ~pawnFill(attacks[enem][PAWN], enem);
+			eval += evaluatePiece<KNIGHT>(ally);
+			eval += evaluatePiece<BISHOP>(ally);
+			eval += evaluatePiece<ROOK>(ally);
+			eval += evaluatePiece<QUEEN>(ally);
 
-			eval += kingSafety(ally) - kingSafety(enem);
+			mobilityMask = ~attacks[ally][PAWN] & EnemyAndEmpty(position.board, enem);
+			outpostTiles = OutpostMask[enem] & attacks[enem][PAWN] & ~pawnFill(attacks[ally][PAWN], ally);
+			eval -= evaluatePiece<KNIGHT>(enem);
+			eval -= evaluatePiece<BISHOP>(enem);
+			eval -= evaluatePiece<ROOK>(enem);
+			eval -= evaluatePiece<QUEEN>(enem);
 
+			eval += kingPressure(ally) - kingPressure(enem);
+
+			eval += passedPawns(ally) - passedPawns(enem);
+			
 			eval += threats(ally) - threats(enem);
 
 			eval += control(ally) - control(enem);
 
-			phase = (phase * 256 + (totalPhase / 2)) / totalPhase;
-			return ((eval.middleGame * (256 - phase)) + (eval.endGame * phase)) / 256;
+			int tapered = (eval.middleGame * phase + eval.endGame * (totalPhase - phase)) / totalPhase;
+			return (tapered * scale / 32) + PARAM.TEMPO;
 		}
 
 		int Evaluation::tracedEval(const Position& position) {
@@ -414,8 +418,8 @@ namespace KRONOS {
 			Score aPawn = pawnStructure(ally);
 			Score ePawn = pawnStructure(enem);
 
-			Score aKing = kingSafety(ally);
-			Score eKing = kingSafety(enem);
+			Score aKing = kingPressure(ally);
+			Score eKing = kingPressure(enem);
 
 			Score aThreats = threats(ally);
 			Score eThreats = threats(enem);

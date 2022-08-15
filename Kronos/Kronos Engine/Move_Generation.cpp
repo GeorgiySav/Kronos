@@ -7,6 +7,9 @@ namespace KRONOS
 
 	inline Move MoveIntToMove(uint16_t move, const Position* position)
 	{
+		if (move == 0)
+			return NULL_MOVE;
+
 		Move newMove;
 
 		newMove.from = (move & 0b1111'1100'0000) >> 6;
@@ -111,7 +114,6 @@ namespace KRONOS
 			BitBoard notTaken = ~(1ULL << move.to);
 			for (BitBoard& enemyPieceBB : position.board.pieceLocations[!position.status.isWhite])
 				enemyPieceBB &= notTaken;
-			assert(position.board.pieceLocations[!position.status.isWhite][KING] != 0ULL);
 			position.halfMoves = 0;
 		}
 		if (!(move.flag & PROMOTION)) {
@@ -376,10 +378,15 @@ namespace KRONOS
 	}
 
 	constexpr bool inCheck(Position& position) {
-		return (getPawnAttacks(position.board.pieceLocations[position.status.isWhite][KING], !position.status.isWhite) & position.board.pieceLocations[!position.status.isWhite][PAWN])
-			|| (getKnightAttacks(position.board.pieceLocations[position.status.isWhite][KING]) & position.board.pieceLocations[!position.status.isWhite][KNIGHT])
-			|| (getRookAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[position.status.isWhite][KING])) & (position.board.pieceLocations[!position.status.isWhite][ROOK] | position.board.pieceLocations[!position.status.isWhite][QUEEN]))
-			|| (getBishopAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[position.status.isWhite][KING])) & (position.board.pieceLocations[!position.status.isWhite][BISHOP] | position.board.pieceLocations[!position.status.isWhite][QUEEN]));
+		return (getPawnAttacks(position.board.pieceLocations[WHITE][KING], BLACK) & position.board.pieceLocations[BLACK][PAWN])
+			|| (getKnightAttacks(position.board.pieceLocations[WHITE][KING]) & position.board.pieceLocations[BLACK][KNIGHT])
+			|| (getRookAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[WHITE][KING])) & (position.board.pieceLocations[BLACK][ROOK] | position.board.pieceLocations[BLACK][QUEEN]))
+			|| (getBishopAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[WHITE][KING])) & (position.board.pieceLocations[BLACK][BISHOP] | position.board.pieceLocations[BLACK][QUEEN]))
+			
+			|| (getPawnAttacks(position.board.pieceLocations[BLACK][KING], WHITE) & position.board.pieceLocations[WHITE][PAWN])
+			|| (getKnightAttacks(position.board.pieceLocations[BLACK][KING]) & position.board.pieceLocations[WHITE][KNIGHT])
+			|| (getRookAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[BLACK][KING])) & (position.board.pieceLocations[WHITE][ROOK] | position.board.pieceLocations[WHITE][QUEEN]))
+			|| (getBishopAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[BLACK][KING])) & (position.board.pieceLocations[WHITE][BISHOP] | position.board.pieceLocations[WHITE][QUEEN]));
 	}
 
 	inline void generateMoves(bool isWhite, Board& brd, BoardStatus& st, std::vector<Move>* moves) {

@@ -8,6 +8,8 @@
 #include <array>
 #include <chrono>
 #include <memory>
+#include <thread>
+#include <future>
 
 #include "utility.h"
 #include "BitBoard.h"
@@ -17,6 +19,8 @@
 #include "Move_Generation.h"
 #include "Zobrist_Hashing.h"
 #include "Search.h"
+#include "Game.h"
+#include "Tuner.h"
 
 namespace KRONOS
 {
@@ -55,12 +59,13 @@ namespace KRONOS
 	{
 
 		int ply = 0;
-		std::vector<Position> positions;
-		std::vector<Move> moveHistory;
+		Game game;
 
-		std::vector<Move> moves;
+		TUNER tuner;
 
 		SEARCH::SearchTree search;
+		std::future<Move> searchThread;
+		bool busy = false;
 
 	public:
 
@@ -75,112 +80,115 @@ namespace KRONOS
 			return std::string(1, 'a' + (index % 8)) + std::string(1, '1' + (index / 8));
 		}
 
-		void processFEN(std::string FEN);
-		std::string boardToFen(Position* position);
-		
-		inline void generateMoves() {
-			moves.clear();
-			KRONOS::generateMoves(positions[ply].status.isWhite, positions[ply].board, positions[ply].status, &moves);
-		}
-
 		inline void makeMove(Move move) {
-			ply++;
-			positions[ply] = positions[(ply - 1)];
-			//moveHistory[ply] = move;
-			
-			updatePosition(positions[ply], move);
+			game.makeMove(move);
 		}			
 		
-		constexpr void unmakeMove() {
-			ply = ply - 1;
+		void unmakeMove() {
+			game.undoMove();
 		}
 
+		//int perft(int depth) {
+		//	if (depth == 0) {
+		//		//perftResults result = perftResults();
+		//		//if (moveHistory[ply].flag == ENPASSANT) {
+		//		//	result.eps++;
+		//		//}
+		//		//else if (moveHistory[ply].flag & PROMOTION) {
+		//		//	result.promotions++;
+		//		//}
+		//		//else if (moveHistory[ply].flag == KING_CASTLE || moveHistory[ply].flag == QUEEN_CASTLE) {
+		//		//	result.castles++;
+		//		//}
+		//		//
+		//		//if (moveHistory[ply].flag & CAPTURE) {
+		//		//	result.captures++;
+		//		//}
+		//		//
+		//		//result.nodes++;
+		//		//return result;
+		//		return 1;
+		//	}
+		//
+		//	int count = 0;
+		//
+		//	generateMoves();
+		//	std::vector<Move> moves = this->moves;
+		//
+		//	for (Move move : moves) {
+		//		makeMove(move);
+		//		count += perft(depth - 1);
+		//		unmakeMove();
+		//	}
+		//
+		//	return count;
+		//
+		//}
+		//
+		//perftResults perftDiv(int depth) {
+		//	
+		//	perftResults count = perftResults();
+		//
+		//	generateMoves();
+		//	std::vector<Move> moves = this->moves;
+		//
+		//	for (Move move : moves) {
+		//		makeMove(move);
+		//		std::cout << BoardIndexToCoords(move.from) << BoardIndexToCoords(move.to) << ":\n" << perft(depth - 1) << '\n';
+		//		unmakeMove();
+		//	}
+		//
+		//	return count;
+		//
+		//}
 
-
-		int perft(int depth) {
-			if (depth == 0) {
-				//perftResults result = perftResults();
-				//if (moveHistory[ply].flag == ENPASSANT) {
-				//	result.eps++;
-				//}
-				//else if (moveHistory[ply].flag & PROMOTION) {
-				//	result.promotions++;
-				//}
-				//else if (moveHistory[ply].flag == KING_CASTLE || moveHistory[ply].flag == QUEEN_CASTLE) {
-				//	result.castles++;
-				//}
-				//
-				//if (moveHistory[ply].flag & CAPTURE) {
-				//	result.captures++;
-				//}
-				//
-				//result.nodes++;
-				//return result;
-				return 1;
+		void startSearchForBestMove() {
+			if (!busy) {
+				searchThread = std::async(&SEARCH::SearchTree::search, &search, game.getPositions(), game.getPly(), 1000);
+				busy = true;
 			}
-
-			int count = 0;
-
-			generateMoves();
-			std::vector<Move> moves = this->moves;
-
-			for (Move move : moves) {
-				makeMove(move);
-				count += perft(depth - 1);
-				unmakeMove();
-			}
-
-			return count;
-
 		}
 
-		perftResults perftDiv(int depth) {
-			
-			perftResults count = perftResults();
-
-			generateMoves();
-			std::vector<Move> moves = this->moves;
-
-			for (Move move : moves) {
-				makeMove(move);
-				std::cout << BoardIndexToCoords(move.from) << BoardIndexToCoords(move.to) << ":\n" << perft(depth - 1) << '\n';
-				unmakeMove();
+		bool searchFinished() {
+			if (busy) {
+				return searchThread._Is_ready();
 			}
-
-			return count;
-
+			return false;
 		}
 
 		Move getBestMove() {
-			return search.search(&positions, ply, 5, 10000);
+			if (searchThread._Is_ready()) {
+				busy = false;
+				return searchThread.get();
+			}
+			else {
+				return NULL_MOVE;
+			}
 		}
 
-		void printBoard() {
-			std::cout << "White Pawns: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][PAWN]) << std::endl;
-			std::cout << "White Knights: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][KNIGHT]) << std::endl;
-			std::cout << "White Bishops: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][BISHOP]) << std::endl;
-			std::cout << "White Rooks: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][ROOK]) << std::endl;
-			std::cout << "White Queens: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][QUEEN]) << std::endl;
-			std::cout << "White King: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][KING]) << std::endl;
+		void beginAutoGame() {
+			std::thread thread(&TUNER::playGame, &tuner);
+			thread.detach();
+		}
 
-			std::cout << "Black Pawns: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][PAWN]) << std::endl;
-			std::cout << "Black Knights: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][KNIGHT]) << std::endl;
-			std::cout << "Black Bishops: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][BISHOP]) << std::endl;
-			std::cout << "Black Rooks: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][ROOK]) << std::endl;
-			std::cout << "Black Queens: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][QUEEN]) << std::endl;
-			std::cout << "Black King: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][KING]) << std::endl;
+		EVALUATION::PARAMS::Eval_Parameters* getEvalParam1() {
+			return tuner.getParam1();
+		}
+
+		EVALUATION::PARAMS::Eval_Parameters* getEvalParam2() {
+			return tuner.getParam2();
 		}
 
 		Board* getBitBoardsPointer() {
-			return &positions[ply].board;
+			return game.getBoardPointer();
 		}
 
 		BoardStatus* getStatusPointer() {
-			return &positions[ply].status;
+			return game.getStatusPointer();
 		}
 		
 		std::vector<Move>* getMovesPointer() {
-			return &moves;
+			return game.getMovesPointer();
 		}
 
 		int getPly() {
@@ -188,7 +196,7 @@ namespace KRONOS
 		}
 		
 		void traceEval() {
-			search.evaluate.tracedEval(positions[ply]);
+			//search.evaluate.tracedEval(positions[ply]);
 			//std::cout << "Evaluate at a depth of 5: " << search.searchWithAlphaBeta(&positions, ply, 5) << std::endl << std::endl;
 		}
 

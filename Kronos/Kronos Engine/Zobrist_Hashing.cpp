@@ -3,7 +3,7 @@
 namespace KRONOS {
 	
 	namespace HASH {
-		
+
 		ZobristGenerator::ZobristGenerator()
 		{
 			std::mt19937_64 gen(std::mt19937_64::default_seed);
@@ -35,7 +35,7 @@ namespace KRONOS {
 			enPassantFiles[7] = dist(gen);
 		}
 
-		u64 ZobristGenerator::generateHash(const Position& position)
+		u64 ZobristGenerator::generateHash(const Position position)
 		{
 			u64 hash = 0ULL;
 			int pos;

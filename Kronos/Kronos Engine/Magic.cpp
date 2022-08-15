@@ -170,9 +170,6 @@ namespace KRONOS
 			mRookTable[tile].shift = shift;
 
 		}
-
-		for (auto& attack : mBishopTable[0].attacks)
-			std::cout << _BitBoard(attack) << std::endl;
 	}
 
 	void deleteMagics()

@@ -1,6 +1,7 @@
 #include "Kronos.h"
 
 #include "polyBook.h"
+#include "SyzygyTB.h"
 
 using namespace KRONOS;
 
@@ -8,9 +9,20 @@ KronosEngine::KronosEngine()
 {
 	KRONOS::initRays();
 	KRONOS::initMagics();
+	KRONOS::EVALUATION::initEvalVars();
 
-	positions.resize(MAX_PLY);
-	moveHistory.resize(MAX_PLY);
+#ifdef USE_SYZYGY
+	if (SEARCH::SYZYGY::initSYZYGY("./Syzygy endgame tablebases/Tablebases/")) {
+		std::cout << "initialised syzygy" << std::endl;
+	}
+	else
+		std::cout << "failed to initialise syzygy" << std::endl;
+#endif
+
+	tuner.setTimePerMove(750);
+	tuner.giveGame(&game);
+
+	game.setGame(GAME_TYPE::AI_GAME);
 
 	//processFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
 	//
@@ -46,268 +58,5 @@ KronosEngine::~KronosEngine()
 {
 	deleteMagics();
 	deleteRays();
-}
-
-void KronosEngine::processFEN(std::string FEN)
-{
-	positions[0] = Position();
-
-	moves.clear();
-	ply = 0;
-
-	std::stringstream fenStream;
-	fenStream.str(FEN);
-	std::string fenBoard, fenTurn, fenCastling, fenEP, fenHalfmove, fenFullmove;
-
-	std::getline(fenStream, fenBoard, ' ');
-	std::getline(fenStream, fenTurn, ' ');
-	std::getline(fenStream, fenCastling, ' ');
-	std::getline(fenStream, fenEP, ' ');
-	std::getline(fenStream, fenHalfmove, ' ');
-	std::getline(fenStream, fenFullmove, ' ');
-
-	if (fenStream.fail()) {
-		std::cout << "Invalid FEN syntax\n";
-		return;
-	}
-
-	if ((count(fenBoard, '/') != 7) || (count(fenBoard, 'k') != 1) || (count(fenBoard, 'K') != 1)) {
-		std::cout << "Invalid number of kings or ranks\n";
-		return;
-	}
-
-	int bIndex = 56;
-
-	for (int index = 0; index < fenBoard.length(); index++) {
-		if (fenBoard[index] == '/') {
-			index++;
-		}
-		if (std::isdigit(fenBoard[index])) {
-			if (bIndex % 8 + fenBoard[index] - '0' > 8) {
-				std::cout << "Too many pieces or empty spaces in file\n";
-				return;
-			}
-			for (int i = 0; i < fenBoard[index] - '0'; i++) {
-				bIndex = !((bIndex + 1) % 8) ? bIndex - 15 : bIndex + 1;
-			}
-		}
-		else {
-			switch (fenBoard[index])
-			{
-			default:
-				break;
-
-			case 'p':
-				setBit(positions[ply].board.pieceLocations[BLACK][PAWN], bIndex);
-				break;
-
-			case 'P':
-				setBit(positions[ply].board.pieceLocations[WHITE][PAWN], bIndex);
-				break;
-
-			case 'n':
-				setBit(positions[ply].board.pieceLocations[BLACK][KNIGHT], bIndex);
-				break;
-
-			case 'N':
-				setBit(positions[ply].board.pieceLocations[WHITE][KNIGHT], bIndex);
-				break;
-
-			case 'b':
-				setBit(positions[ply].board.pieceLocations[BLACK][BISHOP], bIndex);
-				break;
-
-			case 'B':
-				setBit(positions[ply].board.pieceLocations[WHITE][BISHOP], bIndex);
-				break;
-
-			case 'r':
-				setBit(positions[ply].board.pieceLocations[BLACK][ROOK], bIndex);
-				break;
-
-			case 'R':
-				setBit(positions[ply].board.pieceLocations[WHITE][ROOK], bIndex);
-				break;
-
-			case 'q':
-				setBit(positions[ply].board.pieceLocations[BLACK][QUEEN], bIndex);
-				break;
-
-			case 'Q':
-				setBit(positions[ply].board.pieceLocations[WHITE][QUEEN], bIndex);
-				break;
-
-			case 'k':
-				setBit(positions[ply].board.pieceLocations[BLACK][KING], bIndex);
-				break;
-
-			case 'K':
-				setBit(positions[ply].board.pieceLocations[WHITE][KING], bIndex);
-				break;
-			}
-			bIndex = !((bIndex + 1) % 8) ? bIndex - 15 : bIndex + 1;
-		}
-	}
-
-	positions[ply].board.mergeBoth();
-
-	if (fenTurn != "w" && fenTurn != "b") {
-		std::cout << "Invalid colour\n";
-		return;
-	}
-
-	positions[ply].status.isWhite = fenTurn == "w" ? true : false;
-
-	positions[ply].status.BKcastle = false;
-	positions[ply].status.BQcastle = false;
-	positions[ply].status.WKcastle = false;
-	positions[ply].status.WQcastle = false;
-
-	if (instr(fenCastling, 'K')) {
-		positions[ply].status.WKcastle = true;
-	}
-	if (instr(fenCastling, 'Q')) {
-		positions[ply].status.WQcastle = true;
-	}
-	if (instr(fenCastling, 'k')) {
-		positions[ply].status.BKcastle = true;
-	}
-	if (instr(fenCastling, 'q')) {
-		positions[ply].status.BQcastle = true;
-	}
-
-	if (fenEP != "-") {
-		positions[ply].status.EP = BoardCoordsToIndex(fenEP);
-	}
-	else
-		positions[ply].status.EP = no_Tile;
-
-	if (!is_number(fenHalfmove)) {
-		positions[ply].halfMoves = 0;
-	}
-
-	positions[ply].halfMoves = atoi(fenHalfmove.c_str());
-
-	if (!is_number(fenFullmove)) {
-		positions[ply].fullMoves = 0;
-	}
-
-	positions[ply].fullMoves = atoi(fenFullmove.c_str());
-}
-
-std::string KronosEngine::boardToFen(Position* position)
-{
-	std::string FEN = "";
-	int emptyCount = 0;
-	
-	for (int tile = 0; tile < 64; tile++)
-	{
-		if (tile % 8 == 0)
-		{
-			if (emptyCount)
-			{
-				FEN += std::to_string(emptyCount);
-				emptyCount = 0;
-			}
-			FEN += "/";
-		}
-
-		if (position->board.pieceLocations[WHITE][PAWN] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "P";
-		}
-		else if (position->board.pieceLocations[BLACK][PAWN] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "p";
-		}
-		else if (position->board.pieceLocations[WHITE][KNIGHT] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "N";
-		}
-		else if (position->board.pieceLocations[BLACK][KNIGHT] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "n";
-		}
-		else if (position->board.pieceLocations[WHITE][BISHOP] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "B";
-		}
-		else if (position->board.pieceLocations[BLACK][BISHOP] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "b";
-		}
-		else if (position->board.pieceLocations[WHITE][ROOK] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "R";
-		}
-		else if (position->board.pieceLocations[BLACK][ROOK] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "r";
-		}
-		else if (position->board.pieceLocations[WHITE][QUEEN] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "Q";
-		}
-		else if (position->board.pieceLocations[BLACK][QUEEN] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "q";
-		}
-		else if (position->board.pieceLocations[WHITE][KING] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "K";
-		}
-		else if (position->board.pieceLocations[BLACK][KING] & (1ULL << tile)) {
-			if (emptyCount)
-				FEN += std::to_string(emptyCount);
-			FEN += "k";
-		}
-		else {
-			emptyCount++;
-		}
-	}
-
-	if (emptyCount)
-		FEN += std::to_string(emptyCount);
-
-	FEN += " ";
-
-	if (position->status.isWhite)
-		FEN += "w ";
-	else
-		FEN += "b ";
-
-	if (position->status.WKcastle)
-		FEN += "K";
-	if (position->status.WQcastle)
-		FEN += "Q";
-	if (position->status.BKcastle)
-		FEN += "k";
-	if (position->status.BQcastle)
-		FEN += "q";
-	
-	FEN += " ";
-
-	if (position->status.EP == no_Tile)
-		FEN += "-";
-	else
-		FEN += BoardIndexToCoords(position->status.EP);
-	
-	FEN += " ";
-	FEN += std::to_string(position->halfMoves);
-	FEN += " ";
-	FEN += std::to_string(position->fullMoves);
-
-	return FEN;
-
+	SEARCH::SYZYGY::freeSYZYGY();
 }

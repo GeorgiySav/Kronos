@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <fstream>
+#include  <random>
+#include  <iterator>
 
 namespace KRONOS
 {
@@ -11,8 +13,7 @@ namespace KRONOS
 
 		Opening_Book::Opening_Book()
 		{
-			srand(time(NULL));
-			mode = POLY_MODE::DEFAULT;
+			mode = POLY_MODE::PURE_RANDOM;
 		}
 
 		Opening_Book::~Opening_Book()
@@ -243,6 +244,20 @@ namespace KRONOS
 			return current;
 		}
 
+		template<typename Iter, typename RandomGenerator>
+		Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
+			std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
+			std::advance(start, dis(g));
+			return start;
+		}
+
+		template<typename Iter>
+		Iter select_randomly(Iter start, Iter end) {
+			static std::random_device rd;
+			static std::mt19937 gen(rd());
+			return select_randomly(start, end, gen);
+		}
+
 		Move Opening_Book::getBookMove(const Position* position)
 		{
 			u64 polyKey = polyKeyFromPosition(position);
@@ -255,10 +270,14 @@ namespace KRONOS
 			}
 
 			if (!entries.empty()) {
+				srand(time(NULL));
 				if (mode == POLY_MODE::RANDOM) {
 					return decodeU16Move(endian_swap_u16(getRandomMove(&entries)->move), position);
 				}
-				else {
+				else if (mode == POLY_MODE::PURE_RANDOM) {
+					return decodeU16Move(endian_swap_u16(entries[std::distance(entries.begin(), select_randomly(entries.begin(), entries.end()))].move), position);
+				}
+				else if (mode == POLY_MODE::BEST_WEIGHT) {
 				    std::sort(entries.begin(), entries.end(), [](const POLY_BOOK_ENTRY& X, const POLY_BOOK_ENTRY& Y) -> bool { return X.weight > Y.weight; });
 					
 					int upperLimit = 0;

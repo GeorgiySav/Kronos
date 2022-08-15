@@ -16,6 +16,7 @@ namespace KRONOS {
 
 		SearchTree::SearchTree()
 		{
+			resourcesLeft = false;
 			positions = nullptr;
 			ply = 0;
 			bestEvaluation = -INFINITE;
@@ -27,20 +28,10 @@ namespace KRONOS {
 			openingBook.readBook("./Opening Books/komodo.bin");
 			openingBook.setMode(POLY::POLY_MODE::BEST_WEIGHT);
 #endif // USE_OPENING_BOOK
-#ifdef USE_SYZYGY
-			if (SYZYGY::initSYZYGY("./Syzygy endgame tablebases/Tablebases/")) {
-				std::cout << "initialised syzygy" << std::endl;
-			}
-			else
-				std::cout << "failed to initialise syzygy" << std::endl;
-#endif
 		}
 
 		SearchTree::~SearchTree()
 		{
-#ifdef USE_SYZYGY
-			SYZYGY::freeSYZYGY();
-#endif // USE_SYZYGY
 
 		}
 		
@@ -51,12 +42,42 @@ namespace KRONOS {
 			}
 		}
 
-		inline int SearchTree::quiescenceSearch(int alpha, int beta, int plyFromRoot) {
+		inline int SearchTree::quiescenceSearch(int alpha, int beta, int plyFromRoot, bool inPV) {
 			
+			u64 posHash = HASH::zobrist.generateHash(positions->at(ply));
+			positions->at(ply).setHash(posHash);
+
 			if (repeated())
 				return 0;
 			
+#ifdef USE_TRANSPOSITION_TABLE			
+			HASH::transEntry tte;
+			tte.move = NULL;
+			if (transpositionTable.probe(posHash, tte)) {
+				tte.eval = HASH::TranspositionTableToScore(tte.eval, plyFromRoot);
+				if (!inPV && (tte.getBound() == (int)HASH::BOUND::EXACT
+					|| (tte.getBound() == (int)HASH::BOUND::ALPHA && tte.eval <= alpha)
+					|| (tte.getBound() == (int)HASH::BOUND::BETA && tte.eval >= beta))) {
+					return tte.eval;
+				}
+			}
+#endif // USE_TRANSPOSITION_TABLE
+
+#ifdef USE_SYZYGY
+			int wdl = SYZYGY::probeWDL(&positions->at(ply));
+			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
+			{
+				int score = wdl == (int)SYZYGY::SyzygyResult::SYZYGY_LOSS ? MATED_IN_MAX_PLY + plyFromRoot + 1
+					: wdl == (int)SYZYGY::SyzygyResult::SYZYGY_WIN ? MATE_IN_MAX_PLY - plyFromRoot - 1 : 0;
+
+				return score;
+			}
+#endif
+
 			int eval = evaluate.evaluate(positions->at(ply));
+			if (ply >= MAX_PLY - 1)
+				return eval;
+
 			if (eval >= beta) {
 				return beta;
 			}
@@ -70,38 +91,54 @@ namespace KRONOS {
 
 			std::vector<Move> moves;
 			generateMoves(positions->at(ply).status.isWhite, positions->at(ply).board, positions->at(ply).status, &moves);
+			sortMoves(&positions->at(ply),
+				&moves,
+#ifdef USE_TRANSPOSITION_TABLE			     
+				MoveIntToMove(tte.move, &positions->at(ply))
+#else
+				NULL_MOVE
+#endif
+
+			);
+
 			if (moves.size() == 0) {
-				if (moves.size() == 0) {
-					if (inCheck(positions->at(ply))) {
-						return -MATE + plyFromRoot;
-					}
-					else {
-						return 0;
-					}
+				if (inCheck(positions->at(ply))) {
+					return -MATE + plyFromRoot;
+				}
+				else {
+					return 0;
 				}
 			}
+			
 			int bestScore = -INFINITE;
+
 			for (const Move& move : moves) {
 				if (move.flag & CAPTURE) {
+
+					if (move.flag & PROMOTION) {
+						if ((move.flag & QUEEN_PROMOTION) != QUEEN_PROMOTION)
+							continue;
+					}
+					
 					ply++;
 					positions->at(ply) = positions->at(ply - 1);
 					updatePosition(positions->at(ply), move);
-					int score = -quiescenceSearch(-beta, -alpha, plyFromRoot + 1);
+					int score = -quiescenceSearch(-beta, -alpha, plyFromRoot + 1, inPV);
 					ply--;
 
-					if (score >= beta) {				
-						return score;
-					}
 					if (score > bestScore) {
 						bestScore = score;
 						if (score > alpha) {
+							if (score >= beta) {
+								break;
+							}
 							alpha = score;
 						}
 					}
 				}
 			}
 
-			return alpha;
+			return bestScore;
 		}
 
 		bool SearchTree::repeated()
@@ -110,12 +147,11 @@ namespace KRONOS {
 				return false;
 
 			int count = 1;
-			int compHash = positions->at(ply).hash;
-			int index = ply;
+
+			u64 compHash = positions->at(ply).hash;
+			int index = ply - 1;
 
 			while (index >= 0) {
-				if (positions->at(index).hash == 0)
-					positions->at(index).hash = zobrist.generateHash(positions->at(index));
 				if (positions->at(index).hash == compHash) {
 					count++;
 					if (count >= 3)
@@ -128,15 +164,19 @@ namespace KRONOS {
 
 		}
 
-		template<int node_type>
-		int SearchTree::alphaBeta(int depth, int plyFromRoot, int alpha, int beta) {
+		int SearchTree::alphaBeta(int depth, int plyFromRoot, int alpha, int beta, bool inPV) {
 
+			u64 posHash = HASH::zobrist.generateHash(positions->at(ply));
+			positions->at(ply).setHash(posHash);
+			
 			// check for repeats
 			if (repeated()) {
 				return 0;
 			}
 
 			basic_score staticEval = evaluate.evaluate(positions->at(ply));
+			if (ply >= MAX_PLY - 1)
+				return staticEval;
 
 			// mate distance pruning
 			alpha = std::max(alpha, -MATE + plyFromRoot);
@@ -145,39 +185,35 @@ namespace KRONOS {
 				return alpha;
 			}
 			
-
 			#ifdef USE_TRANSPOSITION_TABLE			
-				u64 posHash = zobrist.generateHash(positions->at(ply));
 
-				positions->at(ply).setHash(posHash);
-
-				auto transEntry = transpositionTable.probeHash(posHash);
-				if (transEntry.first) {
-					if (transEntry.second->depth >= depth) {
-						int score = HASH::TranspositionTableToScore(transEntry.second->eval, ply);
-						int flag = transEntry.second->flag();
-							if ((flag  == (int)HASH::BOUND::EXACT ||
-						        (flag  == (int)HASH::BOUND::BETA  && score >= beta) ||
-						        (flag  == (int)HASH::BOUND::ALPHA && score <= alpha))) {
-							return score;
-						}
-					}
+			HASH::transEntry tte;
+			tte.move = NULL;
+			if (transpositionTable.probe(posHash, tte)) {
+				tte.eval = HASH::TranspositionTableToScore(tte.eval, plyFromRoot);
+				if (!inPV && tte.depth >= depth 
+					&& (tte.getBound() == (int)HASH::BOUND::EXACT
+					|| (tte.getBound() == (int)HASH::BOUND::ALPHA && tte.eval <= alpha)
+					|| (tte.getBound() == (int)HASH::BOUND::BETA  && tte.eval >= beta ))) {
+					return tte.eval;
 				}
+			}
+			
+				
 			#endif // USE_TRANSPOSITION_TABLE
 
 			#ifdef USE_SYZYGY
-				if (plyFromRoot > 0)
-				{
-					int wdl = SYZYGY::probeWDL(&positions->at(ply));
-					if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
-					{
-						int score = wdl == (int)SYZYGY::SyzygyResult::SYZYGY_LOSS ? MATED_IN_MAX_PLY + ply + 1
-							: wdl == (int)SYZYGY::SyzygyResult::SYZYGY_WIN ? MATE_IN_MAX_PLY - ply - 1 : 0;
+			int wdl = SYZYGY::probeWDL(&positions->at(ply));
+			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
+			{
+				int score = wdl == (int)SYZYGY::SyzygyResult::SYZYGY_LOSS ? MATED_IN_MAX_PLY + plyFromRoot + 1
+					       : wdl == (int)SYZYGY::SyzygyResult::SYZYGY_WIN ? MATE_IN_MAX_PLY - plyFromRoot - 1 : 0;
 
-						transEntry.second->saveEntry(posHash, Move(), std::min(depth + SYZYGY::SYZYGYLargest, MAX_PLY - 1), HASH::ScoreToTranpositionTable(score, ply), UNDEFINED, (u8)HASH::BOUND::EXACT, transpositionTable.getGeneration());
-						return score;
-					}
-				}
+				#ifdef USE_TRANSPOSITION_TABLE
+					transpositionTable.saveEntry(posHash, NULL, std::min(depth + SYZYGY::SYZYGYLargest, MAX_PLY - 1), HASH::ScoreToTranpositionTable(score, plyFromRoot), (int)HASH::BOUND::EXACT);
+				#endif
+				return score;
+			}			
 			#endif
 
 
@@ -186,49 +222,63 @@ namespace KRONOS {
 				return CANCELLED;
 
 			if (depth == 0) {
-				return quiescenceSearch(alpha, beta, plyFromRoot + 1);
-			}
-
-			if (node_type != PV_NODE)
-			{
-
+				return quiescenceSearch(alpha, beta, plyFromRoot + 1, inPV);
 			}
 
 			std::vector<Move> moves;
 			generateMoves(positions->at(ply).status.isWhite, positions->at(ply).board, positions->at(ply).status, &moves);
-			sortMoves(&positions->at(ply), &moves, (transEntry.first && transEntry.second->bestMove != 0) ? MoveIntToMove(transEntry.second->bestMove, &positions->at(ply)) : NULL_MOVE);
+			sortMoves(&positions->at(ply), 
+				      &moves, 
+					  #ifdef USE_TRANSPOSITION_TABLE			     
+						MoveIntToMove(tte.move, &positions->at(ply))
+					  #else
+						NULL_MOVE
+					  #endif
+					   );
+			
 			
 			if (moves.size() == 0) {
-				if (moves.size() == 0) {
-					if (inCheck(positions->at(ply))) {
-						return -MATE + plyFromRoot;
-					}
-					else {
-						return 0;
-					}
+				if (inCheck(positions->at(ply))) {
+					return -MATE + plyFromRoot;
+				}
+				else {
+					return 0;
 				}
 			}
 
 			HASH::BOUND bound = HASH::BOUND::ALPHA;
 			Move bestMoveInThisPosition;
-			basic_score bestScore = -INFINITE;
-			int index = 0;
+			int bestScore = -INFINITE;
 
-			for (const Move& move : moves) {
+			ply++;
+			positions->at(ply) = positions->at(ply - 1);
+			updatePosition(positions->at(ply), moves[0]);
+			bestScore = -alphaBeta(depth - 1, plyFromRoot + 1, -beta, -alpha, true);
+			ply--;
+			if (bestScore > alpha) {
+				bestMoveInThisPosition = moves[0];
+				if (bestScore >= beta) {
+					bound = HASH::BOUND::BETA;
+					goto finish;
+				}
+				alpha = bestScore;
+			}
+
+			for (int i = 1; i < moves.size(); i++) {
+				
+				if (moves[i].flag & PROMOTION) {
+					if ((moves[i].flag & QUEEN_PROMOTION) != QUEEN_PROMOTION)
+						continue;
+				}
+
 				// make move
 				ply++;
 				positions->at(ply) = positions->at(ply - 1);
-				updatePosition(positions->at(ply), move);
+				updatePosition(positions->at(ply), moves[i]);
 				
-				int score = 0;
-				if (index == 0) {
-					score = -alphaBeta<-node_type>(depth - 1, plyFromRoot + 1, -beta, -alpha);
-				}
-				else {
-					score = -alphaBeta<CUT_NODE>(depth - 1, plyFromRoot + 1, -alpha - 1, -alpha);
-					if (score > alpha && score < beta) {
-						score = -alphaBeta<PV_NODE>(depth - 1, plyFromRoot + 1, -beta, -alpha);
-					}
+				int score = -alphaBeta(depth - 1, plyFromRoot + 1, -alpha - 1, -alpha, false);
+				if (score > alpha && score < beta) {
+					score = -alphaBeta(depth - 1, plyFromRoot + 1, -beta, -alpha, true);				
 				}
 				
 				// undo move
@@ -237,27 +287,24 @@ namespace KRONOS {
 				if (!resourcesLeft)
 					return CANCELLED;
 
-				if (score >= beta)
-				{
-#ifdef USE_TRANSPOSITION_TABLE
-					bound = HASH::BOUND::BETA;
-					transEntry.second->saveEntry(posHash, move, depth, HASH::ScoreToTranpositionTable(score, ply), staticEval, (int)bound, transpositionTable.getGeneration());
-#endif				
-					return score;
-				}
-				if (score > bestScore)
-				{
+				if (score > bestScore) {
 					bestScore = score;
 					if (score > alpha) {
+						bound = HASH::BOUND::EXACT;
+						bestMoveInThisPosition = moves[i];
+						if (score >= beta) {
+							bound = HASH::BOUND::BETA;
+							break;
+						}
 						alpha = score;
-						bestMoveInThisPosition = move;
 					}
 				}
 			}
+			
+			finish:
 
-			cut:
 #ifdef USE_TRANSPOSITION_TABLE
-			transEntry.second->saveEntry(posHash, bestMoveInThisPosition, depth, HASH::ScoreToTranpositionTable(bestScore, ply), staticEval, (int)bound, transpositionTable.getGeneration());
+			transpositionTable.saveEntry(posHash, bestMoveInThisPosition.toIntMove(), depth, HASH::ScoreToTranpositionTable(bestScore, plyFromRoot), (int)bound);
 #endif // USE_TRANSPOSITION_TABLE
 
 			return bestScore;
@@ -265,47 +312,68 @@ namespace KRONOS {
 
 		inline int SearchTree::searchRoot(int depth, int alpha, int beta)
 		{
-
-#ifdef USE_TRANSPOSITION_TABLE			
-			u64 posHash = zobrist.generateHash(positions->at(ply));
-
+			u64 posHash = HASH::zobrist.generateHash(positions->at(ply));
 			positions->at(ply).setHash(posHash);
 
-			auto transEntry = transpositionTable.probeHash(posHash);
-			if (transEntry.first) {
-				if (transEntry.second->depth >= depth) {
-					int score = HASH::TranspositionTableToScore(transEntry.second->eval, ply);
-					int flag = transEntry.second->flag();
-					
+#ifdef USE_TRANSPOSITION_TABLE			
+
+			HASH::transEntry tte;
+			tte.move = NULL;
+			if (transpositionTable.probe(posHash, tte)) {
+				tte.eval = HASH::TranspositionTableToScore(tte.eval, 0);
+				if (tte.depth >= depth && tte.move != NULL) {
+					bestMoveThisIteration = MoveIntToMove(tte.move, &positions->at(ply));
+					return tte.eval;
 				}
 			}
+			
 #endif // USE_TRANSPOSITION_TABLE
 
 			std::vector<Move> moves;
 			generateMoves(positions->at(ply).status.isWhite, positions->at(ply).board, positions->at(ply).status, &moves);
-			sortMoves(&positions->at(ply), &moves, (transEntry.first == true) ? MoveIntToMove(transEntry.second->bestMove, &positions->at(ply)) : NULL_MOVE);
-			
+			sortMoves(&positions->at(ply),
+				&moves,
+#ifdef USE_TRANSPOSITION_TABLE			     
+				MoveIntToMove(tte.move, &positions->at(ply))
+#else
+				NULL_MOVE
+#endif
+			);
+
 			int bestScore = -INFINITE;
 			HASH::BOUND bound = HASH::BOUND::ALPHA;
 
-			for (int i = 0; i < moves.size(); i++)
+			ply++;
+			positions->at(ply) = positions->at(ply - 1);
+			updatePosition(positions->at(ply), moves[0]);
+			bestScore = -alphaBeta(depth - 1, 1, -beta, -alpha, true);
+			ply--;
+			if (bestScore > alpha) {
+				bestMoveThisIteration = moves[0];
+				alpha = bestScore;
+				// dont need to check if the score is greater than beta, because the beta will always be infinite
+			}
+
+			bool searchPV = true;
+			for (int i = 1; i < moves.size(); i++)
 			{
+				
+				if (moves[i].flag & PROMOTION) {
+					if ((moves[i].flag & QUEEN_PROMOTION) != QUEEN_PROMOTION)
+						continue;
+				}
+
 				// make the move
 				ply++;
 				positions->at(ply) = positions->at(ply - 1);
 				updatePosition(positions->at(ply), moves[i]);
 
-				int score = 0;
 				// introduces principal variation
-				if (i == 0) {
-					score = -alphaBeta<PV_NODE>(depth - 1, 1, -beta, -alpha);
+				int score = -alphaBeta(depth - 1, 1, -alpha - 1, -alpha, false);
+				if (score > alpha && score < beta) {
+					score = -alphaBeta(depth - 1, 1, -beta, -alpha, true);
 				}
-				else {
-					score = -alphaBeta<CUT_NODE>(depth - 1, 1, -alpha - 1, -alpha) > alpha;
-					if (score > alpha && score < beta) {
-						score = -alphaBeta<PV_NODE>(depth - 1, 1, -beta, -alpha);
-					}
-				}
+				
 
 				// undo the move
 				ply--;
@@ -317,20 +385,28 @@ namespace KRONOS {
 					bestScore = score;
 					if (score > alpha) {
 						bound = HASH::BOUND::EXACT;
-						alpha = score;
 						bestMoveThisIteration = moves[i];
+						if (score >= beta) {
+							bound = HASH::BOUND::BETA;
+							break;
+						}
+						alpha = score;
 					}
 				}
 
 			}
 
+			transpositionTable.saveEntry(posHash, bestMoveThisIteration.toIntMove(), depth, HASH::ScoreToTranpositionTable(bestScore, 0), (int)bound);
+
+			return bestScore;
+
 		}
 
-		inline void SearchTree::iterativeDeepening(int targetDepth) {
-			targetDepth = std::min(targetDepth, MAX_ITERATIVE_DEPTH);
+		inline void SearchTree::iterativeDeepening() {
+			int targetDepth = MAX_ITERATIVE_DEPTH;
 
 #ifdef USE_TRANSPOSITION_TABLE
-			transpositionTable.startSearch();
+			transpositionTable.updateAge();
 #endif // USE_TRANSPOSITION_TABLE
 
 			int wdl = SYZYGY::probeDTZ(&positions->at(ply), &bestMove);
@@ -340,7 +416,7 @@ namespace KRONOS {
 
 			resourcesLeft = true;
 			startPoint = clock.now();
-			for (int depth = 1; depth <= targetDepth; depth++) {
+			for (int depth = 2; depth <= targetDepth; depth++) {
 
 				int eval = searchRoot(depth, -INFINITE, INFINITE);
 
@@ -352,18 +428,21 @@ namespace KRONOS {
 
 		}
 
-		Move SearchTree::search(std::vector<Position>* positions, int ply, int depth, int MAX_TIME) {
-			
+		Move SearchTree::search(std::vector<Position>* positions, int ply, int MAX_TIME) {
+
 #ifdef USE_OPENING_BOOK
 			bestMove = openingBook.getBookMove(&positions->at(ply));
-			if (bestMove != Move())
+			if (bestMove != NULL_MOVE)
 				return bestMove;
 #endif // USE_OPENING_BOOK
+
+			if (ply >= MAX_PLY - 1)
+				return NULL_MOVE;
 
 			this->positions = positions;
 			this->ply = ply;
 			max_time = MAX_TIME;
-			iterativeDeepening(depth);
+			iterativeDeepening();
 			return bestMove;
 		}
 

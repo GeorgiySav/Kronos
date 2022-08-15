@@ -22,7 +22,7 @@ namespace KRONOS
 	typedef unsigned short uShort;
 
 
-	typedef int16_t basic_score;
+	typedef int basic_score;
 
 	struct Score {
 		basic_score middleGame;
@@ -87,5 +87,21 @@ namespace KRONOS
 		while (it != s.end() && std::isdigit(*it)) ++it;
 		return !s.empty() && it == s.end();
 	}
+
+	template <typename T>
+	struct skip
+	{
+		T& t;
+		std::size_t n;
+		skip(T& v, std::size_t s) : t(v), n(s) {}
+		auto begin() -> decltype(std::begin(t))
+		{
+			return std::next(std::begin(t), n);
+		}
+		auto end() -> decltype(std::end(t))
+		{
+			return std::end(t);
+		}
+	};
 
 } // namespace KRONOS

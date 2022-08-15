@@ -154,6 +154,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Kronos Engine\Eval_Params.cpp" />
+    <ClCompile Include="Kronos Engine\FEN.cpp" />
+    <ClCompile Include="Kronos Engine\Game.cpp" />
     <ClCompile Include="ImGui\imgui-SFML.cpp" />
     <ClCompile Include="ImGui\imgui.cpp" />
     <ClCompile Include="ImGui\imgui_draw.cpp" />
@@ -166,6 +169,8 @@
     <ClCompile Include="Kronos Engine\Move_Ordering.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.h" />
+    <ClCompile Include="Kronos Engine\Threads.cpp" />
+    <ClCompile Include="Kronos Engine\Tuner.cpp" />
     <ClCompile Include="Kronos Engine\Zobrist_Hashing.cpp" />
     <ClCompile Include="Kronos_Application.cpp" />
     <ClCompile Include="main.cpp" />
@@ -177,6 +182,8 @@
     <ClCompile Include="Syzygy endgame tablebases\tbprobe.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Kronos Engine\FEN.h" />
+    <ClInclude Include="Kronos Engine\Game.h" />
     <ClInclude Include="ImGui\imconfig-SFML.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui-SFML.h" />
@@ -199,6 +206,7 @@
     <ClInclude Include="Kronos Engine\Move_Generation.h" />
     <ClInclude Include="Kronos Engine\polyKeys.h" />
     <ClInclude Include="Kronos Engine\Search.h" />
+    <ClInclude Include="Kronos Engine\Threads.h" />
     <ClInclude Include="Kronos Engine\utility.h" />
     <ClInclude Include="Kronos Engine\Zobrist_Hashing.h" />
     <ClInclude Include="Kronos_Application.h" />
@@ -209,6 +217,7 @@
     <ClInclude Include="Syzygy endgame tablebases\stdendian.h" />
     <ClInclude Include="Syzygy endgame tablebases\tbconfig.h" />
     <ClInclude Include="Syzygy endgame tablebases\tbprobe.h" />
+    <ClInclude Include="Kronos Engine\Tuner.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\ChessPiecesArray.png" />

@@ -78,6 +78,21 @@
     <ClCompile Include="Kronos Engine\Move_Ordering.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Kronos Engine\Game.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Eval_Params.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\FEN.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Threads.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Tuner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kronos Engine\Kronos.h">
@@ -174,6 +189,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Kronos Engine\Move_Ordering.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\FEN.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Threads.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Tuner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

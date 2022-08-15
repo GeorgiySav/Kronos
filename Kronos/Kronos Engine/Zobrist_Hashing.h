@@ -20,9 +20,11 @@ namespace KRONOS {
 			ZobristGenerator();
 			~ZobristGenerator() {};
 
-			u64 generateHash(const Position& position);
+			u64 generateHash(const Position position);
 			u64 updateHash(Move move) {};
 		};
+
+		inline ZobristGenerator zobrist;
 
 	}
 
