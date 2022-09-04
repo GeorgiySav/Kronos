@@ -9,7 +9,7 @@ namespace KRONOS {
 		namespace PARAMS {
 			
 			struct Material {
-				Score value[2];
+				Score value;
 				int16_t phase;
 				int8_t flags;
 			};
@@ -120,12 +120,12 @@ namespace KRONOS {
 				
 				basic_score ATK_ON_KING_WEIGHT[5] = { 0, 64, 34, 29, 79 };
 
-				Score MOBILITY_BONUS[6] = {
+				Score MOBILITY_BONUS[6][28] = {
 						{}, // PAWN
-						Score(7, 7),
-						Score(9, 6),
-						Score(4, 6),
-						Score(3, 5)
+						{ {-82, -78}, {-23, -75}, {-5, -10}, {6, 7}, {13, 14}, {15, 29}, {22, 32}, {28, 34}, {31, 29}, },
+						{ {-61, -86}, {-20, -47}, {-12, 3}, {0, 24}, {13, 29}, {21, 39}, {25, 47}, {30, 51}, {31, 56}, {32, 59}, {33, 60}, {42, 53}, {47, 61}, {65, 46}, },
+						{ {-99, -149}, {-47, -88}, {-13, -17}, {-2, 5}, {5, 20}, {6, 33}, {6, 42}, {9, 42}, {13, 46}, {17, 52}, {16, 60}, {16, 65}, {14, 71}, {17, 72}, {18, 71}, },
+						{ {-2271, -735}, {-736, 771}, {24, -527}, {8, -169}, {4, 49}, {25, 96}, {36, 24}, {39, 63}, {41, 86}, {45, 91}, {50, 93}, {54, 94}, {56, 105}, {59, 103}, {59, 113}, {60, 121}, {57, 133}, {60, 135}, {57, 135}, {53, 148}, {58, 140}, {65, 138}, {66, 126}, {58, 134}, {69, 125}, {118, 50}, {77, 49}, {389, -148}, }
 				};
 				Score ROOK_ON_7TH = Score(0, 53);
 				Score ROOK_SEMI_OPEN_FILE_BONUS = Score(20, 5);
@@ -163,11 +163,11 @@ namespace KRONOS {
 				basic_score QUEEN_PHASE = 24;
 				basic_score TEMPO = 38;
 
-				int MAT_MUL[6] = { 0,1,9,27,81,243 };
+				//						P     K     B     R     Q
+				Material MATERIAL_TABLE[9][9][3][3][3][3][3][3][2][2];
 
-				Material MATERIAL_TABLE[486][486];
-
-				Score IMBALANCE_INTERNAL[6][6] = {
+				// Polynomial material balance parameters
+				Score Enemy_Coef[6][6] = {
 					{ {35, 68}, },
 					{ {0, -1}, {0, 0}, },
 					{ {-5, -7}, {0, 9}, {0, -6}, },
@@ -176,7 +176,7 @@ namespace KRONOS {
 					{ {-7, -26}, {0, -4}, {-15, -5}, {-23, 24}, {-56, 37}, {50, -399}, },
 				};
 
-				Score IMBALANCE_EXTERNAL[6][6] = {
+				Score Ally_Coef[6][6] = {
 					{ },
 					{ {0, 1}, },
 					{ {-1, 4}, {0, 5}, },
@@ -188,84 +188,106 @@ namespace KRONOS {
 				Eval_Parameters();
 				~Eval_Parameters();
 
-				void clearParameters();
 
 				Score imbalance(const int pieceCount[2][6], bool side) {
-					side = !side;
-					Score bonus;
+					Score score;
+
 					// Second-degree polynomial material imbalance, by Tord Romstad
-					for (int pt1 = 0; pt1 <= 4; ++pt1) {
-						if (!pieceCount[side][pt1]) continue;
-						Score value = IMBALANCE_INTERNAL[pt1][pt1] * pieceCount[side][pt1];
-						for (int pt2 = 0; pt2 < pt1; ++pt2)
-							value += IMBALANCE_INTERNAL[pt1][pt2] * pieceCount[side][pt2] + IMBALANCE_EXTERNAL[pt1][pt2] * pieceCount[!side][pt2];
-						bonus += value * pieceCount[side][pt1];
+					for (int pc1 = 0; pc1 < 6; pc1++) {
+						int pCount = pieceCount[side][pc1];
+						if (pCount == 0)
+							continue;
+
+						Score v = Ally_Coef[pc1][pc1] * pieceCount[side][pCount];
+
+						for (int pc2 = 0; pc2 < pc1; pc2++) {
+							v += Ally_Coef[pc1][pc2] * pieceCount[side][pc2] + Enemy_Coef[pc1][pc2] * pieceCount[!side][pc2];
+						}
+						score += v;
 					}
-					return bonus;
+
+					return score;
 				}
 
 				void initMatTab()
-				{
-					memset(MATERIAL_TABLE, 0, sizeof(MATERIAL_TABLE));
-					for (int wq = 0; wq <= 1; wq++) for (int bq = 0; bq <= 1; bq++)
-						for (int wr = 0; wr <= 2; wr++) for (int br = 0; br <= 2; br++)
-							for (int wb = 0; wb <= 2; wb++) for (int bb = 0; bb <= 2; bb++)
-								for (int wn = 0; wn <= 2; wn++) for (int bn = 0; bn <= 2; bn++)
-									for (int wp = 0; wp <= 8; wp++) for (int bp = 0; bp <= 8; bp++) {
-										int idx1 = wp * MAT_MUL[PAWN] + wn * MAT_MUL[KNIGHT] + wb * MAT_MUL[BISHOP] + wr * MAT_MUL[ROOK] + wq * MAT_MUL[QUEEN];
-										int idx2 = bp * MAT_MUL[PAWN] + bn * MAT_MUL[KNIGHT] + bb * MAT_MUL[BISHOP] + br * MAT_MUL[ROOK] + bq * MAT_MUL[QUEEN];
+				{					
+					for (int WP = 0; WP < 9; WP++) {
+						for (int BP = 0; BP < 9; BP++) {
+							for (int WB = 0; WB < 3; WB++) {
+								for (int BB = 0; BB < 3; BB++) {
+									for (int WK = 0; WK < 3; WK++) {
+										for (int BK = 0; BK < 3; BK++) {
+											for (int WR = 0; WR < 3; WR++) {
+												for (int BR = 0; BR < 3; BR++) {
+													for (int WQ = 0; WQ < 2; WQ++) {
+														for (int BQ = 0; BQ < 2; BQ++) {
 
-										Material& mat = MATERIAL_TABLE[idx1][idx2];
-										mat.phase = QUEEN_PHASE * (wq + bq) + ROOK_PHASE * (wr + br) + BISHOP_PHASE * (wb + bb) + KNIGHT_PHASE * (wn + bn);
-										mat.value[1] = { 0, 0 }; mat.value[0] = { 0, 0 };
-										mat.flags = 0;
+															Material& mat = MATERIAL_TABLE[WP][BP][WK][BK][WB][BB][WR][BR][WQ][BQ];
+															mat.value = SCORE_ZERO;
+															mat.phase = 0;
+															mat.flags = 0;
 
-										int pieceCount[2][6] = {
-											{wb > 1, wp, wn, wb, wr, wq},
-											{bb > 1, bp, bn, bb, br, bq},
-										};
+															mat.value += PAWN_VALUE * WP + KNIGHT_VALUE * WK + BISHOP_VALUE * WB + ROOK_VALUE * WR + QUEEN_VALUE * WQ;
+															mat.value -= (PAWN_VALUE * BP + KNIGHT_VALUE * BK + BISHOP_VALUE * BB + ROOK_VALUE * BR + QUEEN_VALUE * BQ);
 
-										for (int side = 0; side <= 1; ++side) {
-											Score scr;
-											scr += PAWN_VALUE * (side == WHITE ? wp : bp);
-											scr += KNIGHT_VALUE * (side == WHITE ? wn : bn);
-											scr += BISHOP_VALUE * (side == WHITE ? wb : bb);
-											scr += ROOK_VALUE * (side == WHITE ? wr : br);
-											scr += QUEEN_VALUE * (side == WHITE ? wq : bq);
-											mat.value[WHITE] += scr * (side == WHITE ? 1 : -1);
-											mat.value[WHITE] += imbalance(pieceCount, side) * (side == WHITE ? 1 : -1);
-											scr = SCORE_ZERO;
-											scr += PAWN_VALUE * (side == BLACK ? bp : wp);
-											scr += KNIGHT_VALUE * (side == BLACK ? bn : wn);
-											scr += BISHOP_VALUE * (side == BLACK ? bb : wb);
-											scr += ROOK_VALUE * (side == BLACK ? br : wr);
-											scr += QUEEN_VALUE * (side == BLACK ? bq : wq);
-											mat.value[BLACK] += scr * (side == BLACK ? 1 : -1);
-											mat.value[BLACK] += imbalance(pieceCount, side) * (side == BLACK ? 1 : -1);
+															int pieceCount[][6] = {
+																{WB > 1, WP, WK, WB, WR, WQ},
+																{BB > 1, BP, BK, BB, BR, BQ}
+															};
+
+															mat.value += imbalance(pieceCount, WHITE);
+															mat.value -= imbalance(pieceCount, BLACK);
+
+															mat.phase = QUEEN_PHASE * (WQ + BQ) + ROOK_PHASE * (WR + BR) + BISHOP_PHASE * (WB + BB) + KNIGHT_PHASE * (WK + BK);
+
+															int wMinors = WK + WB;
+															int wMajors = WR + WQ;
+															int bMinors = BK + BB;
+															int bMajors = BR + BQ;
+															int minors = wMinors + bMinors;
+															int majors = wMajors + bMajors;
+
+															if (WP + BP + minors + majors == 0)
+																mat.flags |= 1;
+															if (!WP && !BP) {
+																// minor vs minor
+																if (majors == 0 && wMinors == 1 && bMinors == 1)
+																	mat.flags |= 1;
+																// 2 knights
+																if (majors == 0 && minors == 2 && (WK == 2 || BK == 2))
+																	mat.flags |= 1;
+																// rook vs minor
+																if (majors == 1 && WR == 1 && wMinors == 0 && bMinors == 1)
+																	mat.flags |= 2;
+																// rook vs minor
+																if (majors == 1 && BR == 1 && bMinors == 0 && wMinors == 1)
+																	mat.flags |= 2;
+																// rook and minor vs rook
+																if (majors == 2 && WR == 1 && BR == 1 && minors < 2)
+																	mat.flags |= 2;
+															}
+															// possible opposite coloured bishops
+															if (majors == 0 && minors == 2 && WB == 1 && BB == 1)
+																mat.flags |= 4;
+
+														}
+													}
+												}
+											}
 										}
-										
-
-										int wminors = wn + wb;
-										int bminors = bn + bb;
-										int wmajors = wr + wq;
-										int bmajors = br + bq;
-										int minors = wminors + bminors;
-										int majors = wmajors + bmajors;
-
-										if (wp + bp + minors + majors == 0) mat.flags |= 1;
-										if (!wp && !bp) {
-											if (majors == 0 && wminors < 2 && bminors < 2) mat.flags |= 1; // minor vs minor
-											if (majors == 0 && minors == 2 && (wn == 2 || bn == 2)) mat.flags |= 1; // 2 knights
-											if (majors == 1 && wr == 1 && wminors == 0 && bminors == 1) mat.flags |= 2; // rook vs minor
-											if (majors == 1 && br == 1 && bminors == 0 && wminors == 1) mat.flags |= 2; // rook vs minor
-											if (majors == 2 && wr == 1 && br == 1 && minors < 2) mat.flags |= 2; // rook+minor vs rook
-										}
-										if (majors == 0 && minors == 2 && wb == 1 && bb == 1) mat.flags |= 4; // possible ocb
 									}
+								}
+							}
+						}
+					}
 				}
 
-				Material& getMaterial(int idx1, int idx2) {
-					return MATERIAL_TABLE[idx1][idx2];
+				bool getMaterial(int WP, int BP, int WK, int BK, int WB, int BB, int WR, int BR, int WQ, int BQ, Material& mat) {
+					if (WP < 9 && BP < 9 && WK < 3 && BK < 3 && WB < 3 && BB < 3 && WR < 3 && BR < 3 && WQ < 2 && BQ < 2) {
+						mat = MATERIAL_TABLE[WP][BP][WK][BK][WB][BB][WR][BR][WQ][BQ];
+						return true;
+					}
+					return false;
 				}
 
 				void saveParams();

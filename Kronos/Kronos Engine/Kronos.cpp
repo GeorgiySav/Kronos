@@ -10,19 +10,23 @@ KronosEngine::KronosEngine()
 	KRONOS::initRays();
 	KRONOS::initMagics();
 	KRONOS::EVALUATION::initEvalVars();
+	KRONOS::SEARCH::initLMR();
 
-#ifdef USE_SYZYGY
 	if (SEARCH::SYZYGY::initSYZYGY("./Syzygy endgame tablebases/Tablebases/")) {
 		std::cout << "initialised syzygy" << std::endl;
 	}
 	else
 		std::cout << "failed to initialise syzygy" << std::endl;
-#endif
 
-	tuner.setTimePerMove(750);
+
+	tuner.setTimePerMove(1000);
 	tuner.giveGame(&game);
+	tuner.setThreads(&threads);
 
 	game.setGame(GAME_TYPE::AI_GAME);
+
+	NUM_THREADS = std::thread::hardware_concurrency();
+	threads.init(NUM_THREADS, &search);
 
 	//processFEN("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
 	//

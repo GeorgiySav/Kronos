@@ -104,15 +104,22 @@ namespace KRONOS {
 			this->fullMoves = other.fullMoves;
 		}
 		constexpr void setHash(u64 newHash) { this->hash = newHash; }
-		constexpr u8 getPieceType(int tile) {
+		constexpr u8 getPieceType(int tile) const {
 			u64 toBB = 1ULL << tile;
 			for (u8 p = 0; p < 6; p++) {
 				if ((board.pieceLocations[BLACK][p] | board.pieceLocations[WHITE][p]) & toBB) {
 					return p;
 				}
 			}
+			return 6;
 		}
+		bool SEE(Move& move, int threshold) const;
+		bool givesCheck(Move& move);
+	private:
+		static int const PieceValues[6];
 	};
+
+	inline int const Position::PieceValues[6] = { 100, 300, 300, 500, 900 };
 
 	enum MoveFlagsAndMasks {
 
@@ -135,6 +142,7 @@ namespace KRONOS {
 
 	extern inline void updatePosition(Position& position, Move move);
 	extern inline Position newPosition(Position curPos, Move move);
+	extern inline void makeNullMove(Position& position);
 	extern constexpr BitBoard EnemyAndEmpty(const Board& brd, bool isWhite);
 	extern constexpr BitBoard Empty(const Board& brd);
 	extern constexpr BitBoard pawnAttackLeft(BitBoard brd, bool isWhite);
@@ -153,9 +161,9 @@ namespace KRONOS {
 	extern constexpr void queenCheckMask(const int queenPos, const int kingPos, BitBoard& checkMask, BitBoard& kingBan);
 	extern constexpr BitBoard highlightTilesBetween(int start, int end);
 	template <Pieces pieceType>
-	extern constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, std::vector<Move>* moves);
-	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, std::vector<Move>* moves);
-	extern constexpr bool inCheck(Position& position);
-	extern inline void generateMoves(bool isWhite, Board& brd, BoardStatus& st, std::vector<Move>* moves);
+	extern constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List<256>& moves);
+	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List<256>& moves);
+	extern constexpr bool inCheck(const Position& position);
+	extern inline void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves);
 	extern inline BitBoard generateAttacksToSquare(Position* position, int tile);
 }

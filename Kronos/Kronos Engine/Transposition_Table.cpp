@@ -7,80 +7,99 @@ namespace KRONOS {
 
 		bool Transposition_Table::probe(u64 hash, transEntry& entry)
 		{
-			transEntry* ety = &getEntry(hash)->bucket[0];
 			HashLower h =lock(hash);
-			for (int t = BUCKET_SIZE; t--; ++ety) {
-				if (ety->hashLock == h) {
-					entry = *ety;
+			
+			for (int i = 0; i < BUCKET_SIZE; i++) {
+				transEntry& ety = getEntry(hash)->bucket[i];
+				if (ety.hashLock == h) {
+					entry = ety;
 					entry.setAge(currentAge);
 					return true;
 				}
 			}
+
 			return false;
 		}
 
 		void Transposition_Table::saveEntry(u64 hash, u16 move, int depth, int16_t eval, int bound)
 		{
 			int highest = -INFINITE;
-			transEntry* entry = &getEntry(hash)->bucket[0];
-			transEntry* replace = entry;
-			for (int t = BUCKET_SIZE; t--; ++entry) {
-				if (entry->hashLock == lock(hash)) {
-					if (bound == (int)BOUND::EXACT || depth >= entry->depth) {
+			transEntry& replace = getEntry(hash)->bucket[0];
+			
+			for (int i = 0; i < BUCKET_SIZE; i++) {
+				transEntry& entry = getEntry(hash)->bucket[i];
+				if (entry.hashLock == lock(hash)) {
+					if (entry.depth >= depth || bound == (int)BOUND::EXACT) {
 						replace = entry;
 						break;
 					}
-					else return;
+					else return; // don't want to replace an entry with a worse one
 				}
-				int score = (((64 + currentAge - entry->getAge()) % 64) << 8) - entry->depth;
+				int score = (((64 + currentAge - entry.getAge()) % 64) << 8) - entry.depth;
 				if (score > highest) {
 					highest = score;
 					replace = entry;
 				}
 			}
-			replace->hashLock = lock(hash);
-			replace->move = move;
-			replace->depth = depth;
-			replace->eval = eval;
-			replace->setAgeBound(currentAge, bound);
+
+			replace.hashLock = lock(hash);
+			replace.move = move;
+			replace.depth = depth;
+			replace.eval = eval;
+			replace.setAgeBound(currentAge, bound);
+		}
+
+		int16_t Eval_Table::getEval(Position& position, EVALUATION::Evaluation& evaluation)
+		{
+			HashLower hash = lock(position.hash);
+			evalEntry* replace = &getEntry(position.hash)->bucket[0];
+			for (int i = 0; i < 5; i++) {
+				evalEntry& entry = getEntry(position.hash)->bucket[i];
+				if (entry.hashLock == hash) {
+					return entry.eval;
+				}
+			}
+			replace->hashLock = hash;
+			replace->eval = evaluation.evaluate(position);
+			return replace->eval;
 		}
 
 		void ABDADA_TABLE::setBusy(u64 hash, u16 move, int depth)
 		{
 			int lowest = INFINITE;
-			MOVE_HASH* entry = &getEntry(hash)->bucket[0];
-			MOVE_HASH* replace = entry;
-			for (int t = ABDADA_BUCKET_SIZE; t--; ++entry) {
-				if (entry->depth == depth && entry->hashLock == mhlock(hash) && entry->move == move) {
+			MOVE_HASH& replace = getEntry(hash)->bucket[0];
+
+			for (int i = 0; i < ABDADA_BUCKET_SIZE; i++) {
+				MOVE_HASH& entry = getEntry(hash)->bucket[i];
+				if (entry.depth == depth && entry.hashLock == mhlock(hash) && entry.move == move) {
 					return;
 				}
-				if (entry->depth < lowest) {
-					lowest = entry->depth;
+				if (entry.depth < lowest && entry.hashLock == mhlock(hash)) {
+					lowest = entry.depth;
 					replace = entry;
 				}
 			}
-			replace->hashLock = mhlock(hash);
-			replace->move = move;
-			replace->depth = depth;
+
+			replace.hashLock = mhlock(hash);
+			replace.move = move;
+			replace.depth = depth;
 		}
 
-		void ABDADA_TABLE::resetBusy(u64 hash, u16 move, int depth)
-		{
-			MOVE_HASH* entry = &getEntry(hash)->bucket[0];
-			for (int t = ABDADA_BUCKET_SIZE; t--; ++entry) {
-				if (entry->depth == depth && entry->hashLock == mhlock(hash) && entry->move == move) {
-					entry->hashLock = 0;
-					entry->depth = 0;
-					entry->move = 0;
-					return;
+		void ABDADA_TABLE::resetBusy(u64 hash, u16 move, int depth){
+			for (int i = 0; i < ABDADA_BUCKET_SIZE; i++) {
+				MOVE_HASH& entry = getEntry(hash)->bucket[i];
+				if (entry.depth == depth && entry.hashLock == mhlock(hash) && entry.move == move) {
+					entry.hashLock = 0;
+					entry.depth = 0;
+					entry.move = 0;
 				}
 			}
 		}
 
 		bool ABDADA_TABLE::isBusy(u64 hash, u16 move, int depth) {
-			MOVE_HASH* entry = &getEntry(hash)->bucket[0];
-			for (int t = ABDADA_BUCKET_SIZE; t--; ++entry) {
-				if (entry->depth == depth && entry->hashLock == mhlock(hash) && entry->move == move) {
+			for (int i = 0; i < ABDADA_BUCKET_SIZE; i++) {
+				MOVE_HASH& entry = getEntry(hash)->bucket[i];
+				if (entry.depth == depth && entry.hashLock == mhlock(hash) && entry.move == move) {
 					return true;
 				}
 			}

@@ -23,7 +23,32 @@ namespace KRONOS
 		}
 	};
 
-	static const Move NULL_MOVE(0, 0, 0, 0);
+	template<int N>
+	struct Move_List {
+	public:
+		Move* begin() { return &list[0]; }
+		Move* end() { return &list[size]; }
+		Move const* begin() const { return &list[0]; }
+		Move const* end() const { return &list[size]; }
+
+		Move_List() : size(0) {}
+		void add(const Move& m) { list[size++] = m; }
+		void clear() { size = 0; }
+		Move& at(int index) { return list[index]; }
+		bool contains(const Move& m) { 
+			for (int i = 0; i < size; i++)
+				if (list[i] == m) 
+					return true; 
+			return false;
+		}
+
+		int size;
+
+	private:
+		Move list[N];
+	};
+
+	inline const Move NULL_MOVE(0, 0, 0, 0);
 
 } // namespace KRONOS
 

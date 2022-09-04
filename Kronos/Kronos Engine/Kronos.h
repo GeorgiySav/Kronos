@@ -21,6 +21,7 @@
 #include "Search.h"
 #include "Game.h"
 #include "Tuner.h"
+#include "Thread_Manager.h"
 
 namespace KRONOS
 {
@@ -63,9 +64,13 @@ namespace KRONOS
 
 		TUNER tuner;
 
-		SEARCH::SearchTree search;
+		SEARCH::Search_Tree search;
 		std::future<Move> searchThread;
 		bool busy = false;
+		SEARCH::Thread_Manager threads;
+		int NUM_THREADS = std::thread::hardware_concurrency();
+		EVALUATION::Evaluation eval;
+		EVALUATION::PARAMS::Eval_Parameters params;
 
 	public:
 
@@ -142,9 +147,18 @@ namespace KRONOS
 		//
 		//}
 
+		void setFen(std::string FEN) {
+			game.clear();
+			game.setGame(GAME_TYPE::HUMAN_GAME, FEN);
+		}
+
+		void getStaticEval() {
+			std::cout << "Static Evaluation: " << eval.evaluate(game.getPositions()->at(game.getPly())) << std::endl;
+		}
+
 		void startSearchForBestMove() {
 			if (!busy) {
-				searchThread = std::async(&SEARCH::SearchTree::search, &search, game.getPositions(), game.getPly(), 1000);
+				searchThread = std::async(&SEARCH::Search_Tree::search, &search, game.getPositions(), game.getPly(), 1000, &threads);
 				busy = true;
 			}
 		}
@@ -187,7 +201,7 @@ namespace KRONOS
 			return game.getStatusPointer();
 		}
 		
-		std::vector<Move>* getMovesPointer() {
+		KRONOS::Move_List<256>* getMovesPointer() {
 			return game.getMovesPointer();
 		}
 

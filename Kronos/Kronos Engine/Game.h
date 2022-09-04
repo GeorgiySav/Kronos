@@ -45,7 +45,7 @@ namespace KRONOS
 		GAME_TYPE gameType;
 		
 
-		std::vector<Move> moves;
+		Move_List<256> moves;
 
 		void checkGameState();
 	public:
@@ -81,7 +81,7 @@ namespace KRONOS
 			return &positions[ply].status;
 		}
 
-		std::vector<Move>* getMovesPointer() {
+		Move_List<256>* getMovesPointer() {
 			return &moves;
 		}
 	

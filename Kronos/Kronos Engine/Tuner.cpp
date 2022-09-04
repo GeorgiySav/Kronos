@@ -30,13 +30,7 @@ namespace KRONOS
 		Move bestMove;
 		while (game->getGameState() == GAME_STATE::PLAYING)
 		{
-			if (game->getPly() % 2 == 0) {
-				search.setEvalParams(&PARAM_1);
-			}
-			else {
-				search.setEvalParams(&PARAM_2);
-			}
-			bestMove = search.search(game->getPositions(), game->getPly(), timePerMove);
+			bestMove = search.search(game->getPositions(), game->getPly(), timePerMove, manager);
 			game->makeMove(bestMove);
 		}
 		

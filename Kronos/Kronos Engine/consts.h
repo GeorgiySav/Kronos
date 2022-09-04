@@ -4,7 +4,7 @@ namespace KRONOS
 {
 	static const int MAX_PLY = 200;
 
-	static const int MAX_ITERATIVE_DEPTH = 9;
+	static const int MAX_ITERATIVE_DEPTH = 16;
 
 	static const int MATE = 32000;
 	static const int INFINITE = 32001;

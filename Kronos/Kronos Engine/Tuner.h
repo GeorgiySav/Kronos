@@ -3,6 +3,7 @@
 #include "Evaluation.h"
 #include "Game.h"
 #include "Search.h"
+#include "Threads.h"
 
 namespace KRONOS {
 	
@@ -15,7 +16,8 @@ namespace KRONOS {
 
 		int timePerMove = 0;
 
-		SEARCH::SearchTree search;
+		SEARCH::Search_Tree search;
+		SEARCH::Thread_Manager* manager;
 
 	public:
 		TUNER();
@@ -23,6 +25,7 @@ namespace KRONOS {
 
 		void setTimePerMove(int time);
 		void giveGame(Game* ptr);
+		void setThreads(SEARCH::Thread_Manager* m) { manager = m; }
 
 		void playGame();
 

@@ -1,4 +1,5 @@
 #include "FEN.h"
+#include "Zobrist_Hashing.h"
 
 #include <iostream>
 #include <string>
@@ -148,6 +149,8 @@ namespace KRONOS
 		}
 
 		position.fullMoves = atoi(fenFullmove.c_str());
+
+		position.hash = HASH::zobrist.generateHash(position);
 
 		return position;
 

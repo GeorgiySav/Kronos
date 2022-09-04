@@ -10,7 +10,7 @@ Kronos_Application::Kronos_Application()
 
 	ImGui::SFML::Init(window);
 
-	//kronosEngine->processFEN("4k3/5q2/8/8/8/8/3Q4/4K3 w - - 0 1");
+	//kronosEngine->setFen("r4rk1/pp2pp1p/3p2p1/6B1/3Q3P/1P6/1RPKnPP1/q6R w - - 0 1");
 
 	boardUI.setScale(0.75);
 	boardUI.setPosition({ 5, 25 });
@@ -156,24 +156,15 @@ void Kronos_Application::processInputs() {
 					kronosEngine->unmakeMove();
 					//pgnMoves.pop_back();	
 			}
-		}
-
-		if (events.type == sf::Event::KeyPressed) {
 			if (events.key.code == sf::Keyboard::G) {
 				kronosEngine->startSearchForBestMove();
 			}
-		}
-
-		if (events.type == sf::Event::KeyPressed) {
 			if (events.key.code == sf::Keyboard::P) {
 				kronosEngine->beginAutoGame();
 			}
-		}
-
-		if (events.type == sf::Event::KeyPressed) {
 			if (events.key.code == sf::Keyboard::E) {
 				system("cls");
-				kronosEngine->traceEval();
+				kronosEngine->getStaticEval();
 			}
 		}
 		

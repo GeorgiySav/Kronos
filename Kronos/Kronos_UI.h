@@ -31,7 +31,7 @@ struct pieceSprite {
 struct selectedPiece {
 	int pos;
 	pieceSprite* sprite;
-	std::vector<KRONOS::Move>* moves;
+	KRONOS::Move_List<256>* moves;
 	int start, end;
 	int colour, type;
 	selectedPiece() {
@@ -148,7 +148,7 @@ public:
 				float(boardPosition.y + boardSprite.getGlobalBounds().height - (std::floor(boardIndex / 8) * getBoardInterval() + (getBoardInterval() * 0.5))) };
 	}
 
-	void selectPiece(sf::RenderWindow& window, KRONOS::Board* board, std::vector<KRONOS::Move>* moves, bool isWhite, bool whiteBottom) {
+	void selectPiece(sf::RenderWindow& window, KRONOS::Board* board, KRONOS::Move_List<256>* moves, bool isWhite, bool whiteBottom) {
 		sf::Vector2i relPos = sf::Mouse::getPosition(window) - sf::Vector2i(boardPosition);
 		int boardIndex = getBoardIndex(relPos.x, relPos.y);
 		if (!whiteBottom)
@@ -161,10 +161,10 @@ public:
 				selected.colour = isWhite;
 				selected.type = piece;
 				selected.moves = moves;
-				for (int i = 0; i < moves->size(); i++) {
+				for (int i = 0; i < moves->size; i++) {
 					if (moves->at(i).from == boardIndex) {
 						selected.start = i;
-						while (i < moves->size() && moves->at(i).from == boardIndex)
+						while (i < moves->size && moves->at(i).from == boardIndex)
 							i++;
 						selected.end = i - 1;
 						selected.moves = moves;

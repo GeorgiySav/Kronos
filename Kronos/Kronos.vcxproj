@@ -125,6 +125,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)/Kronos/ImGui;$(SolutionDir)/SFML/include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -143,6 +144,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)/Kronos/ImGui;$(SolutionDir)/SFML/include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -166,7 +168,7 @@
     <ClCompile Include="Kronos Engine\Kronos.cpp" />
     <ClCompile Include="Kronos Engine\Magic.cpp" />
     <ClCompile Include="Kronos Engine\Move_Generation.cpp" />
-    <ClCompile Include="Kronos Engine\Move_Ordering.cpp" />
+    <ClCompile Include="Kronos Engine\Move_Picker.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.h" />
     <ClCompile Include="Kronos Engine\Threads.cpp" />
@@ -180,6 +182,7 @@
     <ClCompile Include="Kronos Engine\SyzygyTB.cpp" />
     <ClCompile Include="Syzygy endgame tablebases\tbchess.cpp" />
     <ClCompile Include="Syzygy endgame tablebases\tbprobe.cpp" />
+    <ClCompile Include="Kronos Engine\Thread_Manager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kronos Engine\FEN.h" />
@@ -199,7 +202,7 @@
     <ClInclude Include="Kronos Engine\Evaluation.h" />
     <ClInclude Include="Kronos Engine\Eval_Params.h" />
     <ClInclude Include="Kronos Engine\Kronos.h" />
-    <ClInclude Include="Kronos Engine\Move_Ordering.h" />
+    <ClInclude Include="Kronos Engine\Move_Picker.h" />
     <ClInclude Include="Kronos Engine\Rays.h" />
     <ClInclude Include="Kronos Engine\Magic.h" />
     <ClInclude Include="Kronos Engine\Magic_Vars.h" />
@@ -218,6 +221,7 @@
     <ClInclude Include="Syzygy endgame tablebases\tbconfig.h" />
     <ClInclude Include="Syzygy endgame tablebases\tbprobe.h" />
     <ClInclude Include="Kronos Engine\Tuner.h" />
+    <ClInclude Include="Kronos Engine\Thread_Manager.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\ChessPiecesArray.png" />

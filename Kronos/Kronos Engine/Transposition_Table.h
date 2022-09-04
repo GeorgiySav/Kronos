@@ -4,18 +4,19 @@
 
 #include "Move_Generation.h"
 #include "utility.h"
+#include "Evaluation.h"
 
 namespace KRONOS {
 	
 	namespace HASH {
 		
-		typedef uint16_t HashLower;
-#define HASHLOWER(x) (HashLower)(x)
+		typedef uint32_t HashLower;
+#define HASHLOWER(x) (HashLower)(x >> 32)
 #define BUCKET_SIZE 3
 #define ABDADA_BUCKET_SIZE 4
 
 		enum class BOUND : u8 {
-			EXACT = 1,
+			EXACT,
 			BETA,
 			ALPHA,
 		};
@@ -48,11 +49,11 @@ namespace KRONOS {
 		#pragma pack(push, 1)
 		struct transEntry
 		{
-			HashLower hashLock; // 16
+			HashLower hashLock; // 32
 			u16 move; // 16
 			u8 depth; // 8
 			int16_t eval; // 16
-			// total = 64
+			// total = 80
 			int getAge() { return age & 63; }
 			int getBound() { return age >> 6; }
 			void setAgeBound(int a, int b) { age = a | (b << 6); }
@@ -63,14 +64,14 @@ namespace KRONOS {
 		#pragma pack(pop)
 
 		struct transBucket {
-			transEntry bucket[BUCKET_SIZE]; // 192
-			// char Padding[];
+			transEntry bucket[BUCKET_SIZE]; // 80 * 3 = 240
+			int16_t Padding;
 		};
 
 		class Transposition_Table : public HASH_TABLE<transBucket>
 		{
 		private:
-			int currentAge;
+			int currentAge = 0;
 		public:
 			void resetAge() { currentAge = 0; }
 			void updateAge() { currentAge = (currentAge + 1) % 64; }
@@ -81,6 +82,23 @@ namespace KRONOS {
 		extern inline int ScoreToTranpositionTable(int score, u8 ply);
 		extern inline int TranspositionTableToScore(int score, u8 ply);
 
+		#pragma pack(push, 1)
+		struct evalEntry
+		{
+			HashLower hashLock;
+			int16_t eval;
+		};
+		#pragma pack(pop)
+
+		struct Eval_Bucket {
+			evalEntry bucket[5]; // 48 * 5 = 240
+			int16_t padding;
+		};
+
+		struct Eval_Table : public HASH_TABLE<Eval_Bucket>
+		{
+			int16_t getEval(Position& position, EVALUATION::Evaluation& evaluation);
+		};
 
 		struct MOVE_HASH {
 			u16 move;

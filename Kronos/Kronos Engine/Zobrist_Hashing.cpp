@@ -4,38 +4,49 @@ namespace KRONOS {
 	
 	namespace HASH {
 
+		uint64_t rand64() {
+			static uint64_t s = 0xDEADBEEFDEADBEEF;
+			s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
+			return s * 2685821657736338717LL;
+		}
+		
 		ZobristGenerator::ZobristGenerator()
 		{
-			std::mt19937_64 gen(std::mt19937_64::default_seed);
+			std::random_device rd;
+			std::mt19937_64 gen(rd());
 			std::uniform_int_distribution<u64> dist;
 
 			for (int c = 0; c < 2; c++) {
 				for (int p = 0; p < 6; p++) {
 					for (int s = 0; s < 64; s++) {
-						pieceVals[c][p][s] = dist(gen);
+						pieceVals[c][p][s] = rand64();
 					}
 				}
 			}
 
-			sideToMove[0] = dist(gen);
-			sideToMove[1] = dist(gen);
+			sideToMove[0] = rand64();
+			sideToMove[1] = rand64();
 
-			castlingRights[0] = dist(gen);
-			castlingRights[1] = dist(gen);
-			castlingRights[2] = dist(gen);
-			castlingRights[3] = dist(gen);
-
-			enPassantFiles[0] = dist(gen);
-			enPassantFiles[1] = dist(gen);
-			enPassantFiles[2] = dist(gen);
-			enPassantFiles[3] = dist(gen);
-			enPassantFiles[4] = dist(gen);
-			enPassantFiles[5] = dist(gen);
-			enPassantFiles[6] = dist(gen);
-			enPassantFiles[7] = dist(gen);
+			castlingRights[0][0] = rand64();
+			castlingRights[0][1] = rand64();
+			castlingRights[1][0] = rand64();
+			castlingRights[1][1] = rand64();
+			castlingRights[2][0] = rand64();
+			castlingRights[2][1] = rand64();
+			castlingRights[3][0] = rand64();
+			castlingRights[3][1] = rand64();
+								
+			enPassantFiles[0] = rand64();
+			enPassantFiles[1] = rand64();
+			enPassantFiles[2] = rand64();
+			enPassantFiles[3] = rand64();
+			enPassantFiles[4] = rand64();
+			enPassantFiles[5] = rand64();
+			enPassantFiles[6] = rand64();
+			enPassantFiles[7] = rand64();
 		}
 
-		u64 ZobristGenerator::generateHash(const Position position)
+		u64 ZobristGenerator::generateHash(const Position& position)
 		{
 			u64 hash = 0ULL;
 			int pos;
@@ -51,10 +62,10 @@ namespace KRONOS {
 				}
 			}
 
-			hash ^= (position.status.WKcastle ? castlingRights[0] : 0ULL);
-			hash ^= (position.status.WQcastle ? castlingRights[1] : 0ULL);
-			hash ^= (position.status.BKcastle ? castlingRights[2] : 0ULL);
-			hash ^= (position.status.BQcastle ? castlingRights[3] : 0ULL);
+			hash ^= (position.status.WKcastle ? castlingRights[0][0] : castlingRights[0][1]);
+			hash ^= (position.status.WQcastle ? castlingRights[1][0] : castlingRights[1][1]);
+			hash ^= (position.status.BKcastle ? castlingRights[2][0] : castlingRights[2][1]);
+			hash ^= (position.status.BQcastle ? castlingRights[3][0] : castlingRights[3][1]);
 
 			hash ^= position.status.EP != no_Tile ? enPassantFiles[position.status.EP % 8] : 0ULL;
 
@@ -63,6 +74,87 @@ namespace KRONOS {
 			return hash;
 		}
 
+		void ZobristGenerator::updateHash(const Position& prevPos, Position& position, Move& move)
+		{
+			u64 prevHash = position.hash;
+			
+			int from = move.from;
+			int to = move.to;
+			u8 piece = move.moved_Piece;
+			u8 flag = move.flag;
+			
+			prevHash ^= pieceVals[prevPos.status.isWhite][piece][from];
+			prevHash ^= pieceVals[prevPos.status.isWhite][piece][to];
+
+			prevHash ^= (prevPos.status.EP != no_Tile ? enPassantFiles[prevPos.status.EP % 8] : 0ULL);
+			prevHash ^= (position.status.EP != no_Tile ? enPassantFiles[position.status.EP % 8] : 0ULL);
+			
+			if (flag == ENPASSANT) {
+				prevHash ^= pieceVals[!prevPos.status.isWhite][PAWN][((prevPos.status.isWhite) ? (move.to - 8) : (move.to + 8))];
+			}
+			else if (flag & CAPTURE) {
+				prevHash ^= pieceVals[!prevPos.status.isWhite][prevPos.getPieceType(to)][to];
+			}
+			else if (flag == KING_CASTLE || flag == QUEEN_CASTLE) {
+				if (flag == KING_CASTLE) {
+					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][(prevPos.status.isWhite) ? H1 : H8];
+					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][(prevPos.status.isWhite) ? F1 : F8];
+				}
+				else {
+					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][(prevPos.status.isWhite) ? A1 : A8];
+					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][(prevPos.status.isWhite) ? D1 : D8];
+				}
+			}
+
+			if (flag & PROMOTION) {
+				prevHash ^= pieceVals[prevPos.status.isWhite][PAWN][to];
+				if (flag & CAPTURE) {
+					flag ^= CAPTURE;
+				}
+
+				if (flag == KNIGHT_PROMOTION) {
+					prevHash ^= pieceVals[prevPos.status.isWhite][KNIGHT][to];
+				}
+				else if (flag == BISHOP_PROMOTION) {
+					prevHash ^= pieceVals[prevPos.status.isWhite][BISHOP][to];
+				}
+				else if (flag == ROOK_PROMOTION) {
+					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][to];
+				}
+				else if (flag == QUEEN_PROMOTION) {
+					prevHash ^= pieceVals[prevPos.status.isWhite][QUEEN][to];
+				}
+			}
+			
+			if (prevPos.status.WKcastle != position.status.WKcastle) {
+				prevHash ^= castlingRights[0][0];
+				prevHash ^= castlingRights[0][1];
+			}
+			if (prevPos.status.WQcastle != position.status.WQcastle) {
+				prevHash ^= castlingRights[1][0];
+				prevHash ^= castlingRights[1][1];
+			}
+			if (prevPos.status.BKcastle != position.status.BKcastle) {
+				prevHash ^= castlingRights[2][0];
+				prevHash ^= castlingRights[2][1];
+			}
+			if (prevPos.status.BQcastle != position.status.BQcastle) {
+				prevHash ^= castlingRights[3][0];
+				prevHash ^= castlingRights[3][1];
+			}
+
+			prevHash ^= sideToMove[prevPos.status.isWhite];
+			prevHash ^= sideToMove[position.status.isWhite];
+
+			position.hash = prevHash;
+
+		}
+
+		void ZobristGenerator::nullMove(u64& hash, int oldEP) {
+			hash ^= sideToMove[0];
+			hash ^= sideToMove[1];
+			hash ^= oldEP != no_Tile ? enPassantFiles[oldEP % 8] : 0ULL;
+		}
 	} // namsapce HASH
 
 } // namespace KRONOS

@@ -1,9 +1,86 @@
 #include "Move_Generation.h"
 
 #include "Rays.h"
+#include "Zobrist_Hashing.h"
 
 namespace KRONOS
 {
+
+	bool Position::SEE(Move& move, int threshold) const {
+		int from = move.from;
+		int to = move.to;
+		bool promo = move.flag & PROMOTION;
+
+		int nextPiece = promo ? (move.flag & PROMOTION - 7) : move.moved_Piece;
+		int score = PieceValues[getPieceType(to)] - threshold;
+		if (move.flag & PROMOTION) score += PieceValues[nextPiece] - PieceValues[PAWN];
+		else if (move.flag & ENPASSANT) score += PieceValues[PAWN];
+
+		if (score < 0) return false;
+		score -= PieceValues[nextPiece];
+		if (score >= 1) return true;
+
+		const BitBoard bishops = board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN];
+		const BitBoard rooks = board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN];
+		BitBoard occ = board.occupied[BOTH] ^ ((1ULL << from) | (1ULL << to));
+		if (move.flag & ENPASSANT) occ ^= (1ULL << status.EP);
+
+		BitBoard attacksToTile = (getKingAttacks(1ULL << to) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]))
+			| (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
+			| (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
+			| (getKnightAttacks(1ULL << to) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]));
+
+		bool side = !status.isWhite;
+
+		while (true) {
+			BitBoard allyAttackers = attacksToTile & board.occupied[side];
+			if (allyAttackers == EMPTY) break;
+
+			for (nextPiece = PAWN; nextPiece <= QUEEN; nextPiece++)
+				if (allyAttackers & board.pieceLocations[side][nextPiece])
+					break;
+
+			occ ^= (1ULL << bitScanForward(allyAttackers & board.pieceLocations[side][nextPiece]));
+			if (nextPiece == PAWN || nextPiece == BISHOP || nextPiece == QUEEN)
+				attacksToTile |= getBishopAttacks(occ, to);
+			if (nextPiece == ROOK || nextPiece == QUEEN)
+				attacksToTile |= getRookAttacks(occ, to);
+			attacksToTile &= occ;
+			side = !side;
+
+			score = -score - 1 - PieceValues[nextPiece];
+			if (score >= 0) {
+				if (nextPiece == KING && (attacksToTile & board.occupied[side])) side = !side;
+				break;
+			}
+		}
+		return side != status.isWhite;
+	}
+
+	bool Position::givesCheck(Move& move) {
+		BitBoard toBB = 1ULL << move.to;
+		if (move.moved_Piece == PAWN) {
+			if (toBB & getPawnAttacks(board.pieceLocations[!status.isWhite][KING], !status.isWhite))
+				return true;
+		}
+		else if (move.moved_Piece == KNIGHT) {
+			if (toBB & getKnightAttacks(board.pieceLocations[!status.isWhite][KING]))
+				return true;
+		}
+		else if (move.moved_Piece == BISHOP) {
+			if (toBB & getBishopAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING])))
+				return true;
+		}
+		else if (move.moved_Piece == ROOK) {
+			if (toBB & getRookAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING])))
+				return true;
+		}
+		else if (move.moved_Piece == QUEEN) {
+			if (toBB & (getBishopAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING])) | getRookAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING]))))
+				return true;
+		}
+		return false;
+	}
 
 	inline Move MoveIntToMove(uint16_t move, const Position* position)
 	{
@@ -40,24 +117,26 @@ namespace KRONOS
 
 		if (newMove.moved_Piece == PAWN) {
 			// check for enpassant
-			if ((abs(newMove.to - newMove.from) == 7 || abs(newMove.to - newMove.from) == 0) && !((1ULL << newMove.to) & position->board.occupied[BOTH])) {
+			if ((abs(newMove.to - newMove.from) == 7 || abs(newMove.to - newMove.from) == 9) && !((1ULL << newMove.to) & position->board.occupied[BOTH])) {
 				newMove.flag = ENPASSANT;
 			}
 		}
 		else if (newMove.moved_Piece == KING) {
-			if (newMove.from == E1)
+			if (newMove.from == E1) {
 				if (newMove.to == G1)
 					newMove.flag = KING_CASTLE;
 				else if (newMove.to == C1)
 					newMove.flag = QUEEN_CASTLE;
-				else if (newMove.from == E8)
-					if (newMove.to == G8)
-						newMove.flag = KING_CASTLE;
-					else if (newMove.to == C8)
-						newMove.flag = QUEEN_CASTLE;
+			}
+			else if (newMove.from == E8) {
+				if (newMove.to == G8)
+					newMove.flag = KING_CASTLE;
+				else if (newMove.to == C8)
+					newMove.flag = QUEEN_CASTLE;
+			}
 		}
 
-		if ((1ULL << newMove.to) && position->board.occupied[BOTH])
+		if ((1ULL << newMove.to) & position->board.occupied[BOTH])
 			newMove.flag |= CAPTURE;
 
 		return newMove;
@@ -114,6 +193,7 @@ namespace KRONOS
 			BitBoard notTaken = ~(1ULL << move.to);
 			for (BitBoard& enemyPieceBB : position.board.pieceLocations[!position.status.isWhite])
 				enemyPieceBB &= notTaken;
+			assert(position.board.pieceLocations[!position.status.isWhite][KING] != EMPTY);
 			position.halfMoves = 0;
 		}
 		if (!(move.flag & PROMOTION)) {
@@ -130,6 +210,14 @@ namespace KRONOS
 		Position newPos = curPos;
 		updatePosition(newPos, move);
 		return newPos;
+	}
+
+	inline void makeNullMove(Position& position) {
+		u64 newHash = position.hash;
+		HASH::zobrist.nullMove(newHash, position.status.EP);
+		position.status.isWhite = !position.status.isWhite;
+		position.status.EP = no_Tile;
+		position.hash = newHash;
 	}
 
 	constexpr BitBoard EnemyAndEmpty(const Board& brd, bool isWhite) {
@@ -334,50 +422,50 @@ namespace KRONOS
 	}
 
 	template <Pieces pieceType>
-	constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, std::vector<Move>* moves) {
+	constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List<256>& moves) {
 		int to = 0;
 		while (movesBB) {
-			to = bitScanForward(movesBB);
-			moves->push_back(Move(from, to, QUIET, pieceType));
+			to = bitScanForward(movesBB);;
+			moves.add(Move(from, to, QUIET, pieceType));
 			popBit(movesBB, to);
 		}
 		while (capturesBB) {
 			to = bitScanForward(capturesBB);
-			moves->push_back(Move(from, to, CAPTURE, pieceType));
+			moves.add(Move(from, to, CAPTURE, pieceType));
 			popBit(capturesBB, to);
 		}
 	}
 
-	constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, std::vector<Move>* moves) {
+	constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List<256>& moves) {
 		if (epBB) {
 			int to = bitScanForward(epBB);
-			moves->push_back(Move(from, to, ENPASSANT, PAWN));
+			moves.add(Move(from, to, ENPASSANT, PAWN));
 		}
 		while (movesBB) {
 			int to = bitScanForward(movesBB);
 			if ((1ULL << to) & pawnPromRank(isWhite)) {
-				moves->push_back(Move(from, to, KNIGHT_PROMOTION, PAWN));
-				moves->push_back(Move(from, to, BISHOP_PROMOTION, PAWN));
-				moves->push_back(Move(from, to, ROOK_PROMOTION, PAWN));
-				moves->push_back(Move(from, to, QUEEN_PROMOTION, PAWN));
+				moves.add(Move(from, to, KNIGHT_PROMOTION, PAWN));
+				moves.add(Move(from, to, BISHOP_PROMOTION, PAWN));
+				moves.add(Move(from, to, ROOK_PROMOTION, PAWN));
+				moves.add(Move(from, to, QUEEN_PROMOTION, PAWN));
 			}
-			else moves->push_back(Move(from, to, QUIET, PAWN));
+			else moves.add(Move(from, to, QUIET, PAWN));
 			popBit(movesBB, to);
 		}
 		while (captureBB) {
 			int to = bitScanForward(captureBB);
 			if ((1ULL << to) & pawnPromRank(isWhite)) {
-				moves->push_back(Move(from, to, (CAPTURE | KNIGHT_PROMOTION), PAWN));
-				moves->push_back(Move(from, to, (CAPTURE | BISHOP_PROMOTION), PAWN));
-				moves->push_back(Move(from, to, (CAPTURE | ROOK_PROMOTION), PAWN));
-				moves->push_back(Move(from, to, (CAPTURE | QUEEN_PROMOTION), PAWN));
+				moves.add(Move(from, to, (CAPTURE | KNIGHT_PROMOTION), PAWN));
+				moves.add(Move(from, to, (CAPTURE | BISHOP_PROMOTION), PAWN));
+				moves.add(Move(from, to, (CAPTURE | ROOK_PROMOTION), PAWN));
+				moves.add(Move(from, to, (CAPTURE | QUEEN_PROMOTION), PAWN));
 			}
-			else moves->push_back(Move(from, to, CAPTURE, PAWN));
+			else moves.add(Move(from, to, CAPTURE, PAWN));
 			popBit(captureBB, to);
 		}
 	}
 
-	constexpr bool inCheck(Position& position) {
+	constexpr bool inCheck(const Position& position) {
 		return (getPawnAttacks(position.board.pieceLocations[WHITE][KING], BLACK) & position.board.pieceLocations[BLACK][PAWN])
 			|| (getKnightAttacks(position.board.pieceLocations[WHITE][KING]) & position.board.pieceLocations[BLACK][KNIGHT])
 			|| (getRookAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[WHITE][KING])) & (position.board.pieceLocations[BLACK][ROOK] | position.board.pieceLocations[BLACK][QUEEN]))
@@ -389,7 +477,7 @@ namespace KRONOS
 			|| (getBishopAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[BLACK][KING])) & (position.board.pieceLocations[WHITE][BISHOP] | position.board.pieceLocations[WHITE][QUEEN]));
 	}
 
-	inline void generateMoves(bool isWhite, Board& brd, BoardStatus& st, std::vector<Move>* moves) {
+	inline void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves) {
 
 		// temporary bitboard
 		BitBoard b1;
@@ -669,11 +757,11 @@ namespace KRONOS
 		addMoves<KING>(quietMoves, attacks, from, moves);
 
 		if (st.kingCastleRights(brd.occupied[BOTH], kingBan, brd.pieceLocations[isWhite][ROOK], isWhite)) {
-			moves->push_back(Move(kingPos, kingPos + 2, KING_CASTLE, KING));
+			moves.add(Move(kingPos, kingPos + 2, KING_CASTLE, KING));
 		}
 
 		if (st.queenCastleRights(brd.occupied[BOTH], kingBan, brd.pieceLocations[isWhite][ROOK], isWhite)) {
-			moves->push_back(Move(kingPos, kingPos - 2, QUEEN_CASTLE, KING));
+			moves.add(Move(kingPos, kingPos - 2, QUEEN_CASTLE, KING));
 		}
 
 	}

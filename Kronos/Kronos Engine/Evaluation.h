@@ -57,14 +57,10 @@ namespace KRONOS {
 			
 			basic_score atksOnKingScore[2] = { 0, 0 };
 
-			BitBoard pinned = 0ULL;
-
 			BitBoard mobilityMask = 0ULL;
 			BitBoard outpostTiles = 0ULL;
 
 			int pieceCountImb[2][6] = {};
-
-			int matidx1 = 0, matidx2 = 0;
 
 			constexpr void initialise(bool side);
 			constexpr Score countMaterial(bool side);
@@ -84,7 +80,6 @@ namespace KRONOS {
 			~Evaluation();
 
 			int evaluate(const Position& position);
-			int tracedEval(const Position& position);
 
 			void setParams(PARAMS::Eval_Parameters* newParams) {
 				PARAM = *newParams;

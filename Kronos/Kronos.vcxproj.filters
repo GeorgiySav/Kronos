@@ -75,7 +75,7 @@
     <ClCompile Include="Syzygy endgame tablebases\tbprobe.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Kronos Engine\Move_Ordering.cpp">
+    <ClCompile Include="Kronos Engine\Move_Picker.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Kronos Engine\Game.cpp">
@@ -91,6 +91,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Kronos Engine\Tuner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Thread_Manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -188,7 +191,7 @@
     <ClInclude Include="Syzygy endgame tablebases\tbprobe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Kronos Engine\Move_Ordering.h">
+    <ClInclude Include="Kronos Engine\Move_Picker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Kronos Engine\Game.h">
@@ -201,6 +204,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Kronos Engine\Tuner.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Kronos Engine\Thread_Manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
