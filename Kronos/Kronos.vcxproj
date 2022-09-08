@@ -168,10 +168,9 @@
     <ClCompile Include="Kronos Engine\Kronos.cpp" />
     <ClCompile Include="Kronos Engine\Magic.cpp" />
     <ClCompile Include="Kronos Engine\Move_Generation.cpp" />
-    <ClCompile Include="Kronos Engine\Move_Picker.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.h" />
-    <ClCompile Include="Kronos Engine\Threads.cpp" />
+    <ClCompile Include="Kronos Engine\Search_Manager.cpp" />
     <ClCompile Include="Kronos Engine\Tuner.cpp" />
     <ClCompile Include="Kronos Engine\Zobrist_Hashing.cpp" />
     <ClCompile Include="Kronos_Application.cpp" />
@@ -182,7 +181,6 @@
     <ClCompile Include="Kronos Engine\SyzygyTB.cpp" />
     <ClCompile Include="Syzygy endgame tablebases\tbchess.cpp" />
     <ClCompile Include="Syzygy endgame tablebases\tbprobe.cpp" />
-    <ClCompile Include="Kronos Engine\Thread_Manager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kronos Engine\FEN.h" />
@@ -209,7 +207,7 @@
     <ClInclude Include="Kronos Engine\Move_Generation.h" />
     <ClInclude Include="Kronos Engine\polyKeys.h" />
     <ClInclude Include="Kronos Engine\Search.h" />
-    <ClInclude Include="Kronos Engine\Threads.h" />
+    <ClInclude Include="Kronos Engine\Search_Manager.h" />
     <ClInclude Include="Kronos Engine\utility.h" />
     <ClInclude Include="Kronos Engine\Zobrist_Hashing.h" />
     <ClInclude Include="Kronos_Application.h" />
@@ -217,11 +215,12 @@
     <ClInclude Include="Kronos Engine\Transposition_Table.h" />
     <ClInclude Include="Kronos Engine\Move.h" />
     <ClInclude Include="Kronos Engine\SyzygyTB.h" />
+    <ClInclude Include="Move_Picker.h" />
+    <ClInclude Include="Search_Manager.h" />
     <ClInclude Include="Syzygy endgame tablebases\stdendian.h" />
     <ClInclude Include="Syzygy endgame tablebases\tbconfig.h" />
     <ClInclude Include="Syzygy endgame tablebases\tbprobe.h" />
     <ClInclude Include="Kronos Engine\Tuner.h" />
-    <ClInclude Include="Kronos Engine\Thread_Manager.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Images\ChessPiecesArray.png" />

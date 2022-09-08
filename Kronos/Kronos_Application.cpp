@@ -112,17 +112,12 @@ void Kronos_Application::run()
 			ImGui::EndMainMenuBar();
 		}
 
-		if (ImGui::Begin("Param 1 Editor"))
-		{
-			renderParamEditor(kronosEngine->getEvalParam1());
-
-			ImGui::End();
-		}
-
-		if (ImGui::Begin("Param 2 Editor"))
-		{
-			renderParamEditor(kronosEngine->getEvalParam2());
-
+		if (ImGui::Begin("FEN")) {
+			static char buffer[100];
+			if (ImGui::InputText("FEN", buffer, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
+				kronosEngine->setFen(std::string(buffer));
+				memset(buffer, 0, sizeof(buffer));
+			}
 			ImGui::End();
 		}
 

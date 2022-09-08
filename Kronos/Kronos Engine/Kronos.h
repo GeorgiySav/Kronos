@@ -18,10 +18,9 @@
 #include "Board.h"
 #include "Move_Generation.h"
 #include "Zobrist_Hashing.h"
-#include "Search.h"
+#include "Search_Manager.h"
 #include "Game.h"
 #include "Tuner.h"
-#include "Thread_Manager.h"
 
 namespace KRONOS
 {
@@ -58,16 +57,15 @@ namespace KRONOS
 
 	class KronosEngine
 	{
-
-		int ply = 0;
 		Game game;
 
 		TUNER tuner;
 
-		SEARCH::Search_Tree search;
+		SEARCH::Search_Manager search;
+		
 		std::future<Move> searchThread;
 		bool busy = false;
-		SEARCH::Thread_Manager threads;
+		
 		int NUM_THREADS = std::thread::hardware_concurrency();
 		EVALUATION::Evaluation eval;
 		EVALUATION::PARAMS::Eval_Parameters params;
@@ -149,7 +147,7 @@ namespace KRONOS
 
 		void setFen(std::string FEN) {
 			game.clear();
-			game.setGame(GAME_TYPE::HUMAN_GAME, FEN);
+			game.setGame(GAME_TYPE::AI_GAME, FEN);
 		}
 
 		void getStaticEval() {
@@ -158,7 +156,7 @@ namespace KRONOS
 
 		void startSearchForBestMove() {
 			if (!busy) {
-				searchThread = std::async(&SEARCH::Search_Tree::search, &search, game.getPositions(), game.getPly(), 1000, &threads);
+				searchThread = std::async(&SEARCH::Search_Manager::getBestMove, &search, game.getPositions(), game.getPly(), 1000);
 				busy = true;
 			}
 		}
@@ -203,10 +201,6 @@ namespace KRONOS
 		
 		KRONOS::Move_List<256>* getMovesPointer() {
 			return game.getMovesPointer();
-		}
-
-		int getPly() {
-			return ply;
 		}
 		
 		void traceEval() {

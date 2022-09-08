@@ -134,8 +134,7 @@ namespace KRONOS {
 		QUEEN_PROMOTION  = 0b1011,
 
 		CAPTURE          = 0b0100,
-		PROMOTION        = 0b1000,
-
+		PROMOTION        = 0b1000
 	};
 
 	extern inline Move MoveIntToMove(uint16_t move, const Position* position);

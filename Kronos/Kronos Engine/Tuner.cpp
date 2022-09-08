@@ -30,7 +30,7 @@ namespace KRONOS
 		Move bestMove;
 		while (game->getGameState() == GAME_STATE::PLAYING)
 		{
-			bestMove = search.search(game->getPositions(), game->getPly(), timePerMove, manager);
+			//bestMove = search.search(game->getPositions(), game->getPly(), timePerMove, manager);
 			game->makeMove(bestMove);
 		}
 		

@@ -1,64 +1,77 @@
 #pragma once
-#include <array>
-#include <chrono>
-#include <optional>
-#include <cmath>
+#include <thread>
+#include <condition_variable>
 
-#include "consts.h"
 #include "utility.h"
 #include "Transposition_Table.h"
-#include "Evaluation.h"
-#include "Zobrist_Hashing.h"
-#include "polyBook.h"
-#include "Thread_Manager.h"
+#include "Move_Generation.h"
 
-namespace KRONOS {
-	
-	namespace SEARCH {
-
-#define DEFERRED_DEPTH 3
-#define CUTOFF_DEPTH_CHECK 4
-
-		class Search_Tree {
-		private:
-
-			HASH::Transposition_Table transpositionTable;
-			HASH::ABDADA_TABLE ABDADATable;
-			HASH::Eval_Table evalTable;
-
-			POLY::Opening_Book openingBook;
-			Thread_Manager* manager;
-
-			Move bestMove;
-			
-			std::atomic<bool> resourcesLeft;
-			std::atomic<int> ALPHA;
-			std::atomic<int> BETA;
-			std::atomic<int> DEPTH;
-			std::atomic<bool> resolveIter;
-			std::atomic<bool> updateLock;
-
-			void checkResources();
-			bool repeated(Search_Thread& sData);
-			inline int quiescenceSearch(Search_Thread& sData, int alpha, int beta, int plyFromRoot, bool inPV);
-			int alphaBeta(Search_Thread& sData, int depth, int plyFromRoot, int alpha, int beta, bool inPV);
-			int searchRoot(Search_Thread& sData, int depth, int alpha, int beta);
+namespace KRONOS
+{
+	namespace SEARCH
+	{
+		class Thread {
+		protected:
+			std::thread thread;
+			std::condition_variable sleepCondition;
+			std::mutex threadLock;
+			int ID;
+			bool exitFlag;
+			bool sleepFlag;
 
 		public:
-			Search_Tree();
-			~Search_Tree();
+			Thread(int id);
+			~Thread();
 
-			void iterativeDeepening(Search_Thread& sData);
+			void sleep();
+			void wakeup();
+			void wait();
 
-			Move search(std::vector<Position>* position, int ply, int MAX_TIME, Thread_Manager* manager);
-
-			void stop() { resourcesLeft = false; }
-
+			int getID() { return ID; }
 		};
 
-		extern void initLMR();
+		class Search_Manager;
+		class Search_Thread : public Thread {
+		private:
+			Search_Manager& SM;
 
-	}
+			HASH::Eval_Table evalTable;
 
+			std::vector<Position>* previousPositions;
+			int gamePly;
+			std::vector<Position> threadPositions;
+			int threadPly;
 
-}
+			Move bestMoveThisIteration;
+			Move bestMove;
+
+			EVALUATION::Evaluation eval;
+
+			int numNodes;
+
+			bool stop;
+
+			bool repeatedDraw();
+
+			int16_t quiescence(int alpha, int beta, int plyFromRoot);
+			int16_t alphaBeta(int depth, int alpha, int beta, int plyFromRoot);
+			int16_t root(int depth, int alpha, int beta);
+			void interativeDeepening();
+			void think();
+			
+			void setData(std::vector<Position>* prevPoss, int curPly);
+
+		public:
+			Search_Thread(int ID, Search_Manager& sm);
+			Search_Thread(const Search_Thread& other);
+			~Search_Thread();
+
+			void clearData();
+			void setPosition(std::vector<Position>* prevPoss, int curPly);
+			void beginThink();
+			void stopSearch();
+
+			Move getBestMove() { return bestMove; }
+		};
+	} // SEARCH
+} // KRONOS
