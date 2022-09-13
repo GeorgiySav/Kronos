@@ -215,15 +215,15 @@ namespace KRONOS {
 			int kingPos = bitScanForward(position.board.pieceLocations[!side][KING]);
 			basic_score pStorm = pawnStorm(side, kingPos);
 			if (side == WHITE) {
-				if (position.status.BKcastle)
+				if (position.status.kingCastleRights(position.board.occupied[BOTH], attacks[WHITE][6], position.board.pieceLocations[BLACK][ROOK], BLACK))
 					pStorm = std::max(pStorm, pawnStorm(side, G8));
-				else if (position.status.BQcastle)
+				else if (position.status.queenCastleRights(position.board.occupied[BOTH], attacks[WHITE][6], position.board.pieceLocations[BLACK][ROOK], BLACK))
 					pStorm = std::max(pStorm, pawnStorm(side, B8));
 			}
 			else {
-				if (position.status.WKcastle)
+				if (position.status.kingCastleRights(position.board.occupied[BOTH], attacks[BLACK][6], position.board.pieceLocations[WHITE][ROOK], WHITE))
 					pStorm = std::max(pStorm, pawnStorm(side, G1));
-				else if (position.status.WQcastle)
+				else if (position.status.queenCastleRights(position.board.occupied[BOTH], attacks[BLACK][6], position.board.pieceLocations[WHITE][ROOK], WHITE))
 					pStorm = std::max(pStorm, pawnStorm(side, B8));
 			}
 

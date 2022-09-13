@@ -27,9 +27,9 @@ namespace KRONOS
 	struct Move_List {
 	public:
 		Move* begin() { return &list[0]; }
-		Move* end() { return &list[size]; }
+		Move* end() { return &list[size - 1]; }
 		Move const* begin() const { return &list[0]; }
-		Move const* end() const { return &list[size]; }
+		Move const* end() const { return &list[size - 1]; }
 
 		Move_List() : size(0) {}
 		void add(const Move& m) { list[size++] = m; }
@@ -40,6 +40,13 @@ namespace KRONOS
 				if (list[i] == m) 
 					return true; 
 			return false;
+		}
+		void insert(const Move& m, int index) {
+			for (int i = size - 1; i >= index; i--) {
+				list[i + 1] = list[i];
+			}
+			list[index] = m;
+			size++;
 		}
 
 		int size;

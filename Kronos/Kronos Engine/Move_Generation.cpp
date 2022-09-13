@@ -6,55 +6,83 @@
 namespace KRONOS
 {
 
-	bool Position::SEE(Move& move, int threshold) const {
+	bool Position::SEE_GE(Move& move, int threshold) const {
 		int from = move.from;
 		int to = move.to;
+		int movedPiece = move.moved_Piece;
 		bool promo = move.flag & PROMOTION;
+		u64 toBB = 1ULL << to;
 
-		int nextPiece = promo ? (move.flag & PROMOTION - 7) : move.moved_Piece;
-		int score = PieceValues[getPieceType(to)] - threshold;
-		if (move.flag & PROMOTION) score += PieceValues[nextPiece] - PieceValues[PAWN];
-		else if (move.flag & ENPASSANT) score += PieceValues[PAWN];
+		if (promo)
+			return true;
 
-		if (score < 0) return false;
-		score -= PieceValues[nextPiece];
-		if (score >= 1) return true;
+		int swap = PieceValues[getPieceType(to)] - threshold;
+		if (swap < 0)
+			return false;
 
-		const BitBoard bishops = board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN];
-		const BitBoard rooks = board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN];
-		BitBoard occ = board.occupied[BOTH] ^ ((1ULL << from) | (1ULL << to));
-		if (move.flag & ENPASSANT) occ ^= (1ULL << status.EP);
+		swap = PieceValues[movedPiece] - swap;
+		if (swap <= 0)
+			return true;
 
-		BitBoard attacksToTile = (getKingAttacks(1ULL << to) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]))
-			| (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
-			| (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
-			| (getKnightAttacks(1ULL << to) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]));
-
-		bool side = !status.isWhite;
+		BitBoard occ = board.occupied[BOTH] ^ from ^ to;
+		BitBoard attackers = (getPawnAttacks(toBB, WHITE) & board.pieceLocations[BLACK][PAWN])
+			               | (getPawnAttacks(toBB, BLACK) & board.pieceLocations[WHITE][PAWN])
+			               | (getKnightAttacks(toBB) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]))
+			               | (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
+			               | (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
+			               | (getKingAttacks(toBB) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]));
+		BitBoard sideToMoveAtks, bb;
+		bool sideToMove = status.isWhite, res = true;
 
 		while (true) {
-			BitBoard allyAttackers = attacksToTile & board.occupied[side];
-			if (allyAttackers == EMPTY) break;
+			sideToMove = !sideToMove;
+			attackers &= occ;
+			sideToMoveAtks = attackers & board.occupied[sideToMove];
 
-			for (nextPiece = PAWN; nextPiece <= QUEEN; nextPiece++)
-				if (allyAttackers & board.pieceLocations[side][nextPiece])
-					break;
-
-			occ ^= (1ULL << bitScanForward(allyAttackers & board.pieceLocations[side][nextPiece]));
-			if (nextPiece == PAWN || nextPiece == BISHOP || nextPiece == QUEEN)
-				attacksToTile |= getBishopAttacks(occ, to);
-			if (nextPiece == ROOK || nextPiece == QUEEN)
-				attacksToTile |= getRookAttacks(occ, to);
-			attacksToTile &= occ;
-			side = !side;
-
-			score = -score - 1 - PieceValues[nextPiece];
-			if (score >= 0) {
-				if (nextPiece == KING && (attacksToTile & board.occupied[side])) side = !side;
+			// if the side to move has no more attackers then we quiet as the side to move has lost
+			if (sideToMoveAtks == EMPTY)
 				break;
+
+			res = !res;
+
+			// find the next least valuable attacker and remove it
+			// then check if there are any more attackers hidden by it
+			if (bb = sideToMoveAtks & board.pieceLocations[sideToMove][PAWN]) {
+				if ((swap = PieceValues[PAWN] - swap) < res)
+					break;
+				popBit(occ, bitScanForward(bb));
+				attackers |= getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]);
+			}
+			else if (bb = sideToMoveAtks & board.pieceLocations[sideToMove][KNIGHT]) {
+				if ((swap = PieceValues[KNIGHT] - swap) < res)
+					break;
+				popBit(occ, bitScanForward(bb));
+			}
+			else if (bb = sideToMoveAtks & board.pieceLocations[sideToMove][BISHOP]) {
+				if ((swap = PieceValues[BISHOP] - swap) < res)
+					break;
+				popBit(occ, bitScanForward(bb));
+				attackers |= getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]);
+			}
+			else if (bb = sideToMoveAtks & board.pieceLocations[sideToMove][ROOK]) {
+				if ((swap = PieceValues[ROOK] - swap) < res)
+					break;
+				popBit(occ, bitScanForward(bb));
+				attackers |= getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]);
+			}
+			else if (bb = sideToMoveAtks & board.pieceLocations[sideToMove][QUEEN]) {
+				if ((swap = PieceValues[QUEEN] - swap) < res)
+					break;
+				popBit(occ, bitScanForward(bb));
+				attackers |= (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
+					| (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]));
+			}
+			else if (bb = sideToMoveAtks & board.pieceLocations[sideToMove][KING]) {
+				// if we "take" with the king and there are still enemy attackers, when we lost
+				return (attackers & board.occupied[!sideToMove]) ? !res : res;
 			}
 		}
-		return side != status.isWhite;
+		return res;
 	}
 
 	bool Position::givesCheck(Move& move) {

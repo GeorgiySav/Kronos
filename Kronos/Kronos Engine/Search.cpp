@@ -3,6 +3,7 @@
 #include "consts.h"
 #include "Search_Manager.h"
 #include "Zobrist_Hashing.h"
+#include "Move_Picker.h"
 
 namespace KRONOS
 {
@@ -125,10 +126,12 @@ namespace KRONOS
 				alpha = staticEval;
 			}
 
-			Move_List<256> moves;
-			generateMoves(nodePosition.status.isWhite, nodePosition.board, nodePosition.status, moves);
+			Move_Picker movePicker(
+				nodePosition, 
+				true, 
+				MoveIntToMove(tte.move, &nodePosition));
 
-			if (moves.size == 0) {
+			if (!movePicker.hasMoves()) {
 				if (inCheck(nodePosition))
 					return -MATE + plyFromRoot;
 				else
@@ -136,9 +139,9 @@ namespace KRONOS
 			}
 
 			int bestScore = -INFINITE;
+			Move move;
 
-			for (int i = 0; i < moves.size; i++) {
-				Move& move = moves.at(i);
+			while (movePicker.nextMove(*this, move)) {
 
 				if (move.flag & CAPTURE) {
 					// make the move
@@ -208,10 +211,12 @@ namespace KRONOS
 			}
 
 
-			Move_List<256> moves;
-			generateMoves(nodePosition.status.isWhite, nodePosition.board, nodePosition.status, moves);
+			Move_Picker movePicker(
+				nodePosition,
+				false,
+				MoveIntToMove(tte.move, &nodePosition));
 
-			if (moves.size == 0) {
+			if (!movePicker.hasMoves()) {
 				if (inCheck(nodePosition))
 					return -MATE + plyFromRoot;
 				else
@@ -221,9 +226,9 @@ namespace KRONOS
 			int16_t bestScore = -INFINITE;
 			Move bestMoveInThisPosition;
 			BOUND bound = BOUND::ALPHA;
+			Move move;
 
-			for (int i = 0; i < moves.size; i++) {
-				Move& move = moves.at(i);
+			while (movePicker.nextMove(*this, move)) {
 
 				// make the move
 				threadPly++;
@@ -284,10 +289,12 @@ namespace KRONOS
 				}
 			}
 
-			Move_List<256> moves;
-			generateMoves(nodePosition.status.isWhite, nodePosition.board, nodePosition.status, moves);
+			Move_Picker movePicker(
+				nodePosition,
+				false,
+				MoveIntToMove(tte.move, &nodePosition));
 
-			if (moves.size == 0) {
+			if (!movePicker.hasMoves()) {
 				if (inCheck(nodePosition))
 					return -MATE;
 				else
@@ -296,9 +303,9 @@ namespace KRONOS
 
 			int16_t bestScore = -INFINITE;
 			BOUND bound = BOUND::ALPHA;
+			Move move;
 
-			for (int i = 0; i < moves.size; i++) {
-				Move& move = moves.at(i);
+			while (movePicker.nextMove(*this, move)) {
 
 				// make the move
 				threadPly++;

@@ -90,6 +90,9 @@
     <ClCompile Include="Kronos Engine\Search_Manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Kronos Engine\Move_Picker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kronos Engine\Kronos.h">

@@ -113,7 +113,7 @@ namespace KRONOS {
 			}
 			return 6;
 		}
-		bool SEE(Move& move, int threshold) const;
+		bool SEE_GE(Move& move, int threshold) const;
 		bool givesCheck(Move& move);
 	private:
 		static int const PieceValues[6];
