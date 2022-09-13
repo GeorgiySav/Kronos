@@ -53,8 +53,8 @@ namespace KRONOS
 
 			bool repeatedDraw();
 
-			int16_t quiescence(int alpha, int beta, int plyFromRoot);
-			int16_t alphaBeta(int depth, int alpha, int beta, int plyFromRoot);
+			int16_t quiescence(int alpha, int beta, int plyFromRoot, bool inPV);
+			int16_t alphaBeta(int depth, int alpha, int beta, int plyFromRoot, bool inPV);
 			int16_t root(int depth, int alpha, int beta);
 			void interativeDeepening();
 			void think();

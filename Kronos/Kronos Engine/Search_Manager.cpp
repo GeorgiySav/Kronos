@@ -12,7 +12,7 @@ namespace KRONOS
 			threads.emplace_back(0, *this);
 			openingBook.readBook("./Opening Books/gm2600.bin");
 			openingBook.setMode(POLY::POLY_MODE::BEST_WEIGHT);
-			transTable.setSize(75);
+			transTable.setSize(100);
 			transTable.resetAge();
 		}
 		

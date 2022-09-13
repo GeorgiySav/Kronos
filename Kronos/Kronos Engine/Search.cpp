@@ -4,6 +4,7 @@
 #include "Search_Manager.h"
 #include "Zobrist_Hashing.h"
 #include "Move_Picker.h"
+#include "SyzygyTB.h"
 
 namespace KRONOS
 {
@@ -85,7 +86,7 @@ namespace KRONOS
 			return false;
 		}
 
-		int16_t Search_Thread::quiescence(int alpha, int beta, int plyFromRoot)
+		int16_t Search_Thread::quiescence(int alpha, int beta, int plyFromRoot, bool inPV)
 		{
 			Position& nodePosition = threadPositions.at(threadPly);
 			u64& nodeHash = nodePosition.hash;
@@ -110,11 +111,20 @@ namespace KRONOS
 			tte.eval = UNDEFINED;
 			if (SM.transTable.probe(nodeHash, tte)) {
 				tte.eval = TranspositionTableToScore(tte.eval, plyFromRoot);
-				if (tte.getBound() == (int)BOUND::EXACT
+				if (!inPV && (tte.getBound() == (int)BOUND::EXACT
 					|| (tte.getBound() == (int)BOUND::ALPHA && tte.eval <= alpha)
-					|| (tte.getBound() == (int)BOUND::BETA && tte.eval >= beta)) {
+					|| (tte.getBound() == (int)BOUND::BETA && tte.eval >= beta))) {
 					return tte.eval;
 				}
+			}
+
+			int wdl = SYZYGY::probeWDL(&nodePosition);
+			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
+			{
+				int score = wdl == (int)SYZYGY::SyzygyResult::SYZYGY_LOSS ? MATED_IN_MAX_PLY + plyFromRoot + 1
+					: wdl == (int)SYZYGY::SyzygyResult::SYZYGY_WIN ? MATE_IN_MAX_PLY - plyFromRoot - 1 : 0;
+
+				return score;
 			}
 
 			int16_t staticEval = evalTable.getEval(nodePosition, eval);
@@ -150,7 +160,7 @@ namespace KRONOS
 					updatePosition(threadPositions.at(threadPly), move);
 					zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
 
-					int score = -quiescence(-beta, -alpha, plyFromRoot + 1);
+					int score = -quiescence(-beta, -alpha, plyFromRoot + 1, inPV);
 
 					// undo move
 					threadPly--;
@@ -173,10 +183,10 @@ namespace KRONOS
 			return bestScore;
 		}
 
-		int16_t Search_Thread::alphaBeta(int depth, int alpha, int beta, int plyFromRoot)
+		int16_t Search_Thread::alphaBeta(int depth, int alpha, int beta, int plyFromRoot, bool inPV)
 		{
 			if (depth < 1) {
-				return quiescence(alpha, beta, plyFromRoot);
+				return quiescence(alpha, beta, plyFromRoot, inPV);
 			}
 
 			Position& nodePosition = threadPositions.at(threadPly);
@@ -202,12 +212,23 @@ namespace KRONOS
 			tte.eval = UNDEFINED;
 			if (SM.transTable.probe(nodeHash, tte)) {
 				tte.eval = HASH::TranspositionTableToScore(tte.eval, plyFromRoot);
-				if (tte.depth >= depth
+				if (!inPV && tte.depth >= depth
 					&& (tte.getBound() == (int)BOUND::EXACT
 						|| (tte.getBound() == (int)BOUND::ALPHA && tte.eval <= alpha)
 						|| (tte.getBound() == (int)BOUND::BETA && tte.eval >= beta))) {
 					return tte.eval;
 				}
+			}
+
+			int wdl = SYZYGY::probeWDL(&nodePosition);
+			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
+			{
+				int score = wdl == (int)SYZYGY::SyzygyResult::SYZYGY_LOSS ? MATED_IN_MAX_PLY + plyFromRoot + 1
+					: wdl == (int)SYZYGY::SyzygyResult::SYZYGY_WIN ? MATE_IN_MAX_PLY - plyFromRoot - 1 : 0;
+
+				SM.transTable.saveEntry(nodeHash, NULL, std::min(depth + SYZYGY::SYZYGYLargest, MAX_PLY - 1), ScoreToTranpositionTable(score, plyFromRoot), (int)BOUND::EXACT);
+
+				return score;
 			}
 
 
@@ -227,19 +248,38 @@ namespace KRONOS
 			Move bestMoveInThisPosition;
 			BOUND bound = BOUND::ALPHA;
 			Move move;
+			int movesSearched = 0;
 
 			while (movePicker.nextMove(*this, move)) {
+				int score = 0;
+				if (movesSearched == 0) {
+					// make the move
+					threadPly++;
+					threadPositions.at(threadPly) = nodePosition;
+					updatePosition(threadPositions.at(threadPly), move);
+					zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
 
-				// make the move
-				threadPly++;
-				threadPositions.at(threadPly) = nodePosition;
-				updatePosition(threadPositions.at(threadPly), move);
-				zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
+					score = -alphaBeta(depth - 1, -beta, -alpha, plyFromRoot + 1, true);
 
-				int score = -alphaBeta(depth - 1, -beta, -alpha, plyFromRoot + 1);
+					// undo move
+					threadPly--;
+				}
+				else {
+					// make the move
+					threadPly++;
+					threadPositions.at(threadPly) = nodePosition;
+					updatePosition(threadPositions.at(threadPly), move);
+					zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
 
-				// undo move
-				threadPly--;
+					// Princpial Variation
+					score = -alphaBeta(depth - 1, -alpha - 1, -alpha, plyFromRoot + 1, false);
+					if (score > alpha && score < beta) {
+						score = -alphaBeta(depth - 1, -beta, -alpha, plyFromRoot + 1, true);
+					}
+
+					// undo move
+					threadPly--;
+				}
 
 				if (stop)
 					return 0;
@@ -279,14 +319,6 @@ namespace KRONOS
 			tte.eval = UNDEFINED;
 			if (SM.transTable.probe(nodeHash, tte)) {
 				tte.eval = TranspositionTableToScore(tte.eval, 0);
-				if (tte.depth >= depth
-					&& (tte.getBound() == (int)BOUND::EXACT
-						|| (tte.getBound() == (int)BOUND::ALPHA && tte.eval <= alpha)
-						|| (tte.getBound() == (int)BOUND::BETA && tte.eval >= beta))
-					&& tte.move != NULL) {
-					bestMoveThisIteration = MoveIntToMove(tte.move, &nodePosition);
-					return tte.eval;
-				}
 			}
 
 			Move_Picker movePicker(
@@ -304,19 +336,39 @@ namespace KRONOS
 			int16_t bestScore = -INFINITE;
 			BOUND bound = BOUND::ALPHA;
 			Move move;
+			int movesSearched = 0;
 
 			while (movePicker.nextMove(*this, move)) {
+				int score = 0;
+				if (movesSearched == 0) {
+					// make the move
+					threadPly++;
+					threadPositions.at(threadPly) = nodePosition;
+					updatePosition(threadPositions.at(threadPly), move);
+					zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
 
-				// make the move
-				threadPly++;
-				threadPositions.at(threadPly) = nodePosition;
-				updatePosition(threadPositions.at(threadPly), move);
-				zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
+					score = -alphaBeta(depth - 1, -beta, -alpha, 1, true);
 
-				int score = -alphaBeta(depth - 1, -beta, -alpha, 1);
+					// undo move
+					threadPly--;
+				}
+				else {
+					// make the move
+					threadPly++;
+					threadPositions.at(threadPly) = nodePosition;
+					updatePosition(threadPositions.at(threadPly), move);
+					zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
 
-				// undo move
-				threadPly--;
+					// Princpial Variation
+					score = -alphaBeta(depth - 1, -alpha - 1, -alpha, 1, false);
+					if (score > alpha && score < beta) {
+						score = -alphaBeta(depth - 1, -beta, -alpha, 1, true);
+					}
+
+					// undo move
+					threadPly--;
+				}
+				movesSearched++;
 
 				if (stop)
 					return 0;
@@ -348,11 +400,11 @@ namespace KRONOS
 
 		void Search_Thread::interativeDeepening()
 		{
-			int MAX_ITERATIVE_DETPH = 8;
+			int MAX_ITERATIVE_DETPH = 10;
 
 			for (int depth = 1; depth < MAX_ITERATIVE_DETPH; depth++) 
 			{
-				root(depth, -INFINITE, INFINITE);
+				root(depth, -MATE, MATE);
 
 				if (stop)
 					break;

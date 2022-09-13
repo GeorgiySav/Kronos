@@ -36,7 +36,7 @@ namespace KRONOS {
 				stage++;
 				int tacticalScores[64] = { 0 };
 				int currentScore = 0;
-				for (int i = 0; i < moves.size; i++) {
+				for (int i = 0; i <= moves.size; i++) {
 					if (moves.at(i).flag & (CAPTURE | PROMOTION)) {
 						if (!(moves.at(i).flag & CAPTURE)) // pure promotion
 							currentScore = 1000;
@@ -45,10 +45,10 @@ namespace KRONOS {
 						// insert it into the array where it is sorted in descending order
 						if (tacticals.size) {
 							int j = 0;
-							while (j < tacticals.size && currentScore > tacticalScores[j])
+							while (j <= tacticals.size && currentScore > tacticalScores[j])
 								j++;
 							tacticals.insert(moves.at(i), j);
-							for (int k = tacticals.size - 2; k >= j; k--)
+							for (int k = tacticals.size - 1; k >= j; k--)
 								tacticalScores[k + 1] = tacticalScores[k];
 							tacticalScores[j] = currentScore;
 						}
