@@ -21,6 +21,8 @@ namespace KRONOS
 		friend bool operator == (const Move& lhs, const Move& rhs) {
 			return lhs.from == rhs.from && lhs.to == rhs.to && lhs.flag == rhs.flag && lhs.moved_Piece == rhs.moved_Piece;
 		}
+
+		bool isTactical() { return flag & 0b1100; }
 	};
 
 	template<int N>

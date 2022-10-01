@@ -26,8 +26,20 @@ namespace KRONOS
 			void sleep();
 			void wakeup();
 			void wait();
+			bool isSleeping() { return sleepFlag; }
 
 			int getID() { return ID; }
+		};
+
+		extern void initVars();
+
+		struct Search_Move {
+			Move move;
+			int depth;
+			int score;
+
+			Search_Move() : move(NULL_MOVE), depth(0), score(0) {}
+			Search_Move(Move move, int depth, int score) : move(move), depth(depth), score(score) {}
 		};
 
 		class Search_Manager;
@@ -35,23 +47,28 @@ namespace KRONOS
 		private:
 			Search_Manager& SM;
 
-			HASH::Eval_Table evalTable;
-
 			std::vector<Position>* previousPositions;
 			int gamePly;
 			std::vector<Position> threadPositions;
 			int threadPly;
 
 			Move bestMoveThisIteration;
-			Move bestMove;
+			Search_Move bestMove;
+
+			int16_t historyTable[2][6][64];
+			std::vector<Move> killer1;
+			std::vector<Move> killer2;
+			std::vector<Move> moveHistory;
 
 			EVALUATION::Evaluation eval;
 
 			int numNodes;
 
 			bool stop;
+			bool stopIter;
 
 			bool repeatedDraw();
+			void updateHistory(Move& newMove, Move_List<64>& quiets, bool side, int depth);
 
 			int16_t quiescence(int alpha, int beta, int plyFromRoot, bool inPV);
 			int16_t alphaBeta(int depth, int alpha, int beta, int plyFromRoot, bool inPV);
@@ -66,12 +83,15 @@ namespace KRONOS
 			Search_Thread(const Search_Thread& other);
 			~Search_Thread();
 
+			int16_t getHistoryValue(bool side, Move& move);
+
 			void clearData();
 			void setPosition(std::vector<Position>* prevPoss, int curPly);
 			void beginThink();
 			void stopSearch();
+			void stopIteration() { stopIter = true; };
 
-			Move getBestMove() { return bestMove; }
+			Search_Move getBestMove() { return bestMove; }
 		};
 	} // SEARCH
 } // KRONOS

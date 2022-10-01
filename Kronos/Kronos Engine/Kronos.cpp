@@ -10,6 +10,7 @@ KronosEngine::KronosEngine()
 	KRONOS::initRays();
 	KRONOS::initMagics();
 	KRONOS::EVALUATION::initEvalVars();
+	KRONOS::SEARCH::initVars();
 
 	if (SEARCH::SYZYGY::initSYZYGY("./Syzygy endgame tablebases/Tablebases/")) {
 		std::cout << "initialised syzygy" << std::endl;

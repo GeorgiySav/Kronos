@@ -64,42 +64,44 @@ namespace KRONOS {
 			return replace->eval;
 		}
 
-		void ABDADA_TABLE::setBusy(u64 hash, u16 move, int depth)
+		void ABDADA_TABLE::setBusy(u64 hash, u8 depth)
 		{
-			int lowest = INFINITE;
-			MOVE_HASH& replace = getEntry(hash)->bucket[0];
+			ABDADA_ENTRY* replace = &getEntry(hash)->bucket[0];
+			HashLower hL = lock(hash);
 
 			for (int i = 0; i < ABDADA_BUCKET_SIZE; i++) {
-				MOVE_HASH& entry = getEntry(hash)->bucket[i];
-				if (entry.depth == depth && entry.hashLock == mhlock(hash) && entry.move == move) {
+				ABDADA_ENTRY& entry = getEntry(hash)->bucket[i];
+				if (entry.hashLock == hL && entry.depth == depth) {
 					return;
 				}
-				if (entry.depth < lowest && entry.hashLock == mhlock(hash)) {
-					lowest = entry.depth;
-					replace = entry;
+				if (entry.hashLock == 0) {
+					replace = &entry;
+					break;
+				}
+				if (replace->depth > entry.depth) {
+					replace = &entry;
 				}
 			}
-
-			replace.hashLock = mhlock(hash);
-			replace.move = move;
-			replace.depth = depth;
+			replace->hashLock = lock(hash);
+			replace->depth = depth;
 		}
 
-		void ABDADA_TABLE::resetBusy(u64 hash, u16 move, int depth){
+		void ABDADA_TABLE::resetBusy(u64 hash, u8 depth){
+			HashLower hL = lock(hash);
 			for (int i = 0; i < ABDADA_BUCKET_SIZE; i++) {
-				MOVE_HASH& entry = getEntry(hash)->bucket[i];
-				if (entry.depth == depth && entry.hashLock == mhlock(hash) && entry.move == move) {
+				ABDADA_ENTRY& entry = getEntry(hash)->bucket[i];
+				if (entry.hashLock == hL && entry.depth == depth) {
 					entry.hashLock = 0;
 					entry.depth = 0;
-					entry.move = 0;
 				}
 			}
 		}
 
-		bool ABDADA_TABLE::isBusy(u64 hash, u16 move, int depth) {
+		bool ABDADA_TABLE::isBusy(u64 hash, u8 depth) {
+			HashLower hL = lock(hash);
 			for (int i = 0; i < ABDADA_BUCKET_SIZE; i++) {
-				MOVE_HASH& entry = getEntry(hash)->bucket[i];
-				if (entry.depth == depth && entry.hashLock == mhlock(hash) && entry.move == move) {
+				ABDADA_ENTRY& entry = getEntry(hash)->bucket[i];
+				if (entry.hashLock == hL && entry.depth == depth) {
 					return true;
 				}
 			}

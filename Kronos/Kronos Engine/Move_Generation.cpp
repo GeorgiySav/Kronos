@@ -24,13 +24,15 @@ namespace KRONOS
 		if (swap <= 0)
 			return true;
 
-		BitBoard occ = board.occupied[BOTH] ^ from ^ to;
+		BitBoard occ = board.occupied[BOTH] ^ (1ULL << from) ^ (1ULL << to);
 		BitBoard attackers = (getPawnAttacks(toBB, WHITE) & board.pieceLocations[BLACK][PAWN])
 			               | (getPawnAttacks(toBB, BLACK) & board.pieceLocations[WHITE][PAWN])
 			               | (getKnightAttacks(toBB) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]))
 			               | (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
 			               | (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
 			               | (getKingAttacks(toBB) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]));
+		popBit(attackers, from);
+
 		BitBoard sideToMoveAtks, bb;
 		bool sideToMove = status.isWhite, res = true;
 
@@ -493,16 +495,13 @@ namespace KRONOS
 		}
 	}
 
-	constexpr bool inCheck(const Position& position) {
-		return (getPawnAttacks(position.board.pieceLocations[WHITE][KING], BLACK) & position.board.pieceLocations[BLACK][PAWN])
-			|| (getKnightAttacks(position.board.pieceLocations[WHITE][KING]) & position.board.pieceLocations[BLACK][KNIGHT])
-			|| (getRookAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[WHITE][KING])) & (position.board.pieceLocations[BLACK][ROOK] | position.board.pieceLocations[BLACK][QUEEN]))
-			|| (getBishopAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[WHITE][KING])) & (position.board.pieceLocations[BLACK][BISHOP] | position.board.pieceLocations[BLACK][QUEEN]))
-			
-			|| (getPawnAttacks(position.board.pieceLocations[BLACK][KING], WHITE) & position.board.pieceLocations[WHITE][PAWN])
-			|| (getKnightAttacks(position.board.pieceLocations[BLACK][KING]) & position.board.pieceLocations[WHITE][KNIGHT])
-			|| (getRookAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[BLACK][KING])) & (position.board.pieceLocations[WHITE][ROOK] | position.board.pieceLocations[WHITE][QUEEN]))
-			|| (getBishopAttacks(position.board.occupied[BOTH], bitScanForward(position.board.pieceLocations[BLACK][KING])) & (position.board.pieceLocations[WHITE][BISHOP] | position.board.pieceLocations[WHITE][QUEEN]));
+	bool inCheck(const Position& position) {
+		bool side = position.status.isWhite;
+		int kingPos = bitScanForward(position.board.pieceLocations[side][KING]);
+		return (getPawnAttacks  (position.board.pieceLocations[side][KING], side) & position.board.pieceLocations[!side][PAWN])
+			|| (getKnightAttacks(position.board.pieceLocations[side][KING])       & position.board.pieceLocations[!side][KNIGHT])
+			|| (getBishopAttacks(position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][BISHOP] | position.board.pieceLocations[!side][QUEEN]))
+			|| (getRookAttacks  (position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][ROOK]   | position.board.pieceLocations[!side][QUEEN]));
 	}
 
 	inline void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves) {

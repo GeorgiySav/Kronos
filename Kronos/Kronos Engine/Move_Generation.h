@@ -162,7 +162,7 @@ namespace KRONOS {
 	template <Pieces pieceType>
 	extern constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List<256>& moves);
 	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List<256>& moves);
-	extern constexpr bool inCheck(const Position& position);
+	extern bool inCheck(const Position& position);
 	extern inline void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves);
 	extern inline BitBoard generateAttacksToSquare(Position* position, int tile);
 }

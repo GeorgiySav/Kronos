@@ -1,9 +1,12 @@
 #include "Move_Picker.h"
 
+#include "Search.h"
+
 namespace KRONOS {
 	namespace SEARCH {
 
-		Move_Picker::Move_Picker(Position& position, bool isQuie, Move hashMove) : position(position), quiescenceSearch(isQuie), hashMove(hashMove) {
+		Move_Picker::Move_Picker(Position& position, bool isQuie, Move hashMove) 
+			: position(position), quiescenceSearch(isQuie), hashMove(hashMove) {
 			generateMoves(position.status.isWhite, position.board, position.status, moves);
 			if (hashMove == NULL_MOVE)
 				stage = STAGE_FILTER_MOVES;
@@ -16,8 +19,8 @@ namespace KRONOS {
 		}
 
 		int Move_Picker::MVV_LVA(Move& move) {
-			static const int PieceValues[5] = { 100, 300, 300, 500, 900 };
-			return (PieceValues[position.getPieceType(move.to)]) + ((move.flag & PROMOTION) - 7) - PieceValues[move.moved_Piece];
+			static const int PieceValues[5] = { 100, 300, 350, 500, 900 };
+			return (PieceValues[position.getPieceType(move.to)]) - PieceValues[move.moved_Piece];
 		}
 
 		bool Move_Picker::nextMove(Search_Thread& sData, Move& nextMove)
@@ -35,20 +38,56 @@ namespace KRONOS {
 			{
 				stage++;
 				int tacticalScores[64] = { 0 };
+				int quietScores[200] = { 0 };
 				int currentScore = 0;
-				for (int i = 0; i <= moves.size; i++) {
-					if (moves.at(i).flag & (CAPTURE | PROMOTION)) {
-						if (!(moves.at(i).flag & CAPTURE)) // pure promotion
-							currentScore = 1000;
+				for (int i = 0; i < moves.size; i++) {
+					if (moves.at(i).isTactical()) {
+						if (moves.at(i).flag & PROMOTION) {
+							if (!(moves.at(i).flag & CAPTURE)) { // pure promotion
+								switch (moves.at(i).flag)
+								{
+								case (KNIGHT_PROMOTION):
+									currentScore = 1001;
+									break;
+								case (BISHOP_PROMOTION):
+									currentScore = 999;
+									break;
+								case (ROOK_PROMOTION):
+									currentScore = 1000;
+									break;
+								case (QUEEN_PROMOTION):
+									currentScore = 1002;
+									break;
+								}
+							}
+							else {
+								switch (moves.at(i).flag)
+								{
+								case (KNIGHT_PROMOTION | CAPTURE):
+									currentScore = 1001;
+									break;
+								case (BISHOP_PROMOTION | CAPTURE):
+									currentScore = 999;
+									break;
+								case (ROOK_PROMOTION | CAPTURE):
+									currentScore = 1000;
+									break;
+								case (QUEEN_PROMOTION | CAPTURE):
+									currentScore = 1002;
+									break;
+								}
+								currentScore += MVV_LVA(moves.at(i));
+							}
+						}
 						else
 							currentScore = MVV_LVA(moves.at(i));
 						// insert it into the array where it is sorted in descending order
 						if (tacticals.size) {
 							int j = 0;
-							while (j <= tacticals.size && currentScore > tacticalScores[j])
+							while (j < tacticals.size && currentScore < tacticalScores[j])
 								j++;
 							tacticals.insert(moves.at(i), j);
-							for (int k = tacticals.size - 1; k >= j; k--)
+							for (int k = tacticals.size - 2; k >= j; k--)
 								tacticalScores[k + 1] = tacticalScores[k];
 							tacticalScores[j] = currentScore;
 						}
@@ -58,7 +97,21 @@ namespace KRONOS {
 						}
 					}
 					else {
-						quiets.add(moves.at(i));
+						currentScore = sData.getHistoryValue(position.status.isWhite, moves.at(i));
+
+						if (quiets.size) {
+							int j = 0;
+							while (j < quiets.size && currentScore < quietScores[j])
+								j++;
+							quiets.insert(moves.at(i), j);
+							for (int k = quiets.size - 2; k >= j; k--)
+								quietScores[k + 1] = quietScores[k];
+							quietScores[j] = currentScore;
+						}
+						else {
+							quiets.add(moves.at(i));
+							quietScores[0] = currentScore;
+						}
 					}
 				}
 			}
@@ -66,7 +119,7 @@ namespace KRONOS {
 			case (STAGE_WINNING_TACTICALS):
 				while (index < tacticals.size) {
 					Move& move = tacticals.at(index++);
-					if (hashMove == move)
+					if (move == hashMove)
 						continue;
 					if (!position.SEE_GE(move, 0)) {
 						badTacticals.add(move);
@@ -81,7 +134,7 @@ namespace KRONOS {
 				if (!quiescenceSearch) {
 					while (index < quiets.size) {
 						Move& move = quiets.at(index++);
-						if (hashMove == move)
+						if (move == hashMove)
 							continue;
 						nextMove = move;
 						return true;
@@ -92,7 +145,7 @@ namespace KRONOS {
 			case (STAGE_LOSING_TACTICALS) :
 				while (index < badTacticals.size) {
 					Move& move = badTacticals.at(index++);
-					if (hashMove == move)
+					if (move == hashMove)
 						continue;
 					nextMove = move;
 					return true;
@@ -101,6 +154,7 @@ namespace KRONOS {
 			case (STAGE_FINISHED):
 				return false;
 			}
+			return false;
 		}
 
 	} // SEARCH

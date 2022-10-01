@@ -100,26 +100,22 @@ namespace KRONOS {
 			int16_t getEval(Position& position, EVALUATION::Evaluation& evaluation);
 		};
 
-		struct MOVE_HASH {
-			u16 move;
+		struct ABDADA_ENTRY {
+			HashLower hashLock;
 			u8 depth;
-			u8 hashLock;
 		};
 
-		struct MOVE_HASH_BUCKET {
-			MOVE_HASH bucket[ABDADA_BUCKET_SIZE];
+		struct ABDADA_BUCKET {
+			ABDADA_ENTRY bucket[ABDADA_BUCKET_SIZE]; // 4 * (32 + 8) = 160 bits
 		};
 
-		struct ABDADA_TABLE : public HASH_TABLE<MOVE_HASH_BUCKET>
+		struct ABDADA_TABLE : public HASH_TABLE<ABDADA_BUCKET>
 		{
-			void setBusy(u64 hash, u16 move, int depth);
-			void resetBusy(u64 hash, u16 move, int depth);
-			bool isBusy(u64 hash, u16 move, int depth);
-			u8 mhlock(u64 hash) { return (u8)(hash); }
+			void setBusy(u64 hash, u8 depth);
+			void resetBusy(u64 hash, u8 depth);
+			bool isBusy(u64 hash, u8 depth);
 		};
 
 	}
 
 }
-
-

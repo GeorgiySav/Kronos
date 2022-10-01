@@ -29,6 +29,9 @@ namespace KRONOS {
 			Position& position;
 
 			Move hashMove;
+			Move killer1;
+			Move killer2;
+
 			bool quiescenceSearch;
 
 			int MVV_LVA(Move& move);
@@ -39,6 +42,10 @@ namespace KRONOS {
 
 			bool nextMove(Search_Thread& sData, Move& nextMove);
 			bool hasMoves() { return moves.size; }
+
+			int getStage() { return stage; }
+
+
 		};
 
 	} // SEARCH

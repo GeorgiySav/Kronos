@@ -12,8 +12,9 @@ namespace KRONOS
 			threads.emplace_back(0, *this);
 			openingBook.readBook("./Opening Books/gm2600.bin");
 			openingBook.setMode(POLY::POLY_MODE::BEST_WEIGHT);
-			transTable.setSize(100);
+			transTable.setSize(175);
 			transTable.resetAge();
+			evalTable.setSize(5);
 		}
 		
 		Search_Manager::~Search_Manager()
@@ -50,6 +51,18 @@ namespace KRONOS
 			}
 		}
 
+		void Search_Manager::stopIteration() {
+			for (auto& thread : threads) {
+				thread.stopIteration();
+			}
+		}
+
+		void Search_Manager::waitForThreads() {
+			for (auto& thread : threads) {
+				while (!thread.isSleeping());
+			}
+		}
+
 		Move Search_Manager::getBestMove(std::vector<Position>* positions, int curPly, int timeMS)
 		{
 			Move m;
@@ -73,8 +86,17 @@ namespace KRONOS
 			std::this_thread::sleep_for(std::chrono::milliseconds(timeMS));
 
 			stopSearch();
+			waitForThreads();
 
-			return threads.at(0).getBestMove();
+			Search_Move move;
+			for (auto& thread : threads) {
+				Search_Move temp = thread.getBestMove();
+				std::cout << "Thread " << thread.getID() << " searched to a depth of " << temp.depth << " with a score of " << temp.score << std::endl;
+				if (move.depth < thread.getBestMove().depth)
+					move = thread.getBestMove();
+			}
+
+			return move.move;
 
 		}
 
