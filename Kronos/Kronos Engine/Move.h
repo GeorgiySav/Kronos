@@ -22,28 +22,28 @@ namespace KRONOS
 			return lhs.from == rhs.from && lhs.to == rhs.to && lhs.flag == rhs.flag && lhs.moved_Piece == rhs.moved_Piece;
 		}
 
-		bool isTactical() { return flag & 0b1100; }
+		constexpr bool isTactical() { return flag & 0b1100; }
 	};
 
 	template<int N>
 	struct Move_List {
 	public:
-		Move* begin() { return &list[0]; }
-		Move* end() { return &list[size - 1]; }
-		Move const* begin() const { return &list[0]; }
-		Move const* end() const { return &list[size - 1]; }
+		constexpr Move* begin() { return &list[0]; }
+		constexpr Move* end() { return &list[size - 1]; }
+		constexpr Move const* begin() const { return &list[0]; }
+		constexpr Move const* end() const { return &list[size - 1]; }
 
-		Move_List() : size(0) {}
-		void add(const Move& m) { list[size++] = m; }
-		void clear() { size = 0; }
-		Move& at(int index) { return list[index]; }
-		bool contains(const Move& m) { 
+		constexpr Move_List() : size(0) {}
+		constexpr void add(const Move& m) { list[size++] = m; }
+		constexpr void clear() { size = 0; }
+		constexpr Move& at(int index) { return list[index]; }
+		constexpr bool contains(const Move& m) { 
 			for (int i = 0; i < size; i++)
 				if (list[i] == m) 
 					return true; 
 			return false;
 		}
-		void insert(const Move& m, int index) {
+		constexpr void insert(const Move& m, int index) {
 			for (int i = size - 1; i >= index; i--) {
 				list[i + 1] = list[i];
 			}

@@ -6,14 +6,17 @@
 
 namespace KRONOS
 {
+
+	Magic<512> mBishopTable[64];
+	Magic<4096> mRookTable[64];
 	
 	u64 generateBishopMask(int tile) {
 		u64 mask = 0ULL;
 
-		mask |= rays[rayIndex(tile, NORTH_EAST)];
-		mask |= rays[rayIndex(tile, NORTH_WEST)];
-		mask |= rays[rayIndex(tile, SOUTH_EAST)];
-		mask |= rays[rayIndex(tile, SOUTH_WEST)];
+		mask |= rays[tile][NORTH_EAST];
+		mask |= rays[tile][NORTH_WEST];
+		mask |= rays[tile][SOUTH_EAST];
+		mask |= rays[tile][SOUTH_WEST];
 
 		mask &= ~(fileMask[A] | fileMask[H] | rankMask[RANK_1] | rankMask[RANK_8]);
 
@@ -23,10 +26,10 @@ namespace KRONOS
 	u64 generateRookMask(int tile) {
 		u64 mask = 0ULL;
 
-		mask |= rays[rayIndex(tile, NORTH)] & ~(rankMask[RANK_8]);
-		mask |= rays[rayIndex(tile, EAST)] & ~(fileMask[H]);
-		mask |= rays[rayIndex(tile, SOUTH)] & ~(rankMask[RANK_1]);
-		mask |= rays[rayIndex(tile, WEST)] & ~(fileMask[A]);
+		mask |= rays[tile][NORTH] & ~(rankMask[RANK_8]);
+		mask |= rays[tile][EAST] & ~(fileMask[H]);
+		mask |= rays[tile][SOUTH] & ~(rankMask[RANK_1]);
+		mask |= rays[tile][WEST] & ~(fileMask[A]);
 
 		return mask;
 	}
@@ -54,68 +57,67 @@ namespace KRONOS
 
 		*/
 
-		attacks |= rays[rayIndex(tile, NORTH)];
-		if (rays[rayIndex(tile, NORTH)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanForward((rays[rayIndex(tile, NORTH)] & blockers)), NORTH)];
+		attacks |= rays[tile][NORTH];
+		if (rays[tile][NORTH] & blockers) {
+			attacks &= ~rays[bitScanForward(rays[tile][NORTH] & blockers)][NORTH];
 		}
 
-		attacks |= rays[rayIndex(tile, EAST)];
-		if (rays[rayIndex(tile, EAST)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanForward((rays[rayIndex(tile, EAST)] & blockers)), EAST)];
+		attacks |= rays[tile][EAST];
+		if (rays[tile][EAST] & blockers) {
+			attacks &= ~rays[bitScanForward(rays[tile][EAST] & blockers)][EAST];
 		}
 
-		attacks |= rays[rayIndex(tile, SOUTH)];
-		if (rays[rayIndex(tile, SOUTH)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanReverse((rays[rayIndex(tile, SOUTH)] & blockers)), SOUTH)];
+		attacks |= rays[tile][SOUTH];
+		if (rays[tile][SOUTH] & blockers) {
+			attacks &= ~rays[bitScanReverse(rays[tile][SOUTH] & blockers)][SOUTH];
 		}
 
-		attacks |= rays[rayIndex(tile, WEST)];
-		if (rays[rayIndex(tile, WEST)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanReverse((rays[rayIndex(tile, WEST)] & blockers)), WEST)];
+		attacks |= rays[tile][WEST];
+		if (rays[tile][WEST] & blockers) {
+			attacks &= ~rays[bitScanReverse(rays[tile][WEST] & blockers)][WEST];
 		}
 
 		return attacks;
-
 	}
 
 	u64 generateBishopAttack(BitBoard blockers, int tile) {
 		u64 attacks = EMPTY;
 
-		attacks |= rays[rayIndex(tile, NORTH_EAST)];
-		if (rays[rayIndex(tile, NORTH_EAST)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanForward((rays[rayIndex(tile, NORTH_EAST)] & blockers)), NORTH_EAST)];
+		attacks |= rays[tile][NORTH_EAST];
+		if (rays[tile][NORTH_EAST] & blockers) {
+			attacks &= ~rays[bitScanForward(rays[tile][NORTH_EAST] & blockers)][NORTH_EAST];
 		}
 
-		attacks |= rays[rayIndex(tile, SOUTH_EAST)];
-		if (rays[rayIndex(tile, SOUTH_EAST)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanReverse((rays[rayIndex(tile, SOUTH_EAST)] & blockers)), SOUTH_EAST)];
+		attacks |= rays[tile][SOUTH_EAST];
+		if (rays[tile][SOUTH_EAST] & blockers) {
+			attacks &= ~rays[bitScanReverse(rays[tile][SOUTH_EAST] & blockers)][SOUTH_EAST];
 		}
 
-		attacks |= rays[rayIndex(tile, SOUTH_WEST)];
-		if (rays[rayIndex(tile, SOUTH_WEST)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanReverse((rays[rayIndex(tile, SOUTH_WEST)] & blockers)), SOUTH_WEST)];
+		attacks |= rays[tile][SOUTH_WEST];
+		if (rays[tile][SOUTH_WEST] & blockers) {
+			attacks &= ~rays[bitScanReverse(rays[tile][SOUTH_WEST] & blockers)][SOUTH_WEST];
 		}
 
-		attacks |= rays[rayIndex(tile, NORTH_WEST)];
-		if (rays[rayIndex(tile, NORTH_WEST)] & blockers) {
-			attacks &= ~rays[rayIndex(bitScanForward((rays[rayIndex(tile, NORTH_WEST)] & blockers)), NORTH_WEST)];
+		attacks |= rays[tile][NORTH_WEST];
+		if (rays[tile][NORTH_WEST] & blockers) {
+			attacks &= ~rays[bitScanForward(rays[tile][NORTH_WEST] & blockers)][NORTH_WEST];
 		}
+
 		return attacks;
-
 	}
 
-	inline BitBoard getRookAttacks(BitBoard occ, int tile) {
+	constexpr BitBoard getRookAttacks(BitBoard occ, int tile) {
 		occ &= mRookTable[tile].mask;
 		occ *= rookMagics[tile];
 		occ >>= mRookTable[tile].shift;
-		return mRookTable[tile].attacks.at(occ);
+		return mRookTable[tile].attacks[occ];
 	}
 
-	inline BitBoard getBishopAttacks(BitBoard occ, int tile) {
+	constexpr BitBoard getBishopAttacks(BitBoard occ, int tile) {
 		occ &= mBishopTable[tile].mask;
 		occ *= bishopMagics[tile];
 		occ >>= mBishopTable[tile].shift;
-		return mBishopTable[tile].attacks.at(occ);
+		return mBishopTable[tile].attacks[occ];
 	}
 
 	BitBoard occupancyFromIndex(int index, u64 mask) {
@@ -131,43 +133,38 @@ namespace KRONOS
 		return blockers;
 	}
 
-
-
 	// initialises the magics and bitboards
 	void initMagics() {
 
-		u64 mask = 0ULL;
-		int bitCount = 0;
-		int occVariations = 0;
-		int shift = 0;
+		u64 mask;
+		int bitCount;
+		int occVariations;
 
 		for (int tile = 0; tile < 64; tile++) {
 
 			// bishops
-			mask = generateBishopMask(tile);
-			mBishopTable[tile].mask = mask;
+			mBishopTable[tile].mask = generateBishopMask(tile);
+			mask = mBishopTable[tile].mask;
 			bitCount = populationCount(mask);
 			occVariations = 1 << bitCount;
-			shift = 64 - bitCount;
-			for (int count = 0; count <= occVariations; count++) {
-				u64 occ = occupancyFromIndex(count, mask);
-				int key = (occ * bishopMagics[tile]) >> shift;
-				mBishopTable[tile].addAttack(key, generateBishopAttack(occ, tile));
-			}
-			mBishopTable[tile].shift = shift;
-
-			// rooks
-			mask = generateRookMask(tile);
-			mRookTable[tile].mask = mask;
-			bitCount = populationCount(mask);
-			occVariations = 1 << bitCount;
-			shift = 64 - bitCount;
 			for (int count = 0; count < occVariations; count++) {
 				u64 occ = occupancyFromIndex(count, mask);
-				int key = (occ * rookMagics[tile]) >> shift;
+				int key = (occ * bishopMagics[tile]) >> (64 - bishopIndexBits[tile]);
+				mBishopTable[tile].addAttack(key, generateBishopAttack(occ, tile));
+			}
+			mBishopTable[tile].shift = (64 - bishopIndexBits[tile]);
+
+			// rooks
+			mRookTable[tile].mask = generateRookMask(tile);
+			mask = mRookTable[tile].mask;
+			bitCount = populationCount(mask);
+			occVariations = 1 << bitCount;
+			for (int count = 0; count < occVariations; count++) {
+				u64 occ = occupancyFromIndex(count, mask);
+				int key = (occ * rookMagics[tile]) >> (64 - rookIndexBits[tile]);
 				mRookTable[tile].addAttack(key, generateRookAttack(occ, tile));
 			}
-			mRookTable[tile].shift = shift;
+			mRookTable[tile].shift = (64 - rookIndexBits[tile]);
 
 		}
 	}

@@ -30,66 +30,53 @@ namespace KRONOS {
 		return WEST;
 	}
 
-	inline std::array<u64, 512> rays;
-
-	static constexpr int rayIndex(int tile, Dir dir) {
-		return (tile * 8) + dir;
-	}
-
-	static constexpr u64 getRay(int tile, Dir dir) {
-		return rays[rayIndex(tile, dir)];
-	}
+	inline uint64_t rays[64][8];
 
 	static void initRays() {
 
 		for (int tile = 0; tile < 64; tile++) {
 
             // North
-			rays[rayIndex(tile, NORTH)] = (0x0101010101010100ULL << tile);
+			rays[tile][NORTH] = (0x0101010101010100ULL << tile);
 
             // South
-			rays[rayIndex(tile, SOUTH)] = (0x0080808080808080ULL >> (63 - tile));
+			rays[tile][SOUTH] = (0x0080808080808080ULL >> (63 - tile));
 
             // East
-			rays[rayIndex(tile, EAST)] = 2 * ((1ULL << (tile | 7)) - (1ULL << tile));
+			rays[tile][EAST] = 2 * ((1ULL << (tile | 7)) - (1ULL << tile));
 
             // West
-            rays[rayIndex(tile, WEST)] = (1ULL << tile) - (1ULL << (tile & 56));
+            rays[tile][WEST] = (1ULL << tile) - (1ULL << (tile & 56));
 
             // North West
 			u64 t = EMPTY;
 			for (int i = tile + 7; (i % 8 < 7) && (i < 64); i += 7) {
 				setBit(t, i);
 			}
-			rays[rayIndex(tile, NORTH_WEST)] = t;
+			rays[tile][NORTH_WEST] = t;
 			
             // North East
 			t = EMPTY;
 			for (int i = tile + 9; (i % 8 > 0) && (i < 64); i += 9) {
 				setBit(t, i);
 			}
-			rays[rayIndex(tile, NORTH_EAST)] = t;
+			rays[tile][NORTH_EAST] = t;
 
             // South West
 			t = EMPTY;
 			for (int i = tile - 9; (i % 8 < 7) && (i >= 0); i -= 9) {
 				setBit(t, i);
 			}
-			rays[rayIndex(tile, SOUTH_WEST)] = t;
+			rays[tile][SOUTH_WEST] = t;
 
             // South East
 			t = EMPTY;
 			for (int i = tile - 7; (i % 8 > 0) && (i >= 0); i -= 7) {
 				setBit(t, i);
 			}
-			rays[rayIndex(tile, SOUTH_EAST)] = t;
+			rays[tile][SOUTH_EAST] = t;
 		}	
 
-	}
-
-	static void deleteRays()
-	{
-		//delete[] rays;
 	}
 	
 }

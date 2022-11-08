@@ -91,7 +91,9 @@ namespace KRONOS
 			Search_Move move;
 			for (auto& thread : threads) {
 				Search_Move temp = thread.getBestMove();
-				std::cout << "Thread " << thread.getID() << " searched to a depth of " << temp.depth << " with a score of " << temp.score << std::endl;
+
+				std::cout << "Thread " << thread.getID() << " {\n\tDepth: " << temp.depth << "\n\tScore: " << temp.score << "\n}" << std::endl;
+
 				if (move.depth < thread.getBestMove().depth)
 					move = thread.getBestMove();
 			}

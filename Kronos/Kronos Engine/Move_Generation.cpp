@@ -1,7 +1,9 @@
 #include "Move_Generation.h"
 
+#include "FEN.h"
 #include "Rays.h"
 #include "Zobrist_Hashing.h"
+#include <chrono>
 
 namespace KRONOS
 {
@@ -26,11 +28,11 @@ namespace KRONOS
 
 		BitBoard occ = board.occupied[BOTH] ^ (1ULL << from) ^ (1ULL << to);
 		BitBoard attackers = (getPawnAttacks(toBB, WHITE) & board.pieceLocations[BLACK][PAWN])
-			               | (getPawnAttacks(toBB, BLACK) & board.pieceLocations[WHITE][PAWN])
-			               | (getKnightAttacks(toBB) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]))
-			               | (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
-			               | (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
-			               | (getKingAttacks(toBB) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]));
+			| (getPawnAttacks(toBB, BLACK) & board.pieceLocations[WHITE][PAWN])
+			| (getKnightAttacks(toBB) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]))
+			| (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
+			| (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
+			| (getKingAttacks(toBB) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]));
 		popBit(attackers, from);
 
 		BitBoard sideToMoveAtks, bb;
@@ -173,10 +175,10 @@ namespace KRONOS
 
 	}
 
-	inline void updatePosition(Position& position, Move move) {
+	constexpr void updatePosition(Position& position, Move move) {
 
 		position.status.EP = no_Tile;
-		
+
 		position.halfMoves++;
 		if (position.status.isWhite)
 			position.fullMoves++;
@@ -219,7 +221,7 @@ namespace KRONOS
 		}
 
 		BitBoard moveBB = (1ULL << move.from) | (1ULL << move.to);
-		if (move.flag & CAPTURE && move.flag != ENPASSANT) {
+		if ((move.flag & CAPTURE) && move.flag != ENPASSANT) {
 			BitBoard notTaken = ~(1ULL << move.to);
 			for (BitBoard& enemyPieceBB : position.board.pieceLocations[!position.status.isWhite])
 				enemyPieceBB &= notTaken;
@@ -336,25 +338,25 @@ namespace KRONOS
 		if (!(offset % 7)) {
 			if (bishopPos < kingPos) {
 				// bishop is south east from the king
-				kingBan |= rays[rayIndex(bishopPos, NORTH_WEST)];
-				checkMask |= (rays[rayIndex(bishopPos, SOUTH_EAST)] ^ rays[rayIndex(kingPos, SOUTH_EAST)]);
+				kingBan |= rays[bishopPos][NORTH_WEST];
+				checkMask |= (rays[bishopPos][SOUTH_EAST] ^ rays[kingPos][SOUTH_EAST]);
 			}
 			else {
 				// bishop is north west from the king
-				kingBan |= rays[rayIndex(bishopPos, SOUTH_EAST)];
-				checkMask |= (rays[rayIndex(bishopPos, NORTH_WEST)] ^ rays[rayIndex(kingPos, NORTH_WEST)]);
+				kingBan |= rays[bishopPos][SOUTH_EAST];
+				checkMask |= (rays[bishopPos][NORTH_WEST] ^ rays[kingPos][NORTH_WEST]);
 			}
 		}
 		else {
 			if (bishopPos < kingPos) {
 				// bishop is south west from the king
-				kingBan |= rays[rayIndex(bishopPos, NORTH_EAST)];
-				checkMask |= (rays[rayIndex(bishopPos, SOUTH_WEST)] ^ rays[rayIndex(kingPos, SOUTH_WEST)]);
+				kingBan |= rays[bishopPos][NORTH_EAST];
+				checkMask |= (rays[bishopPos][SOUTH_WEST] ^ rays[kingPos][SOUTH_WEST]);
 			}
 			else {
 				// bishop is north east from the king
-				kingBan |= rays[rayIndex(bishopPos, SOUTH_WEST)];
-				checkMask |= (rays[rayIndex(bishopPos, NORTH_EAST)] ^ rays[rayIndex(kingPos, NORTH_EAST)]);
+				kingBan |= rays[bishopPos][SOUTH_WEST];
+				checkMask |= (rays[bishopPos][NORTH_EAST] ^ rays[kingPos][NORTH_EAST]);
 			}
 		}
 	}
@@ -364,25 +366,25 @@ namespace KRONOS
 		if (!(offset % 8)) {
 			if (rookPos < kingPos) {
 				// rook is south from the king
-				kingBan |= rays[rayIndex(rookPos, NORTH)];
-				checkMask |= (rays[rayIndex(rookPos, SOUTH)] ^ rays[rayIndex(kingPos, SOUTH)]);
+				kingBan |= rays[rookPos][NORTH];
+				checkMask |= (rays[rookPos][SOUTH] ^ rays[kingPos][SOUTH]);
 			}
 			else {
 				// rook is north from the king
-				kingBan |= rays[rayIndex(rookPos, SOUTH)];
-				checkMask |= (rays[rayIndex(rookPos, NORTH)] ^ rays[rayIndex(kingPos, NORTH)]);
+				kingBan |= rays[rookPos][SOUTH];
+				checkMask |= (rays[rookPos][NORTH] ^ rays[kingPos][NORTH]);
 			}
 		}
 		else {
 			if (rookPos < kingPos) {
 				// rook is west from the king
-				kingBan |= rays[rayIndex(rookPos, EAST)];
-				checkMask |= (rays[rayIndex(rookPos, WEST)] ^ rays[rayIndex(kingPos, WEST)]);
+				kingBan |= rays[rookPos][EAST];
+				checkMask |= (rays[rookPos][WEST] ^ rays[kingPos][WEST]);
 			}
 			else {
 				// rook is east from the king
-				kingBan |= rays[rayIndex(rookPos, WEST)];
-				checkMask |= (rays[rayIndex(rookPos, EAST)] ^ rays[rayIndex(kingPos, EAST)]);
+				kingBan |= rays[rookPos][WEST];
+				checkMask |= (rays[rookPos][EAST] ^ rays[kingPos][EAST]);
 			}
 		}
 	}
@@ -392,63 +394,63 @@ namespace KRONOS
 		if (!(offset % 8)) {
 			if (queenPos < kingPos) {
 				// rook is south from the king
-				kingBan |= rays[rayIndex(queenPos, NORTH)];
-				checkMask |= (rays[rayIndex(queenPos, SOUTH)] ^ rays[rayIndex(kingPos, SOUTH)]);
+				kingBan |= rays[queenPos][NORTH];
+				checkMask |= (rays[queenPos][SOUTH] ^ rays[kingPos][SOUTH]);
 			}
 			else {
 				// rook is north from the king
-				kingBan |= rays[rayIndex(queenPos, SOUTH)];
-				checkMask |= (rays[rayIndex(queenPos, NORTH)] ^ rays[rayIndex(kingPos, NORTH)]);
+				kingBan |= rays[queenPos][SOUTH];
+				checkMask |= (rays[queenPos][NORTH] ^ rays[kingPos][NORTH]);
 			}
 		}
 		else if (!(offset % 7)) {
 			if (queenPos < kingPos) {
 				// bishop is south east from the king
-				kingBan |= rays[rayIndex(queenPos, NORTH_WEST)];
-				checkMask |= (rays[rayIndex(queenPos, SOUTH_EAST)] ^ rays[rayIndex(kingPos, SOUTH_EAST)]);
+				kingBan |= rays[queenPos][NORTH_WEST];
+				checkMask |= (rays[queenPos][SOUTH_EAST] ^ rays[kingPos][SOUTH_EAST]);
 			}
 			else {
 				// bishop is north west from the king
-				kingBan |= rays[rayIndex(queenPos, SOUTH_EAST)];
-				checkMask |= (rays[rayIndex(queenPos, NORTH_WEST)] ^ rays[rayIndex(kingPos, NORTH_WEST)]);
+				kingBan |= rays[queenPos][SOUTH_EAST];
+				checkMask |= (rays[queenPos][NORTH_WEST] ^ rays[kingPos][NORTH_WEST]);
 			}
 		}
 		else if (!(offset % 9)) {
 			if (queenPos < kingPos) {
 				// bishop is south west from the king
-				kingBan |= rays[rayIndex(queenPos, NORTH_EAST)];
-				checkMask |= (rays[rayIndex(queenPos, SOUTH_WEST)] ^ rays[rayIndex(kingPos, SOUTH_WEST)]);
+				kingBan |= rays[queenPos][NORTH_EAST];
+				checkMask |= (rays[queenPos][SOUTH_WEST] ^ rays[kingPos][SOUTH_WEST]);
 			}
 			else {
 				// bishop is north east from the king
-				kingBan |= rays[rayIndex(queenPos, SOUTH_WEST)];
-				checkMask |= (rays[rayIndex(queenPos, NORTH_EAST)] ^ rays[rayIndex(kingPos, NORTH_EAST)]);
+				kingBan |= rays[queenPos][SOUTH_WEST];
+				checkMask |= (rays[queenPos][NORTH_EAST] ^ rays[kingPos][NORTH_EAST]);
 			}
 		}
 		else {
 			if (queenPos < kingPos) {
 				// rook is west from the king
-				kingBan |= rays[rayIndex(queenPos, EAST)];
-				checkMask |= (rays[rayIndex(queenPos, WEST)] ^ rays[rayIndex(kingPos, WEST)]);
+				kingBan |= rays[queenPos][EAST];
+				checkMask |= (rays[queenPos][WEST] ^ rays[kingPos][WEST]);
 			}
 			else {
 				// rook is east from the king
-				kingBan |= rays[rayIndex(queenPos, WEST)];
-				checkMask |= (rays[rayIndex(queenPos, EAST)] ^ rays[rayIndex(kingPos, EAST)]);
+				kingBan |= rays[queenPos][WEST];
+				checkMask |= (rays[queenPos][EAST] ^ rays[kingPos][EAST]);
 			}
 		}
 	}
 
 	constexpr BitBoard highlightTilesBetween(int start, int end) {
 		BitBoard b = EMPTY;
-		return b |= (rays[rayIndex(start, NORTH)]      & rays[rayIndex(end, SOUTH)])
-			      | (rays[rayIndex(start, EAST)]       & rays[rayIndex(end, WEST)])
-			      | (rays[rayIndex(start, SOUTH)]      & rays[rayIndex(end, NORTH)])
-			      | (rays[rayIndex(start, WEST)]       & rays[rayIndex(end, EAST)])
-			      | (rays[rayIndex(start, NORTH_EAST)] & rays[rayIndex(end, SOUTH_WEST)])
-			      | (rays[rayIndex(start, NORTH_WEST)] & rays[rayIndex(end, SOUTH_EAST)])
-			      | (rays[rayIndex(start, SOUTH_WEST)] & rays[rayIndex(end, NORTH_EAST)])
-			      | (rays[rayIndex(start, SOUTH_EAST)] & rays[rayIndex(end, NORTH_WEST)]);
+		return b |= (rays[start][NORTH] & rays[end][SOUTH])
+			| (rays[start][EAST] & rays[end][WEST])
+			| (rays[start][SOUTH] & rays[end][NORTH])
+			| (rays[start][WEST] & rays[end][EAST])
+			| (rays[start][NORTH_EAST] & rays[end][SOUTH_WEST])
+			| (rays[start][NORTH_WEST] & rays[end][SOUTH_EAST])
+			| (rays[start][SOUTH_WEST] & rays[end][NORTH_EAST])
+			| (rays[start][SOUTH_EAST] & rays[end][NORTH_WEST]);
 	}
 
 	template <Pieces pieceType>
@@ -498,13 +500,13 @@ namespace KRONOS
 	bool inCheck(const Position& position) {
 		bool side = position.status.isWhite;
 		int kingPos = bitScanForward(position.board.pieceLocations[side][KING]);
-		return (getPawnAttacks  (position.board.pieceLocations[side][KING], side) & position.board.pieceLocations[!side][PAWN])
-			|| (getKnightAttacks(position.board.pieceLocations[side][KING])       & position.board.pieceLocations[!side][KNIGHT])
+		return (getPawnAttacks(position.board.pieceLocations[side][KING], side) & position.board.pieceLocations[!side][PAWN])
+			|| (getKnightAttacks(position.board.pieceLocations[side][KING]) & position.board.pieceLocations[!side][KNIGHT])
 			|| (getBishopAttacks(position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][BISHOP] | position.board.pieceLocations[!side][QUEEN]))
-			|| (getRookAttacks  (position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][ROOK]   | position.board.pieceLocations[!side][QUEEN]));
+			|| (getRookAttacks(position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][ROOK] | position.board.pieceLocations[!side][QUEEN]));
 	}
 
-	inline void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves) {
+	constexpr void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves) {
 
 		// temporary bitboard
 		BitBoard b1;
@@ -634,9 +636,9 @@ namespace KRONOS
 			Dir dir = getDirectionFromOffset(pinnedPos - kingPos);
 
 			// get position of the attacking piece
-			int attackingSlider = bitScanForward(rays[rayIndex(kingPos, dir)] & pinners);
+			int attackingSlider = bitScanForward(rays[kingPos][dir] & pinners);
 
-			BitBoard pinnedMask = rays[rayIndex(kingPos, dir)] ^ rays[rayIndex(attackingSlider, dir)];
+			BitBoard pinnedMask = rays[kingPos][dir] ^ rays[attackingSlider][dir];
 
 			BitBoard posBB = 1ULL << pinnedPos;
 
@@ -800,9 +802,36 @@ namespace KRONOS
 		attackers |= (getPawnAttacks((1ULL << tile), WHITE) & position->board.pieceLocations[BLACK][PAWN]);
 		attackers |= (getKnightAttacks(1ULL << tile) & (position->board.pieceLocations[WHITE][KNIGHT] | position->board.pieceLocations[BLACK][KNIGHT]));
 		attackers |= (getBishopAttacks(position->board.occupied[BOTH], tile) & (position->board.pieceLocations[WHITE][BISHOP] | position->board.pieceLocations[BLACK][BISHOP] | position->board.pieceLocations[WHITE][QUEEN] | position->board.pieceLocations[BLACK][QUEEN]));
-		attackers |=   (getRookAttacks(position->board.occupied[BOTH], tile) & (position->board.pieceLocations[WHITE][ROOK] | position->board.pieceLocations[BLACK][ROOK] | position->board.pieceLocations[WHITE][QUEEN] | position->board.pieceLocations[BLACK][QUEEN]));
+		attackers |= (getRookAttacks(position->board.occupied[BOTH], tile) & (position->board.pieceLocations[WHITE][ROOK] | position->board.pieceLocations[BLACK][ROOK] | position->board.pieceLocations[WHITE][QUEEN] | position->board.pieceLocations[BLACK][QUEEN]));
 		attackers |= (getKingAttacks((1ULL << tile)) & (position->board.pieceLocations[WHITE][KING] | position->board.pieceLocations[BLACK][KING]));
 		return attackers;
+	}
+
+	constexpr int perft(std::vector<Position>& positions, int ply, int depth) {
+		if (depth < 1) {
+			return 1;
+		}
+
+		Move_List<256> moves;
+		generateMoves(positions.at(ply).status.isWhite, positions.at(ply).board, positions.at(ply).status, moves);
+		int total = 0;
+		for (int i = 0; i < moves.size; i++) {
+			positions.at(ply + 1) = positions.at(ply);
+			updatePosition(positions.at(ply + 1), moves.at(i));
+			total += perft(positions, ply + 1, depth - 1);
+		}
+		return total;
+	}
+
+	void perftTest(std::string FEN, int depth) {
+		std::vector<Position> positions(depth + 1);
+		positions.at(0) = FENtoBoard(FEN);
+
+		for (int i = 1; i <= depth; i++) {
+			auto begin = std::chrono::steady_clock::now();
+			std::cout << "PLY " << i << ": " << perft(positions, 0, i) << " | Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin) << "\n";
+		}
+		std::cout << "";
 	}
 
 } // namespace KRONOS

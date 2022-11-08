@@ -157,10 +157,6 @@ void Kronos_Application::processInputs() {
 			if (events.key.code == sf::Keyboard::P) {
 				kronosEngine->beginAutoGame();
 			}
-			if (events.key.code == sf::Keyboard::E) {
-				system("cls");
-				kronosEngine->getStaticEval();
-			}
 		}
 		
 		if (events.type == sf::Event::MouseButtonPressed) {

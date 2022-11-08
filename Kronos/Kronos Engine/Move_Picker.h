@@ -8,6 +8,8 @@ namespace KRONOS {
 			STAGE_HASH_MOVE,
 			STAGE_FILTER_MOVES,
 			STAGE_WINNING_TACTICALS,
+			STAGE_KILLER_1,
+			STAGE_KILLER_2,
 			STAGE_QUIETS,
 			STAGE_LOSING_TACTICALS,
 			STAGE_FINISHED
@@ -37,7 +39,7 @@ namespace KRONOS {
 			int MVV_LVA(Move& move);
 
 		public:
-			Move_Picker(Position& position, bool isQuie, Move hashMove);
+			Move_Picker(Position& position, bool isQuie, Move hashMove, Move k1, Move k2);
 			~Move_Picker();
 
 			bool nextMove(Search_Thread& sData, Move& nextMove);

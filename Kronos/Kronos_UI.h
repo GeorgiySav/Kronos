@@ -31,15 +31,12 @@ struct pieceSprite {
 struct selectedPiece {
 	int pos;
 	pieceSprite* sprite;
-	KRONOS::Move_List<256>* moves;
-	int start, end;
+	std::vector<KRONOS::Move> moves;
 	int colour, type;
 	selectedPiece() {
 		pos = KRONOS::no_Tile;
 		sprite = nullptr;
-		moves = nullptr;
-		start = -1;
-		end = -1;
+		moves.clear();
 		colour = -1;
 		type = -1;
 	}
@@ -154,21 +151,17 @@ public:
 		if (!whiteBottom)
 			boardIndex = 63 - boardIndex;
 
+		selected.moves.clear();
+
 		for (auto& piece : { KRONOS::PAWN, KRONOS::KNIGHT, KRONOS::BISHOP, KRONOS::ROOK, KRONOS::QUEEN, KRONOS::KING }) {
 			if (board->pieceLocations[isWhite][piece] & (1ULL << boardIndex)) {
 				selected.pos = boardIndex;
 				selected.sprite = &sprites[isWhite][piece];
 				selected.colour = isWhite;
 				selected.type = piece;
-				selected.moves = moves;
 				for (int i = 0; i < moves->size; i++) {
 					if (moves->at(i).from == boardIndex) {
-						selected.start = i;
-						while (i < moves->size && moves->at(i).from == boardIndex)
-							i++;
-						selected.end = i - 1;
-						selected.moves = moves;
-						return;
+						selected.moves.push_back(moves->at(i));
 					}
 				}
 			}
@@ -183,12 +176,11 @@ public:
 			if (!whiteBottom)
 				boardIndex = 63 - boardIndex;
 
-			if (selected.start != -1) {
-				for (int i = selected.start; i <= selected.end; i++) {
-					if (selected.moves->at(i).to == boardIndex) {
-						KRONOS::Move move = selected.moves->at(i);
+			if (!selected.moves.empty()) {
+				for (auto& m : selected.moves) {
+					if (m.to == boardIndex) {
 						selected = selectedPiece();
-						return move;
+						return m;
 					}
 				}
 			}
@@ -223,9 +215,9 @@ public:
 		if (selected.pos != KRONOS::no_Tile) {
 			selected.sprite->sprite.setPosition(sf::Vector2f(sf::Mouse::getPosition(window)));
 			window.draw(selected.sprite->sprite);
-			if (selected.start != -1) {
-				for (int i = selected.start; i <= selected.end; i++) {
-					int moveTo = selected.moves->at(i).to;
+			if (!selected.moves.empty()) {
+				for (auto& move : selected.moves) {
+					int moveTo = move.to;
 					if (!whiteBottom)
 						moveTo = 63 - moveTo;
 					possibleMove.setPosition(boardIndexToBoardPos(moveTo));

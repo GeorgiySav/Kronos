@@ -21,7 +21,7 @@ namespace KRONOS
 		void initVars() {
 			for (int d = 1; d < 64; d++) {
 				for (int m = 1; m < 64; m++) {
-					LMR[d][m] = 0.75 + log(d) * log(m) / 2.25;
+					LMR[d][m] = log(d) * log(m) / 2 - 0.2;
 				}
 			}
 			for (int d = 1; d < 9; d++) {
@@ -123,6 +123,14 @@ namespace KRONOS
 			return historyTable[side][move.moved_Piece][move.to];
 		}
 
+		void Search_Thread::updateKillers(Move& newMove)
+		{
+			if (newMove != killer1.at(threadPly)) {
+				killer2.at(threadPly) = killer1.at(threadPly);
+				killer1.at(threadPly) = newMove;
+			}
+		}
+
 		int16_t Search_Thread::quiescence(int alpha, int beta, int plyFromRoot, bool inPV)
 		{
 			Position& nodePosition = threadPositions.at(threadPly);
@@ -177,7 +185,9 @@ namespace KRONOS
 			Move_Picker movePicker(
 				nodePosition, 
 				true, 
-				MoveIntToMove(tte.move, &nodePosition));
+				MoveIntToMove(tte.move, &nodePosition),
+				NULL_MOVE,
+				NULL_MOVE);
 
 			int16_t bestScore = -INFINITE;
 			Move move;
@@ -228,6 +238,7 @@ namespace KRONOS
 			Position& nodePosition = threadPositions.at(threadPly);
 			u64& nodeHash = nodePosition.hash;
 			bool nodeCheck = inCheck(nodePosition);
+			int16_t nodeEval = UNDEFINED;
 
 			if (depth < 1) {
 				return quiescence(alpha, beta, plyFromRoot, inPV);
@@ -250,14 +261,13 @@ namespace KRONOS
 
 			transEntry tte;
 			tte.move = NULL;
-			int16_t tteEval = UNDEFINED;
 			if (SM.transTable.probe(nodeHash, tte)) {
-				tteEval = HASH::TranspositionTableToScore(tte.eval, plyFromRoot);
+				nodeEval = HASH::TranspositionTableToScore(tte.eval, plyFromRoot);
 				if (!inPV && tte.depth >= depth
 					&& (tte.getBound() == (int)BOUND::EXACT
-						|| (tte.getBound() == (int)BOUND::ALPHA && tteEval <= alpha)
-						|| (tte.getBound() == (int)BOUND::BETA && tteEval >= beta))) {
-					return tteEval;
+						|| (tte.getBound() == (int)BOUND::ALPHA && nodeEval <= alpha)
+						|| (tte.getBound() == (int)BOUND::BETA && nodeEval >= beta))) {
+					return nodeEval;
 				}
 			}
 
@@ -280,7 +290,9 @@ namespace KRONOS
 			Move_Picker movePicker(
 				nodePosition,
 				false,
-				MoveIntToMove(tte.move, &nodePosition));
+				MoveIntToMove(tte.move, &nodePosition),
+				killer1.at(threadPly),
+				killer2.at(threadPly));
 
 			int16_t bestScore = -INFINITE;
 			Move bestMoveInThisPosition;
@@ -288,6 +300,15 @@ namespace KRONOS
 			Move move;
 			int movesSearched = 0;
 			Move_List<64> quiets;
+
+			evalHistory.at(threadPly) = nodeEval = nodeCheck ? UNDEFINED : (nodeEval == UNDEFINED ? SM.evalTable.getEval(nodePosition, eval) : nodeEval);
+
+			// a position is improving if the eval has gone up compared to the position 2 ply ago
+			bool improving = !nodeCheck && threadPly >= 2 && (evalHistory.at(threadPly) > evalHistory.at(threadPly - 2) || evalHistory.at(threadPly - 2) == UNDEFINED);
+
+			// reduction based on pv, improving for quieet moves
+			int baseReduction = 0;
+			baseReduction += (!inPV) + (!improving);
 
 			while (movePicker.nextMove(*this, move)) { 
 				int score = 0;
@@ -305,8 +326,27 @@ namespace KRONOS
 				}
 				else {
 
+					// Late Move Reductions
+					int R = 1;
+					if (!move.isTactical() && depth > 2) {
+						R = LMR[std::min(depth, 63)][std::min(movesSearched, 63)];
+
+						R += baseReduction;
+
+						// reduce killers less
+						if (move == killer1.at(threadPly - 1) || move == killer2.at(threadPly - 1))
+							R -= 2;
+
+						// make sure that we don't extend or drop in quiescence search
+						R = std::min(depth - 1, std::max(R, 1));
+					}
+
 					// Princpial Variation
-					score = -alphaBeta(depth - 1, -alpha - 1, -alpha, plyFromRoot + 1, false);
+					score = -alphaBeta(depth - R, -alpha - 1, -alpha, plyFromRoot + 1, false);
+
+					// if a reduced move fails high, research
+					if (score > alpha && R != 1)
+						score = -alphaBeta(depth - 1, -alpha - 1, -alpha, plyFromRoot + 1, false);
 
 					if (score > alpha && score < beta) {
 						score = -alphaBeta(depth - 1, -beta, -alpha, plyFromRoot + 1, inPV);
@@ -330,6 +370,8 @@ namespace KRONOS
 						bound = BOUND::EXACT;
 						bestMoveInThisPosition = move;
 						if (score >= beta) {
+							if (!move.isTactical())
+								updateKillers(move);
 							bound = BOUND::BETA;
 							break;
 						}
@@ -367,18 +409,20 @@ namespace KRONOS
 			Position& nodePosition = threadPositions.at(0);
 			u64& nodeHash = nodePosition.hash;
 			bool nodeCheck = inCheck(nodePosition);
+			int16_t nodeEval = UNDEFINED;
 
 			transEntry tte;
 			tte.move = NULL;
-			int16_t tteEval = UNDEFINED;
 			if (SM.transTable.probe(nodeHash, tte)) {
-				tteEval = HASH::TranspositionTableToScore(tte.eval, 0);
+				nodeEval = HASH::TranspositionTableToScore(tte.eval, 0);
 			}
 
 			Move_Picker movePicker(
 				nodePosition,
 				false,
-				MoveIntToMove(tte.move, &nodePosition));
+				MoveIntToMove(tte.move, &nodePosition),
+				killer1.at(0),
+				killer2.at(0));
 
 			if (!movePicker.hasMoves()) {
 				if (nodeCheck)
@@ -392,6 +436,8 @@ namespace KRONOS
 			Move move;
 			int movesSearched = 0;
 			Move_List<64> quiets;
+
+			evalHistory.at(threadPly) = nodeEval = nodeCheck ? UNDEFINED : (nodeEval == UNDEFINED ? SM.evalTable.getEval(nodePosition, eval) : nodeEval);
 
 			while (movePicker.nextMove(*this, move)) {
 				int score = 0;
@@ -409,8 +455,27 @@ namespace KRONOS
 				}
 				else {
 
+					// Late Move Reductions
+					int R = 1;
+					if (!move.isTactical() && depth > 2) {
+						R = LMR[std::min(depth, 63)][std::min(movesSearched, 63)];
+
+						R++;
+
+						// reduce killers less
+						if (move == killer1.at(0) || move == killer2.at(0)) 
+							R -= 2;
+
+						// make sure that we don't extend or drop in quiescence search
+						R = std::min(depth - 1, std::max(R, 1));
+					}
+
 					// Princpial Variation
 					score = -alphaBeta(depth - 1, -alpha - 1, -alpha, 1, false);
+
+					// if a reduced move fails high, research
+					if (score > alpha && R != 1)
+						score = -alphaBeta(depth - 1, -alpha - 1, -alpha, 1, false);
 
 					if (score > alpha && score < beta) {
 						score = -alphaBeta(depth - 1, -beta, -alpha, 1, true);
@@ -433,6 +498,8 @@ namespace KRONOS
 						bestMoveThisIteration = move;
 						bound = BOUND::EXACT;
 						if (score >= beta) {
+							if (!move.isTactical())
+								updateKillers(move);
 							bound = BOUND::BETA;
 							break;
 						}
@@ -502,7 +569,7 @@ namespace KRONOS
 			memset(historyTable, 0, sizeof(historyTable));
 			killer1.clear();
 			killer2.clear();
-			moveHistory.clear();
+			evalHistory.clear();
 		}
 
 		void Search_Thread::setData(std::vector<Position>* prevPoss, int curPly) {
@@ -512,7 +579,7 @@ namespace KRONOS
 			threadPositions.at(0) = previousPositions->at(curPly);
 			killer1.resize(MAX_PLY - curPly);
 			killer2.resize(MAX_PLY - curPly);
-			moveHistory.resize(MAX_PLY - curPly);
+			evalHistory.resize(MAX_PLY - curPly);
 		}
 
 		void Search_Thread::setPosition(std::vector<Position>* prevPoss, int curPly)

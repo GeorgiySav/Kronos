@@ -21,39 +21,10 @@
 #include "Search_Manager.h"
 #include "Game.h"
 #include "Tuner.h"
+#include "FEN.h"
 
 namespace KRONOS
 {
-	
-	struct perftResults {
-		int nodes;
-		int captures;
-		int eps;
-		int castles;
-		int promotions;
-		
-		perftResults() : nodes(0), captures(0), eps(0), castles(0), promotions(0) {}
-
-		perftResults operator + (const perftResults& other) const {
-			perftResults result;
-			result.nodes = this->nodes + other.nodes;
-			result.captures = this->captures + other.captures;
-			result.eps = this->eps + other.eps;
-			result.castles = this->castles + other.castles;
-			result.promotions = this->promotions + other.promotions;
-			return result;
-		}			
-		
-		friend std::ostream& operator << (std::ostream& os, const perftResults& results) {
-			os << "Nodes: " << results.nodes << std::endl;
-			os << "Captures: " << results.captures << std::endl;
-			os << "Eps: " << results.eps << std::endl;
-			os << "Castles: " << results.castles << std::endl;
-			os << "Promotions: " << results.promotions << std::endl;
-			return os;
-		}
-
-	};
 
 	class KronosEngine
 	{
@@ -67,7 +38,6 @@ namespace KRONOS
 		bool busy = false;
 		
 		int NUM_THREADS = std::thread::hardware_concurrency();
-		EVALUATION::Evaluation eval;
 		EVALUATION::PARAMS::Eval_Parameters params;
 
 	public:
@@ -91,67 +61,9 @@ namespace KRONOS
 			game.undoMove();
 		}
 
-		//int perft(int depth) {
-		//	if (depth == 0) {
-		//		//perftResults result = perftResults();
-		//		//if (moveHistory[ply].flag == ENPASSANT) {
-		//		//	result.eps++;
-		//		//}
-		//		//else if (moveHistory[ply].flag & PROMOTION) {
-		//		//	result.promotions++;
-		//		//}
-		//		//else if (moveHistory[ply].flag == KING_CASTLE || moveHistory[ply].flag == QUEEN_CASTLE) {
-		//		//	result.castles++;
-		//		//}
-		//		//
-		//		//if (moveHistory[ply].flag & CAPTURE) {
-		//		//	result.captures++;
-		//		//}
-		//		//
-		//		//result.nodes++;
-		//		//return result;
-		//		return 1;
-		//	}
-		//
-		//	int count = 0;
-		//
-		//	generateMoves();
-		//	std::vector<Move> moves = this->moves;
-		//
-		//	for (Move move : moves) {
-		//		makeMove(move);
-		//		count += perft(depth - 1);
-		//		unmakeMove();
-		//	}
-		//
-		//	return count;
-		//
-		//}
-		//
-		//perftResults perftDiv(int depth) {
-		//	
-		//	perftResults count = perftResults();
-		//
-		//	generateMoves();
-		//	std::vector<Move> moves = this->moves;
-		//
-		//	for (Move move : moves) {
-		//		makeMove(move);
-		//		std::cout << BoardIndexToCoords(move.from) << BoardIndexToCoords(move.to) << ":\n" << perft(depth - 1) << '\n';
-		//		unmakeMove();
-		//	}
-		//
-		//	return count;
-		//
-		//}
-
 		void setFen(std::string FEN) {
 			game.clear();
 			game.setGame(GAME_TYPE::AI_GAME, FEN);
-		}
-
-		void getStaticEval() {
-			std::cout << "Static Evaluation: " << eval.evaluate(game.getPositions()->at(game.getPly())) << std::endl;
 		}
 
 		void startSearchForBestMove() {

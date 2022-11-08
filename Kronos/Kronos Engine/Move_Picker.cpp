@@ -5,8 +5,8 @@
 namespace KRONOS {
 	namespace SEARCH {
 
-		Move_Picker::Move_Picker(Position& position, bool isQuie, Move hashMove) 
-			: position(position), quiescenceSearch(isQuie), hashMove(hashMove) {
+		Move_Picker::Move_Picker(Position& position, bool isQuie, Move hashMove, Move k1, Move k2) 
+			: position(position), quiescenceSearch(isQuie), hashMove(hashMove), killer1(k1), killer2(k2) {
 			generateMoves(position.status.isWhite, position.board, position.status, moves);
 			if (hashMove == NULL_MOVE)
 				stage = STAGE_FILTER_MOVES;
@@ -130,11 +130,31 @@ namespace KRONOS {
 				}
 				stage++;
 				index = 0;
+			case (STAGE_KILLER_1):
+				stage++;
+				if (!quiescenceSearch) {
+					if (killer1 != NULL_MOVE
+						&& killer1 != hashMove
+						&& quiets.contains(killer1)) {
+						nextMove = killer1;
+						return true;
+					}
+				}
+			case (STAGE_KILLER_2):
+				stage++;
+				if (!quiescenceSearch) {
+					if (killer2 != NULL_MOVE
+						&& killer2 != hashMove
+						&& quiets.contains(killer2)) {
+						nextMove = killer2;
+						return true;
+					}
+				}
 			case (STAGE_QUIETS):
 				if (!quiescenceSearch) {
 					while (index < quiets.size) {
 						Move& move = quiets.at(index++);
-						if (move == hashMove)
+						if (move == hashMove || move == killer1 || move == killer2)
 							continue;
 						nextMove = move;
 						return true;

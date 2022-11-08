@@ -58,7 +58,8 @@ namespace KRONOS
 			int16_t historyTable[2][6][64];
 			std::vector<Move> killer1;
 			std::vector<Move> killer2;
-			std::vector<Move> moveHistory;
+
+			std::vector<int16_t> evalHistory;
 
 			EVALUATION::Evaluation eval;
 
@@ -69,6 +70,7 @@ namespace KRONOS
 
 			bool repeatedDraw();
 			void updateHistory(Move& newMove, Move_List<64>& quiets, bool side, int depth);
+			void updateKillers(Move& newMove);
 
 			int16_t quiescence(int alpha, int beta, int plyFromRoot, bool inPV);
 			int16_t alphaBeta(int depth, int alpha, int beta, int plyFromRoot, bool inPV);

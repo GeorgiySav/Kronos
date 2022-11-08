@@ -54,9 +54,6 @@
     <ClCompile Include="Kronos Engine\Magic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Kronos Engine\Move_Generation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Kronos Engine\polyBook.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -91,6 +88,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Kronos Engine\Move_Picker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Kronos Engine\Move_Generation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

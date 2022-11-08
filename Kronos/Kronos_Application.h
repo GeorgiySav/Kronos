@@ -27,8 +27,6 @@ private:
 	// engine
 	std::unique_ptr<KRONOS::KronosEngine> kronosEngine;
 
-	// multiplayer
-
 public:
 	Kronos_Application();
 	~Kronos_Application();

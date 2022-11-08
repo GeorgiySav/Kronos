@@ -139,7 +139,7 @@ namespace KRONOS {
 
 	extern inline Move MoveIntToMove(uint16_t move, const Position* position);
 
-	extern inline void updatePosition(Position& position, Move move);
+	extern constexpr void updatePosition(Position& position, Move move);
 	extern inline Position newPosition(Position curPos, Move move);
 	extern inline void makeNullMove(Position& position);
 	extern constexpr BitBoard EnemyAndEmpty(const Board& brd, bool isWhite);
@@ -163,6 +163,8 @@ namespace KRONOS {
 	extern constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List<256>& moves);
 	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List<256>& moves);
 	extern bool inCheck(const Position& position);
-	extern inline void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves);
+	extern constexpr void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves);
 	extern inline BitBoard generateAttacksToSquare(Position* position, int tile);
+
+	extern void perftTest(std::string FEN, int depth);
 }
