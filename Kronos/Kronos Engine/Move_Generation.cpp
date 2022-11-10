@@ -1,6 +1,5 @@
 #include "Move_Generation.h"
 
-#include "FEN.h"
 #include "Rays.h"
 #include "Zobrist_Hashing.h"
 #include <chrono>
@@ -454,7 +453,7 @@ namespace KRONOS
 	}
 
 	template <Pieces pieceType>
-	constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List<256>& moves) {
+	constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List& moves) {
 		int to = 0;
 		while (movesBB) {
 			to = bitScanForward(movesBB);;
@@ -468,7 +467,7 @@ namespace KRONOS
 		}
 	}
 
-	constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List<256>& moves) {
+	constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List& moves) {
 		if (epBB) {
 			int to = bitScanForward(epBB);
 			moves.add(Move(from, to, ENPASSANT, PAWN));
@@ -506,7 +505,7 @@ namespace KRONOS
 			|| (getRookAttacks(position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][ROOK] | position.board.pieceLocations[!side][QUEEN]));
 	}
 
-	constexpr void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves) {
+	constexpr void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List& moves) {
 
 		// temporary bitboard
 		BitBoard b1;
@@ -812,10 +811,10 @@ namespace KRONOS
 			return 1;
 		}
 
-		Move_List<256> moves;
+		Move_List moves;
 		generateMoves(positions.at(ply).status.isWhite, positions.at(ply).board, positions.at(ply).status, moves);
 		int total = 0;
-		for (int i = 0; i < moves.size; i++) {
+		for (int i = 0; i < moves.size(); i++) {
 			positions.at(ply + 1) = positions.at(ply);
 			updatePosition(positions.at(ply + 1), moves.at(i));
 			total += perft(positions, ply + 1, depth - 1);
@@ -823,13 +822,13 @@ namespace KRONOS
 		return total;
 	}
 
-	void perftTest(std::string FEN, int depth) {
+	void perftTest(Position startPos, int depth) {
 		std::vector<Position> positions(depth + 1);
-		positions.at(0) = FENtoBoard(FEN);
+		positions.at(0) = startPos;
 
 		for (int i = 1; i <= depth; i++) {
 			auto begin = std::chrono::steady_clock::now();
-			std::cout << "PLY " << i << ": " << perft(positions, 0, i) << " | Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin) << "\n";
+			std::cout << "PLY " << i << ": " << perft(positions, 0, i) << " | Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "\n";
 		}
 		std::cout << "";
 	}

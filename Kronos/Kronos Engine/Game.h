@@ -45,7 +45,7 @@ namespace KRONOS
 		GAME_TYPE gameType;
 		
 
-		Move_List<256> moves;
+		Move_List moves;
 
 		void checkGameState();
 	public:
@@ -81,7 +81,7 @@ namespace KRONOS
 			return &positions[ply].status;
 		}
 
-		Move_List<256>* getMovesPointer() {
+		Move_List* getMovesPointer() {
 			return &moves;
 		}
 	

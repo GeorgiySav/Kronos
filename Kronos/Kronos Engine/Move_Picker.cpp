@@ -40,7 +40,7 @@ namespace KRONOS {
 				int tacticalScores[64] = { 0 };
 				int quietScores[200] = { 0 };
 				int currentScore = 0;
-				for (int i = 0; i < moves.size; i++) {
+				for (int i = 0; i < moves.size(); i++) {
 					if (moves.at(i).isTactical()) {
 						if (moves.at(i).flag & PROMOTION) {
 							if (!(moves.at(i).flag & CAPTURE)) { // pure promotion
@@ -82,12 +82,12 @@ namespace KRONOS {
 						else
 							currentScore = MVV_LVA(moves.at(i));
 						// insert it into the array where it is sorted in descending order
-						if (tacticals.size) {
+						if (tacticals.size()) {
 							int j = 0;
-							while (j < tacticals.size && currentScore < tacticalScores[j])
+							while (j < tacticals.size() && currentScore < tacticalScores[j])
 								j++;
 							tacticals.insert(moves.at(i), j);
-							for (int k = tacticals.size - 2; k >= j; k--)
+							for (int k = tacticals.size() - 2; k >= j; k--)
 								tacticalScores[k + 1] = tacticalScores[k];
 							tacticalScores[j] = currentScore;
 						}
@@ -99,12 +99,12 @@ namespace KRONOS {
 					else {
 						currentScore = sData.getHistoryValue(position.status.isWhite, moves.at(i));
 
-						if (quiets.size) {
+						if (quiets.size()) {
 							int j = 0;
-							while (j < quiets.size && currentScore < quietScores[j])
+							while (j < quiets.size() && currentScore < quietScores[j])
 								j++;
 							quiets.insert(moves.at(i), j);
-							for (int k = quiets.size - 2; k >= j; k--)
+							for (int k = quiets.size() - 2; k >= j; k--)
 								quietScores[k + 1] = quietScores[k];
 							quietScores[j] = currentScore;
 						}
@@ -117,7 +117,7 @@ namespace KRONOS {
 			}
 				index = 0;
 			case (STAGE_WINNING_TACTICALS):
-				while (index < tacticals.size) {
+				while (index < tacticals.size()) {
 					Move& move = tacticals.at(index++);
 					if (move == hashMove)
 						continue;
@@ -152,7 +152,7 @@ namespace KRONOS {
 				}
 			case (STAGE_QUIETS):
 				if (!quiescenceSearch) {
-					while (index < quiets.size) {
+					while (index < quiets.size()) {
 						Move& move = quiets.at(index++);
 						if (move == hashMove || move == killer1 || move == killer2)
 							continue;
@@ -163,7 +163,7 @@ namespace KRONOS {
 				stage++;
 				index = 0;
 			case (STAGE_LOSING_TACTICALS) :
-				while (index < badTacticals.size) {
+				while (index < badTacticals.size()) {
 					Move& move = badTacticals.at(index++);
 					if (move == hashMove)
 						continue;

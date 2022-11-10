@@ -154,9 +154,6 @@ void Kronos_Application::processInputs() {
 			if (events.key.code == sf::Keyboard::G) {
 				kronosEngine->startSearchForBestMove();
 			}
-			if (events.key.code == sf::Keyboard::P) {
-				kronosEngine->beginAutoGame();
-			}
 		}
 		
 		if (events.type == sf::Event::MouseButtonPressed) {

@@ -37,5 +37,3 @@ public:
 	void processInputs();
 
 };
-
-void renderParamEditor(KRONOS::EVALUATION::PARAMS::Eval_Parameters* param);

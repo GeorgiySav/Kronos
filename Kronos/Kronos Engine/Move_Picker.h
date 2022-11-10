@@ -20,11 +20,11 @@ namespace KRONOS {
 		private:
 			int stage;
 
-			Move_List<256> moves;
+			Move_List moves;
 
-			Move_List<200> quiets;
-			Move_List<64> tacticals;
-			Move_List<32> badTacticals;
+			Move_List quiets;
+			Move_List tacticals;
+			Move_List badTacticals;
 
 			int index = 0;
 
@@ -43,7 +43,7 @@ namespace KRONOS {
 			~Move_Picker();
 
 			bool nextMove(Search_Thread& sData, Move& nextMove);
-			bool hasMoves() { return moves.size; }
+			bool hasMoves() { return moves.size(); }
 
 			int getStage() { return stage; }
 

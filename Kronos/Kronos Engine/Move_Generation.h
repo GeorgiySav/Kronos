@@ -160,11 +160,11 @@ namespace KRONOS {
 	extern constexpr void queenCheckMask(const int queenPos, const int kingPos, BitBoard& checkMask, BitBoard& kingBan);
 	extern constexpr BitBoard highlightTilesBetween(int start, int end);
 	template <Pieces pieceType>
-	extern constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List<256>& moves);
-	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List<256>& moves);
+	extern constexpr void addMoves(BitBoard movesBB, BitBoard capturesBB, int from, Move_List& moves);
+	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List& moves);
 	extern bool inCheck(const Position& position);
-	extern constexpr void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List<256>& moves);
+	extern constexpr void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List& moves);
 	extern inline BitBoard generateAttacksToSquare(Position* position, int tile);
 
-	extern void perftTest(std::string FEN, int depth);
+	extern void perftTest(Position startPos, int depth);
 }

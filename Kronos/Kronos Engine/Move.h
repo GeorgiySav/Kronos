@@ -25,36 +25,23 @@ namespace KRONOS
 		constexpr bool isTactical() { return flag & 0b1100; }
 	};
 
-	template<int N>
-	struct Move_List {
+	class  Move_List {
 	public:
-		constexpr Move* begin() { return &list[0]; }
-		constexpr Move* end() { return &list[size - 1]; }
-		constexpr Move const* begin() const { return &list[0]; }
-		constexpr Move const* end() const { return &list[size - 1]; }
-
-		constexpr Move_List() : size(0) {}
-		constexpr void add(const Move& m) { list[size++] = m; }
-		constexpr void clear() { size = 0; }
-		constexpr Move& at(int index) { return list[index]; }
-		constexpr bool contains(const Move& m) { 
-			for (int i = 0; i < size; i++)
-				if (list[i] == m) 
-					return true; 
+		constexpr Move_List() { moves.reserve(30); }
+		constexpr void add(const Move& m) { moves.emplace_back(m); }
+		constexpr void clear() { moves.clear(); }
+		constexpr Move& at(const int index) { return moves.at(index); }
+		constexpr bool contains(const Move& m) {
+			for (const auto& move : moves)	if (move == m) return true;
 			return false;
 		}
 		constexpr void insert(const Move& m, int index) {
-			for (int i = size - 1; i >= index; i--) {
-				list[i + 1] = list[i];
-			}
-			list[index] = m;
-			size++;
+			moves.insert(moves.begin() + index, m);
 		}
-
-		int size;
+		constexpr u8 size() { return moves.size(); }
 
 	private:
-		Move list[N];
+		std::vector<Move> moves;
 	};
 
 	inline const Move NULL_MOVE(0, 0, 0, 0);

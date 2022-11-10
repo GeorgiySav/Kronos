@@ -46,7 +46,7 @@ namespace KRONOS
 		moves.clear();
 		generateMoves(positions[ply].status.isWhite, positions[ply].board, positions[ply].status, moves);
 
-		if (moves.size == 0) {
+		if (moves.size() == 0) {
 			if (inCheck(positions[ply])) {
 				gameState = positions[ply].status.isWhite ? GAME_STATE::BLACK_DEALT_CHECKMATE : GAME_STATE::WHITE_DEALT_CHECKMATE;
 			}

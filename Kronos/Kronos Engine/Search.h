@@ -69,7 +69,7 @@ namespace KRONOS
 			bool stopIter;
 
 			bool repeatedDraw();
-			void updateHistory(Move& newMove, Move_List<64>& quiets, bool side, int depth);
+			void updateHistory(Move& newMove, Move_List& quiets, bool side, int depth);
 			void updateKillers(Move& newMove);
 
 			int16_t quiescence(int alpha, int beta, int plyFromRoot, bool inPV);

@@ -30,8 +30,6 @@ namespace KRONOS
 	{
 		Game game;
 
-		TUNER tuner;
-
 		SEARCH::Search_Manager search;
 		
 		std::future<Move> searchThread;
@@ -90,19 +88,6 @@ namespace KRONOS
 			}
 		}
 
-		void beginAutoGame() {
-			std::thread thread(&TUNER::playGame, &tuner);
-			thread.detach();
-		}
-
-		EVALUATION::PARAMS::Eval_Parameters* getEvalParam1() {
-			return tuner.getParam1();
-		}
-
-		EVALUATION::PARAMS::Eval_Parameters* getEvalParam2() {
-			return tuner.getParam2();
-		}
-
 		Board* getBitBoardsPointer() {
 			return game.getBoardPointer();
 		}
@@ -111,7 +96,7 @@ namespace KRONOS
 			return game.getStatusPointer();
 		}
 		
-		KRONOS::Move_List<256>* getMovesPointer() {
+		KRONOS::Move_List* getMovesPointer() {
 			return game.getMovesPointer();
 		}
 		

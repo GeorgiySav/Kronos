@@ -145,7 +145,7 @@ public:
 				float(boardPosition.y + boardSprite.getGlobalBounds().height - (std::floor(boardIndex / 8) * getBoardInterval() + (getBoardInterval() * 0.5))) };
 	}
 
-	void selectPiece(sf::RenderWindow& window, KRONOS::Board* board, KRONOS::Move_List<256>* moves, bool isWhite, bool whiteBottom) {
+	void selectPiece(sf::RenderWindow& window, KRONOS::Board* board, KRONOS::Move_List* moves, bool isWhite, bool whiteBottom) {
 		sf::Vector2i relPos = sf::Mouse::getPosition(window) - sf::Vector2i(boardPosition);
 		int boardIndex = getBoardIndex(relPos.x, relPos.y);
 		if (!whiteBottom)
@@ -159,7 +159,7 @@ public:
 				selected.sprite = &sprites[isWhite][piece];
 				selected.colour = isWhite;
 				selected.type = piece;
-				for (int i = 0; i < moves->size; i++) {
+				for (int i = 0; i < moves->size(); i++) {
 					if (moves->at(i).from == boardIndex) {
 						selected.moves.push_back(moves->at(i));
 					}

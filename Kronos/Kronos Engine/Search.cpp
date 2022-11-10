@@ -108,11 +108,11 @@ namespace KRONOS
 			value = delta - (value * abs(delta)) / 800;
 		}
 
-		void Search_Thread::updateHistory(Move& newMove, Move_List<64>& quiets, bool side, int depth)
+		void Search_Thread::updateHistory(Move& newMove, Move_List& quiets, bool side, int depth)
 		{
 			int16_t bonus = depth * depth;
 			updateHistoryValue(historyTable[side][newMove.moved_Piece][newMove.to], bonus);
-			for (int i = 0; i < quiets.size; i++) {
+			for (int i = 0; i < quiets.size(); i++) {
 				Move& move = quiets.at(i);
 				if (move == newMove) continue;
 				updateHistoryValue(historyTable[side][move.moved_Piece][move.to], -bonus);
@@ -299,7 +299,7 @@ namespace KRONOS
 			BOUND bound = BOUND::ALPHA;
 			Move move;
 			int movesSearched = 0;
-			Move_List<64> quiets;
+			Move_List quiets;
 
 			evalHistory.at(threadPly) = nodeEval = nodeCheck ? UNDEFINED : (nodeEval == UNDEFINED ? SM.evalTable.getEval(nodePosition, eval) : nodeEval);
 
@@ -361,7 +361,7 @@ namespace KRONOS
 				if (stop)
 					return 0;
 
-				if (!move.isTactical() && quiets.size < 64)
+				if (!move.isTactical() && quiets.size() < 64)
 					quiets.add(move);
 
 				if (score > bestScore) {
@@ -435,7 +435,7 @@ namespace KRONOS
 			BOUND bound = BOUND::ALPHA;
 			Move move;
 			int movesSearched = 0;
-			Move_List<64> quiets;
+			Move_List quiets;
 
 			evalHistory.at(threadPly) = nodeEval = nodeCheck ? UNDEFINED : (nodeEval == UNDEFINED ? SM.evalTable.getEval(nodePosition, eval) : nodeEval);
 
@@ -489,7 +489,7 @@ namespace KRONOS
 				if (stop)
 					return 0;
 				
-				if (!move.isTactical() && quiets.size < 64)
+				if (!move.isTactical() && quiets.size() < 64)
 					quiets.add(move);
 
 				if (score > bestScore) {

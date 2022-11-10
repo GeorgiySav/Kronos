@@ -10,7 +10,7 @@ KronosEngine::KronosEngine()
 	KRONOS::initRays();
 	KRONOS::initMagics();
 	
-	perftTest(FEN_START_POSITION, 5);
+	perftTest(FENtoBoard(FEN_START_POSITION), 5);
 	
 	KRONOS::EVALUATION::initEvalVars();
 	KRONOS::SEARCH::initVars();
@@ -20,10 +20,6 @@ KronosEngine::KronosEngine()
 	}
 	else
 		std::cout << "failed to initialise syzygy" << std::endl;
-
-
-	tuner.setTimePerMove(1000);
-	tuner.giveGame(&game);
 
 	game.setGame(GAME_TYPE::AI_GAME);
 
