@@ -1,3 +1,5 @@
+#pragma once
+
 #include "utility.h"
 #include "Move_Generation.h"
 

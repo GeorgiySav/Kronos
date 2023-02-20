@@ -1,4 +1,7 @@
 #include "Kronos_Application.h"
+#include "./Kronos Engine/PGN.h"
+
+#include <cstdio>
 
 Kronos_Application::Kronos_Application()
 	: window(sf::RenderWindow(sf::VideoMode(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT), "Chess"))
@@ -12,56 +15,99 @@ Kronos_Application::Kronos_Application()
 
 	//kronosEngine->setFen("r4rk1/pp2pp1p/3p2p1/6B1/3Q3P/1P6/1RPKnPP1/q6R w - - 0 1");
 
+	/*
+		menu bar is 22px thick
+		board is at y = 75
+		player information therefore 75 - 22 - 3 = 50px thick
+	*/
+
+	boardPos = { 33.f, 75.f };
+	playerInfoPos = { 33.f, 23.5f };
+	evalBarPos = { 1.5f, boardPos.y };
+
 	boardUI.setScale(0.75);
-	boardUI.setPosition({ 5, 25 });
+	boardUI.setPosition(boardPos);
+
+	whiteBar.setFillColor(sf::Color::White);
+	blackBar.setFillColor(sf::Color::Black);
+	
+	if (!whiteBottom) {
+		whiteBar.setPosition(evalBarPos);
+		whiteBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() * 0.5));
+
+		blackBar.setPosition(sf::Vector2f(whiteBar.getPosition().x, whiteBar.getPosition().y + whiteBar.getGlobalBounds().height));
+		blackBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() - whiteBar.getGlobalBounds().height));
+	}
+	else {
+		blackBar.setPosition(evalBarPos);
+		blackBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() * 0.5));
+
+		whiteBar.setPosition(sf::Vector2f(blackBar.getPosition().x, blackBar.getPosition().y + blackBar.getGlobalBounds().height));
+		whiteBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() - blackBar.getGlobalBounds().height));
+	}
+
+	if (!font.loadFromFile("./JetBrains Mono NL Bold Nerd Font Complete Mono Windows Compatible.ttf")) {
+		std::cout << "Couldn't load font" << std::endl;
+	}
+	else {
+		evalText.setFont(font);
+		evalText.setCharacterSize(15);
+		evalText.setFillColor(sf::Color::Red);
+	}
 
 	// imgui styling
 	{
+
 		ImGuiStyle& style = ImGui::GetStyle();
-
-		style.Alpha = 1.0;
-		style.Alpha = 0.83f;
-		style.ChildRounding = 3;
-		style.WindowRounding = 3;
-		style.GrabRounding = 1;
-		style.GrabMinSize = 20;
-		style.FrameRounding = 3;
-
-		style.Colors[ImGuiCol_Text] = ImVec4(0.00f, 1.00f, 1.00f, 1.00f);
-		style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.00f, 0.40f, 0.41f, 1.00f);
-		style.Colors[ImGuiCol_WindowBg] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-		style.Colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-		style.Colors[ImGuiCol_Border] = ImVec4(0.00f, 1.00f, 1.00f, 0.65f);
+		style.Colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+		style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+		style.Colors[ImGuiCol_WindowBg] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
+		style.Colors[ImGuiCol_ChildBg] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
+		style.Colors[ImGuiCol_PopupBg] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
+		style.Colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
 		style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.44f, 0.80f, 0.80f, 0.18f);
-		style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.44f, 0.80f, 0.80f, 0.27f);
-		style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.44f, 0.81f, 0.86f, 0.66f);
-		style.Colors[ImGuiCol_TitleBg] = ImVec4(0.14f, 0.18f, 0.21f, 0.73f);
-		style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.54f);
-		style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.00f, 1.00f, 1.00f, 0.27f);
-		style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.20f);
-		style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.22f, 0.29f, 0.30f, 0.71f);
-		style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.00f, 1.00f, 1.00f, 0.44f);
-		style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.00f, 1.00f, 1.00f, 0.74f);
-		style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.00f, 1.00f, 1.00f, 1.00f);
-		style.Colors[ImGuiCol_CheckMark] = ImVec4(0.00f, 1.00f, 1.00f, 0.68f);
-		style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.00f, 1.00f, 1.00f, 0.36f);
-		style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.00f, 1.00f, 1.00f, 0.76f);
-		style.Colors[ImGuiCol_Button] = ImVec4(0.00f, 0.65f, 0.65f, 0.46f);
-		style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.01f, 1.00f, 1.00f, 0.43f);
-		style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.00f, 1.00f, 1.00f, 0.62f);
-		style.Colors[ImGuiCol_Header] = ImVec4(0.00f, 1.00f, 1.00f, 0.33f);
-		style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.00f, 1.00f, 1.00f, 0.42f);
-		style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.00f, 1.00f, 1.00f, 0.54f);
-		style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.00f, 1.00f, 1.00f, 0.54f);
-		style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.00f, 1.00f, 1.00f, 0.74f);
-		style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.00f, 1.00f, 1.00f, 1.00f);
-		style.Colors[ImGuiCol_PlotLines] = ImVec4(0.00f, 1.00f, 1.00f, 1.00f);
-		style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.00f, 1.00f, 1.00f, 1.00f);
-		style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.00f, 1.00f, 1.00f, 1.00f);
-		style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.00f, 1.00f, 1.00f, 1.00f);
-		style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00f, 1.00f, 1.00f, 0.22f);
-		style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.04f, 0.10f, 0.09f, 0.51f);
+		style.Colors[ImGuiCol_FrameBg] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+		style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
+		style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.67f, 0.67f, 0.67f, 0.39f);
+		style.Colors[ImGuiCol_TitleBg] = ImVec4(0.08f, 0.08f, 0.09f, 1.00f);
+		style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.08f, 0.08f, 0.09f, 1.00f);
+		style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+		style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+		style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
+		style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+		style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+		style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+		style.Colors[ImGuiCol_CheckMark] = ImVec4(0.11f, 0.64f, 0.92f, 1.00f);
+		style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.11f, 0.64f, 0.92f, 1.00f);
+		style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.08f, 0.50f, 0.72f, 1.00f);
+		style.Colors[ImGuiCol_Button] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+		style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
+		style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.67f, 0.67f, 0.67f, 0.39f);
+		style.Colors[ImGuiCol_Header] = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
+		style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
+		style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.67f, 0.67f, 0.67f, 0.39f);
+		style.Colors[ImGuiCol_Separator] = style.Colors[ImGuiCol_Border];
+		style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.41f, 0.42f, 0.44f, 1.00f);
+		style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+		style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.29f, 0.30f, 0.31f, 0.67f);
+		style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+		style.Colors[ImGuiCol_Tab] = ImVec4(0.08f, 0.08f, 0.09f, 0.83f);
+		style.Colors[ImGuiCol_TabHovered] = ImVec4(0.33f, 0.34f, 0.36f, 0.83f);
+		style.Colors[ImGuiCol_TabActive] = ImVec4(0.23f, 0.23f, 0.24f, 1.00f);
+		style.Colors[ImGuiCol_TabUnfocused] = ImVec4(0.08f, 0.08f, 0.09f, 1.00f);
+		style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);
+		style.Colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+		style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+		style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+		style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+		style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+		style.Colors[ImGuiCol_DragDropTarget] = ImVec4(0.11f, 0.64f, 0.92f, 1.00f);
+		style.Colors[ImGuiCol_NavHighlight] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+		style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+		style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+		style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+		style.GrabRounding = style.FrameRounding = 2.3f;
 	}
 
 }
@@ -69,41 +115,355 @@ Kronos_Application::Kronos_Application()
 Kronos_Application::~Kronos_Application()
 {
 	ImGui::SFML::Shutdown();
+	kronosEngine->stopInfiniteSearch();
+}
+
+float calculateEvalBar(int evaluation, bool whiteBottom) {
+	float value = 1 / (1 + exp(-0.003 * evaluation));
+	if (whiteBottom)
+		return 1 - value;
+	else
+		return value;
+}
+
+void Kronos_Application::createKronosSetting(const std::string& enterMessage, const std::string& inputId, const std::string& enterId, std::function<void(int)> setFunc, int& sliderValue, int min, int max)
+{
+	static int inputWidth = 100.0f;
+
+	ImGui::Text(enterMessage.c_str());
+
+	ImGui::NextColumn();
+
+	ImGui::PushItemWidth(inputWidth);
+	ImGui::InputInt(inputId.c_str(), &sliderValue, 1, 1);
+	ImGui::PopItemWidth();
+	ImGui::SameLine();
+
+	// makes sure that the input is within range, will not allow for the user to enter a value out side of the range
+	sliderValue = std::min(max, sliderValue);
+	sliderValue = std::max(min, sliderValue);
+
+	if (ImGui::Button(enterId.c_str())) {
+		if (kronosEngine->isInfiniting()) {
+			kronosEngine->stopInfiniteSearch();
+			setFunc(sliderValue);
+			kronosEngine->beginInfiniteSearch();
+		}
+		else if (kronosEngine->isTimedSearching()) {
+			kronosEngine->stopTimedSearch();
+			setFunc(sliderValue);
+			kronosEngine->startSearchForBestMove();
+		}
+		else {
+			setFunc(sliderValue);
+		}
+	}
+
+	ImGui::Separator();
+	ImGui::NextColumn();
 }
 
 void Kronos_Application::run()
 {
+
+	kronosEngine->beginInfiniteSearch();
+
+	static int previousEval = 32001;
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.Fonts->AddFontDefault();
+	ImFont* mainFont = io.Fonts->AddFontFromFileTTF("./JetBrains Mono NL Bold Nerd Font Complete Mono Windows Compatible.ttf", 15);
+	ImGui::SFML::UpdateFontTexture();
+	IM_ASSERT(mainFont != NULL);
+
 	while (running) {
 		
+		kronosEngine->checkIfInfiniteThreadFinished();
+		
 		if (kronosEngine->searchFinished()) {
-			kronosEngine->makeMove(kronosEngine->getBestMove());
+			KRONOS::Move bMove = kronosEngine->getBestMove();
+			if (bMove != KRONOS::NULL_MOVE) {
+				pgnMoves.push_back(kronosEngine->getPgnMove(bMove));
+				kronosEngine->makeMove(bMove);
+				previewPly = pgnMoves.size();
+				kronosEngine->beginInfiniteSearch();
+			}
+		}
+
+		if (previousEval != kronosEngine->getScoreEvaluated()) {
+			previousEval = kronosEngine->getScoreEvaluated();
+
+			float eval = previousEval * (kronosEngine->getStatusPointer()->isWhite ? 1 : -1);
+			float evalBarScale = calculateEvalBar(eval, whiteBottom);
+
+			if (std::abs(eval) >= 32000 - kronosEngine->getSearchDepth()) {
+				evalText.setString("M" + std::to_string(int(32000 - std::abs(eval))));
+			}
+			else {
+				float scaledEval = std::abs(eval) * 0.01;
+				std::stringstream ss;
+				ss << std::setprecision(3) << scaledEval;
+				evalText.setString(ss.str());
+			}
+
+			if (!whiteBottom) {
+				whiteBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() * evalBarScale));
+
+				blackBar.setPosition(sf::Vector2f(whiteBar.getPosition().x, whiteBar.getPosition().y + whiteBar.getGlobalBounds().height));
+				blackBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() - whiteBar.getGlobalBounds().height));
+			}
+			else {
+				blackBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() * evalBarScale));
+
+				whiteBar.setPosition(sf::Vector2f(blackBar.getPosition().x, blackBar.getPosition().y + blackBar.getGlobalBounds().height));
+				whiteBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() - blackBar.getGlobalBounds().height));
+
+				if (evalBarScale > 0.5) {
+					evalText.setPosition(blackBar.getPosition().x + (blackBar.getGlobalBounds().width - evalText.getGlobalBounds().width) * 0.5, blackBar.getPosition().y + blackBar.getGlobalBounds().height - evalText.getCharacterSize() - 2.5);
+				}
+				else {
+					evalText.setPosition(blackBar.getPosition().x + (blackBar.getGlobalBounds().width - evalText.getGlobalBounds().width) * 0.5, whiteBar.getPosition().y + 2.5);
+				}
+			}
 		}
 
 		processInputs();
 		ImGui::SFML::Update(window, deltaClock.restart());
+		
+		ImGui::PushFont(mainFont);
+
+		// promotion pop up
+		if (auto move = promotionPopUp.renderPromotionPopUp()) {
+			pgnMoves.push_back(kronosEngine->getPgnMove(move.value()));
+			kronosEngine->makeMove(move.value());
+			previewPly = pgnMoves.size();
+			kronosEngine->beginInfiniteSearch();
+		}
 
 		// menu bar
 		if (ImGui::BeginMainMenuBar()) {
-
-			if (ImGui::BeginMenu("Settings")) {
+			
+			if (ImGui::BeginMenu("Import")) {
+				if (ImGui::BeginMenu("FEN")) {
+					static char buffer[100];
+					if (ImGui::InputText("##", buffer, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
+						kronosEngine->stopInfiniteSearch();
+						kronosEngine->setFen(std::string(buffer));
+						kronosEngine->beginInfiniteSearch();
+						pgnMoves.clear();
+						memset(buffer, 0, sizeof(buffer));
+					}
+					ImGui::EndMenu();
+				}
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Play")) {
+			if (ImGui::BeginMenu("Settings")) {
+				if (ImGui::Button("Flip Board")) {
+					previousEval = 32001;
+					flipBoard();
+				}
+				if (ImGui::BeginMenu("Kronos Settings")) {
 
-				if (ImGui::BeginMenu("Local")) {
+					ImGui::BeginChild("##ks", ImVec2(470, 200), true);
 
+					ImGui::Columns(2);
+					ImGui::SetColumnWidth(0, 300);
+
+					static int numCores = 0;
+					createKronosSetting(
+						"Enter new number of cores: ",
+						"##nc",
+						"Enter##nc",
+						[&](int x) { kronosEngine->setNumCores(x); },
+						numCores,
+						1,
+						std::thread::hardware_concurrency());
+
+					static int transSize = 0;
+					createKronosSetting(
+						"Enter new transposition table size (MB): ",
+						"##tts",
+						"Enter##tts",
+						[&](int x) { kronosEngine->setTransSize(x); },
+						transSize,
+						1,
+						1024
+					);
+
+					static int maxDepth = 0;
+					createKronosSetting(
+						"Enter maximum depth (ply): ",
+						"##md",
+						"Enter##md",
+						[&](int x) { kronosEngine->setSearchDepth(maxDepth); },
+						maxDepth,
+						1,
+						KRONOS::MAX_ITERATIVE_DEPTH
+					);
+
+					static int timePerMove = 0;
+					createKronosSetting(
+						"Enter maximum time per move (ms): ",
+						"##tm",
+						"Enter##tm",
+						[&](int x) { kronosEngine->setTimeForSearch(timePerMove); },
+						timePerMove,
+						1,
+						1800000
+					);
+
+											
+
+					ImGui::Columns();
+					ImGui::EndChild();
 					ImGui::EndMenu();
 				}
+				ImGui::EndMenu();
+			}
 
-				if (ImGui::BeginMenu("Multiplayer")) {
+			if (ImGui::BeginMenu("Options")) {
 
-					ImGui::EndMenu();
+				/*
+					1. Select the option
+					2. Give the warning that the current board state will be cleared
+					3. If yes, clear the board state and set up the chosen option
+					   If not, do nothing
+				*/
+				static bool clearWarningPopUp = false, enterGameOptionsPopUp = false, createAIgame = false, createOtB = false, createAnalysis = false;
+
+				if (ImGui::Button("Play against the AI")) {
+					createAIgame = true;
+					ImGui::OpenPopup("Clear Warning");
+					clearWarningPopUp = true;
+				}
+				if (ImGui::Button("Play Over the board")) {
+					createOtB = true;
+					ImGui::OpenPopup("Clear Warning");
+					clearWarningPopUp = true;
 				}
 
-				if (ImGui::BeginMenu("AI")) {
+				if (ImGui::Button("Analysis")) {
+					createAnalysis = true;
+					ImGui::OpenPopup("Clear Warning");
+					clearWarningPopUp = true;
+				}
 
-					ImGui::EndMenu();
+				if (ImGui::BeginPopupModal("Clear Warning", &clearWarningPopUp)) {
+					ImGui::Text("The current board will be cleared");
+					ImGui::Text("Do you wish to proceed?");
+
+					if (ImGui::Button("Yes")) {
+						clearWarningPopUp = false;
+
+						enterGameOptionsPopUp = true;
+
+						ImGui::CloseCurrentPopup();
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("No")) {
+						clearWarningPopUp = false;
+						createAIgame = false;
+						createOtB = false;
+						createAnalysis = false;
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
+				if (enterGameOptionsPopUp)
+					ImGui::OpenPopup("Enter Game Options");
+
+				if (ImGui::BeginPopupModal("Enter Game Options", &enterGameOptionsPopUp)) {
+					ImGui::Text("Enter the FEN for the position");
+					ImGui::Text("Leaving it empty will result in the starting position");
+
+					static char buffer[100];
+					ImGui::InputText("##ef", buffer, 100);
+				
+					static int selectedSide = KRONOS::WHITE;
+
+					if (createAIgame) {
+						if (selectedSide == KRONOS::WHITE)
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+						bool selected = ImGui::Button("WHITE");
+						if (selectedSide == KRONOS::WHITE)
+							ImGui::PopStyleColor();
+						if (selected) selectedSide = KRONOS::WHITE;
+						
+						ImGui::SameLine();
+
+						if (selectedSide == KRONOS::BOTH)
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+						selected = ImGui::Button("RANDOM");
+						if (selectedSide == KRONOS::BOTH)
+							ImGui::PopStyleColor();
+						if (selected) selectedSide = KRONOS::BOTH;
+					
+						ImGui::SameLine();
+
+						if (selectedSide == KRONOS::BLACK)
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+						selected = ImGui::Button("BLACK");
+						if (selectedSide == KRONOS::BLACK)
+							ImGui::PopStyleColor();
+						if (selected) selectedSide = KRONOS::BLACK;
+					}
+
+					if (ImGui::Button("Enter")) {
+
+						if (kronosEngine->isInfiniting())
+							kronosEngine->stopInfiniteSearch();
+						else if (kronosEngine->isTimedSearching())
+							kronosEngine->stopTimedSearch();
+
+						if (buffer[0] == '\0') {
+							strcpy(buffer, KRONOS::FEN_START_POSITION.c_str());
+						}
+
+						if (createAIgame) {
+							switch (selectedSide)
+							{
+							case KRONOS::WHITE:
+								if (!whiteBottom) flipBoard();
+								playerSide = KRONOS::WHITE;
+								break;
+							case KRONOS::BOTH:
+								playerSide = rand() % 2;
+								if (playerSide != whiteBottom) flipBoard();
+								break;
+							case KRONOS::BLACK:
+								if (whiteBottom) flipBoard();
+								playerSide = KRONOS::BLACK;
+								break;
+							}
+							kronosEngine->createGame<KRONOS::GAME_TYPE::HUMAN_VS_AI>(buffer);
+							createAIgame = false;
+						}
+						else if (createOtB) {
+							if (!whiteBottom) flipBoard();
+							kronosEngine->createGame<KRONOS::GAME_TYPE::HUMAN_VS_HUMAN>(buffer);
+							createOtB = false;
+						}
+						else if (createAnalysis) {
+							if (!whiteBottom) flipBoard();
+							kronosEngine->createGame<KRONOS::GAME_TYPE::ANALYSIS>(buffer);
+							createAnalysis = false;
+						}
+
+						pgnMoves.clear();
+						previewPly = 0;
+
+						memset(&buffer, '\0', sizeof(buffer));
+
+						enterGameOptionsPopUp = false;
+						ImGui::CloseCurrentPopup();
+
+						kronosEngine->beginInfiniteSearch();
+					}
+
+					ImGui::EndPopup();
 				}
 
 				ImGui::EndMenu();
@@ -112,23 +472,112 @@ void Kronos_Application::run()
 			ImGui::EndMainMenuBar();
 		}
 
-		if (ImGui::Begin("FEN")) {
-			static char buffer[100];
-			if (ImGui::InputText("FEN", buffer, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
-				kronosEngine->setFen(std::string(buffer));
-				memset(buffer, 0, sizeof(buffer));
+		// kronos information box
+		if (ImGui::Begin("KRONOS Information")) {
+			
+			if (ImGui::BeginTable("##engineInfo", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable)) {
+				ImGui::TableSetupColumn("Depth");
+				ImGui::TableSetupColumn("Score");
+				ImGui::TableSetupColumn("Best Move");
+				ImGui::TableHeadersRow();
+
+
+				ImGui::TableNextColumn();
+				ImGui::Text(std::to_string(kronosEngine->getDepthSearchedTo()).c_str());
+				
+				ImGui::TableNextColumn();
+				ImGui::Text(std::to_string(kronosEngine->getScoreEvaluated()).c_str());
+
+				ImGui::TableNextColumn();
+				ImGui::Text(kronosEngine->getBestMoveSoFar().c_str());
+
+				ImGui::EndTable();
 			}
+
+			if (ImGui::BeginTable("##hardwareInfo", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable)) {
+				ImGui::TableSetupColumn("Number of cores");
+				ImGui::TableSetupColumn("Transposition Size (MB)");
+				ImGui::TableHeadersRow();
+
+				ImGui::TableNextColumn();
+				ImGui::Text(std::to_string(kronosEngine->getNumCores()).c_str());
+
+				ImGui::TableNextColumn();
+				ImGui::Text(std::to_string(kronosEngine->getTransSize()).c_str());
+
+				ImGui::EndTable();
+			}
+
+			ImGui::Text("Is Searching: %s", (kronosEngine->isInfiniting() ? "True" : "False"));
+			
 			ImGui::End();
 		}
 
+		if (ImGui::Begin("Moves")) {
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+			if (ImGui::Button("<<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+				previewPly = 0;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+				previewPly = std::max(0, previewPly - 1);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button(">", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+				previewPly = std::min(int(pgnMoves.size()), previewPly + 1);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button(">>", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+				previewPly = pgnMoves.size();
+			}
+
+			float h = ImGui::GetContentRegionAvail().y;
+			if (ImGui::BeginChild("##scrolling", ImVec2(0, h), true)) {
+				if (ImGui::BeginTable("Moves", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders)) {
+					for (int i = 0; i < pgnMoves.size(); i++) {
+						ImGui::TableNextColumn();
+						ImGui::SetWindowFontScale(moveFontScale);
+						if (!(i % 2)) {
+							int row = (i / 2) + 1;
+							ImGui::Text("%d", row);
+							ImGui::TableNextColumn();
+						}
+						if (i == previewPly - 1) ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+						ImGui::Text(pgnMoves.at(i).c_str());
+						if (i == previewPly - 1) ImGui::PopStyleColor();
+					}
+					ImGui::EndTable();
+				}
+				ImGui::EndChild();
+			}
+
+			ImGui::PopStyleVar();
+			ImGui::End();
+		}
+
+		if (ImGui::Begin("WHITE")) {
+			ImGui::Text(std::string("Material difference: " + std::to_string(kronosEngine->getMaterialScore(KRONOS::WHITE))).c_str());
+			ImGui::End();
+		}
+		if (ImGui::Begin("BLACK")) {
+			ImGui::Text(std::string("Material difference: " + std::to_string(kronosEngine->getMaterialScore(KRONOS::BLACK))).c_str());
+			ImGui::End();
+		}
+
+		ImGui::PopFont();
+		
 		render();
 	}
 }
 
 void Kronos_Application::render()
 {
-	window.clear();
-	boardUI.renderKronosBoard(window, kronosEngine->getBitBoardsPointer(), true);
+	window.clear(sf::Color::Blue);
+	boardUI.renderKronosBoard(window, kronosEngine->getBoard(previewPly), whiteBottom);
+	window.draw(whiteBar);
+	window.draw(blackBar);
+	window.draw(evalText);
 	ImGui::SFML::Render(window);
 	window.display();
 }
@@ -148,26 +597,42 @@ void Kronos_Application::processInputs() {
 
 		if (events.type == sf::Event::KeyPressed) {
 			if (events.key.code == sf::Keyboard::Backspace) {
-					kronosEngine->unmakeMove();
-					//pgnMoves.pop_back();	
+				kronosEngine->stopInfiniteSearch();
+				kronosEngine->unmakeMove();
+				kronosEngine->beginInfiniteSearch();
+				if (pgnMoves.size())
+					pgnMoves.pop_back();
+				previewPly = pgnMoves.size();
 			}
 			if (events.key.code == sf::Keyboard::G) {
+				kronosEngine->stopInfiniteSearch();
 				kronosEngine->startSearchForBestMove();
 			}
 		}
 		
 		if (events.type == sf::Event::MouseButtonPressed) {
 			if (events.key.code == sf::Mouse::Left) {
-				if (boardUI.getBoardSpritePointer()->getGlobalBounds().contains(sf::Vector2f(mousePos))) {
-					boardUI.selectPiece(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getMovesPointer(), kronosEngine->getStatusPointer()->isWhite, true);
+				if (previewPly == pgnMoves.size() && boardUI.getBoardSpritePointer()->getGlobalBounds().contains(sf::Vector2f(mousePos))) {
+					boardUI.selectPiece(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getMovesPointer(), kronosEngine->getStatusPointer()->isWhite, whiteBottom);
 				}
 			}
 		}
 
 		if (events.type == sf::Event::MouseButtonReleased) {
 			if (events.key.code == sf::Mouse::Left) {
-				if (auto move = boardUI.dropPiece(window, kronosEngine->getBitBoardsPointer(), true)) {
-					kronosEngine->makeMove(move.value());
+				if (boardUI.getBoardSpritePointer()->getGlobalBounds().contains(sf::Vector2f(mousePos))) {
+					if (auto move = boardUI.dropPiece(window, kronosEngine->getBitBoardsPointer(), whiteBottom)) {
+						kronosEngine->stopInfiniteSearch();
+						if (move.value().flag & KRONOS::PROMOTION) {
+							promotionPopUp.createPromotionPopUp(move.value());
+						}
+						else {
+							pgnMoves.push_back(kronosEngine->getPgnMove(move.value()));
+							kronosEngine->makeMove(move.value());
+							kronosEngine->beginInfiniteSearch();
+							previewPly = pgnMoves.size();
+						}
+					}
 				}
 			}
 		}
@@ -176,188 +641,21 @@ void Kronos_Application::processInputs() {
 
 }
 
-void renderParamEditor(KRONOS::EVALUATION::PARAMS::Eval_Parameters* param)
+void Kronos_Application::flipBoard()
 {
-	
-	ImGui::BeginChild(" ", { 0, 0 }, false, ImGuiWindowFlags_HorizontalScrollbar);
+	whiteBottom = !whiteBottom;
+	if (whiteBottom == true) {
+		blackBar.setPosition(evalBarPos);
+		whiteBar.setPosition(sf::Vector2f(blackBar.getPosition().x, blackBar.getPosition().y + blackBar.getGlobalBounds().height));
 
-	ImGui::PushItemWidth(100);
-	ImGui::Text("PAWN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##0", &param->PAWN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##1", &param->PAWN_VALUE.endGame);
-	
-	ImGui::Text("KNIGHT VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##2", &param->KNIGHT_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##3", &param->KNIGHT_VALUE.endGame);
-	
-	ImGui::Text("BISHOP VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##4", &param->BISHOP_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##5", &param->BISHOP_VALUE.endGame);
-	
-	ImGui::Text("ROOK VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##6", &param->ROOK_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##7", &param->ROOK_VALUE.endGame);
-
-	ImGui::Text("QUEEN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##8", &param->QUEEN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##9", &param->QUEEN_VALUE.endGame);
-	
-	ImGui::Text("KING VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##10", &param->KING_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##11", &param->KING_VALUE.endGame);
-	
-	ImGui::Text("CONNECTED PAWN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##12", &param->CONNECTED_PAWN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##13", &param->CONNECTED_PAWN_VALUE.endGame);
-	
-	ImGui::Text("DOUBLED PAWN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##16", &param->DOUBLED_PAWN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##17", &param->DOUBLED_PAWN_VALUE.endGame);
-	
-	ImGui::Text("ISOLATED PAWN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##18", &param->ISOLATED_PAWN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##19", &param->ISOLATED_PAWN_VALUE.endGame);
-
-	ImGui::Text("BACKWARD PAWN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##22", &param->BACKWARD_PAWN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##23", &param->BACKWARD_PAWN_VALUE.endGame);
-	
-	ImGui::Text("PASSED ISOLATED PAWN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##24", &param->PASSED_ISOLATED_PAWN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##25", &param->PASSED_ISOLATED_PAWN_VALUE.endGame);
-	
-	ImGui::Text("PASSED BACKWARD PAWN VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##26", &param->PASSED_BACKWARD_PAWN_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##27", &param->PASSED_BACKWARD_PAWN_VALUE.endGame);
-	
-	ImGui::Text("BISHOP_PAWN_PENALTY: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##32", &param->BISHOP_PAWN_PENALTY.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##33", &param->BISHOP_PAWN_PENALTY.endGame);
-
-	ImGui::Text("ROOK_SEMI_OPEN_FILE_BONUS: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##34", &param->ROOK_SEMI_OPEN_FILE_BONUS.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##35", &param->ROOK_SEMI_OPEN_FILE_BONUS.endGame);
-
-	ImGui::Text("ROOK_OPEN_FILE_BONUS: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##36", &param->ROOK_OPEN_FILE_BONUS.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##37", &param->ROOK_OPEN_FILE_BONUS.endGame);
-
-	ImGui::Text("FLANK_ATTACKS: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##38", &param->FLANK_ATTACKS.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##39", &param->FLANK_ATTACKS.endGame);
-	
-	ImGui::Text("PAWNLESS_FLANK: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##40", &param->PAWNLESS_FLANK.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##41", &param->PAWNLESS_FLANK.endGame);
-	
-	ImGui::Text("THREAT_PAWN_PUSH_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##42", &param->THREAT_PAWN_PUSH_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##43", &param->THREAT_PAWN_PUSH_VALUE.endGame);
-	
-	ImGui::Text("THREAT_WEAK_PAWNS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##44", &param->THREAT_WEAK_PAWNS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##45", &param->THREAT_WEAK_PAWNS_VALUE.endGame);
-	
-	ImGui::Text("THREAT_PAWNSxMINORS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##46", &param->THREAT_PAWNSxMINORS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##47", &param->THREAT_PAWNSxMINORS_VALUE.endGame);
-	
-	ImGui::Text("THREAT_MINORSxMINORS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##48", &param->THREAT_MINORSxMINORS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##49", &param->THREAT_MINORSxMINORS_VALUE.endGame);
-	
-	ImGui::Text("THREAT_MAJORSxWEAK_MINORS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##50", &param->THREAT_MAJORSxWEAK_MINORS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##51", &param->THREAT_MAJORSxWEAK_MINORS_VALUE.endGame);
-	
-	ImGui::Text("THREAT_PAWN_MINORSxMAJORS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##52", &param->THREAT_PAWN_MINORSxMAJORS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##53", &param->THREAT_PAWN_MINORSxMAJORS_VALUE.endGame);
-
-	ImGui::Text("THREAT_ALLxQUEENS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##54", &param->THREAT_ALLxQUEENS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##55", &param->THREAT_ALLxQUEENS_VALUE.endGame);
-	
-	ImGui::Text("THREAT_KINGxMINORS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##56", &param->THREAT_KINGxMINORS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##57", &param->THREAT_KINGxMINORS_VALUE.endGame);
-
-	ImGui::Text("THREAT_KINGxROOKS_VALUE: ");
-	ImGui::SameLine();
-	ImGui::InputInt("##58", &param->THREAT_KINGxROOKS_VALUE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##59", &param->THREAT_KINGxROOKS_VALUE.endGame);
-	
-	ImGui::Text("PIECE SPACE");
-	ImGui::SameLine();
-	ImGui::InputInt("##60", &param->PIECE_SPACE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##61", &param->PIECE_SPACE.endGame);
-	
-	ImGui::Text("EMPTY SPACE");
-	ImGui::SameLine();
-	ImGui::InputInt("##62", &param->EMPTY_SPACE.middleGame);
-	ImGui::SameLine();
-	ImGui::InputInt("##63", &param->EMPTY_SPACE.endGame);
-	
-	if (ImGui::Button("Save params")) {
-		param->saveParams();
+		ImGui::SetWindowPos("BLACK", ImVec2(playerInfoPos.x, playerInfoPos.y));
+		ImGui::SetWindowPos("WHITE", ImVec2(playerInfoPos.x, playerInfoPos.y + playerInfoOffset));
 	}
+	else {
+		whiteBar.setPosition(evalBarPos);
+		blackBar.setPosition(sf::Vector2f(whiteBar.getPosition().x, whiteBar.getPosition().y + whiteBar.getGlobalBounds().height));
 
-	static char buffer[50];
-	if (ImGui::InputText("Enter filename", buffer, 50, ImGuiInputTextFlags_EnterReturnsTrue)) {
-		param->loadParams("../Kronos/Eval Parameters/" + std::string(buffer));
+		ImGui::SetWindowPos("WHITE", ImVec2(playerInfoPos.x, playerInfoPos.y));
+		ImGui::SetWindowPos("BLACK", ImVec2(playerInfoPos.x, playerInfoPos.y + playerInfoOffset));
 	}
-
-	ImGui::EndChild();
 }

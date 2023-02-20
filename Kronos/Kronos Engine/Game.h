@@ -3,6 +3,7 @@
 #include "utility.h"
 #include "Move_Generation.h"
 #include "Eval_Params.h"
+#include "FEN.h"
 
 namespace KRONOS
 {
@@ -30,8 +31,10 @@ namespace KRONOS
 	};
 
 	enum class GAME_TYPE {
-		AI_GAME,
-		HUMAN_GAME
+		EMPTY,
+		HUMAN_VS_AI,
+		HUMAN_VS_HUMAN,
+		ANALYSIS
 	};
 
 	class Game
@@ -41,28 +44,42 @@ namespace KRONOS
 		std::vector<Move> moveHistory;
 		int ply;
 
-		GAME_STATE gameState;
+		GAME_STATE gameState;	
 		GAME_TYPE gameType;
-		
+		int materialScore[2];
 
 		Move_List moves;
 
 		void checkGameState();
+		void calculateMaterial();
 	public:
 		Game();
 		~Game();
-		
-		void setGame(GAME_TYPE gt, std::string FEN);
-		void setGame(GAME_TYPE gt);
+	
+		void clear();
+		void setGameFEN(std::string FEN);
+		void setGame();
 
+		template <GAME_TYPE type>
+		void createGame(const std::string& FEN)
+		{
+			this->clear();
+			positions.at(ply) = FENtoBoard(FEN);
+
+			checkGameState();
+			gameType = type;
+		}
 
 		bool makeMove(Move move);
 		void undoMove();
 
-		void clear();
 		
 		GAME_STATE getGameState() {
 			return gameState;
+		}
+
+		GAME_TYPE getGameType() {
+			return gameType;
 		}
 
 		std::vector<Position>* getPositions() {
@@ -83,6 +100,10 @@ namespace KRONOS
 
 		Move_List* getMovesPointer() {
 			return &moves;
+		}
+
+		int getMaterial(bool side) {
+			return materialScore[side];
 		}
 	
 	};

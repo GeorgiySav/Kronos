@@ -13,7 +13,7 @@ namespace KRONOS
 
 		Opening_Book::Opening_Book()
 		{
-			mode = POLY_MODE::PURE_RANDOM;
+			mode = POLY_MODE::RANDOM;
 		}
 
 		Opening_Book::~Opening_Book()
@@ -98,7 +98,7 @@ namespace KRONOS
 			polyKey ^= (position->status.BQcastle ? polyNums[771] : 0ULL);
 
 			if (position->status.EP != no_Tile) {
-				if ((1ULL << position->status.EP) & (getPawnAttacks(position->board.pieceLocations[position->status.isWhite][PAWN], position->status.isWhite))) {
+				if (getTileBB(position->status.EP) & (generatePawnAttacks(position->board.pieceLocations[position->status.isWhite][PAWN], position->status.isWhite))) {
 					int offset = 772 + (position->status.EP % 8);
 					polyKey ^= polyNums[offset];
 				}
@@ -136,18 +136,18 @@ namespace KRONOS
 
 			int flag = 0;
 
-			if ((1ULL << dMove.to) & position->board.occupied[!position->status.isWhite]) {
+			if (getTileBB(dMove.to) & position->board.occupied[!position->status.isWhite]) {
 				flag = CAPTURE;
 			}
 
 			if (position->status.EP != no_Tile
-				&& (((1ULL << dMove.from) & position->board.pieceLocations[position->status.isWhite][PAWN]) && ((1ULL << dMove.to) & (1ULL << position->status.EP)))) {
+				&& ((getTileBB(dMove.from) & position->board.pieceLocations[position->status.isWhite][PAWN]) && (getTileBB(dMove.to) & getTileBB(position->status.EP)))) {
 				flag = ENPASSANT;
 				dMove.moved_Piece = PAWN;
 			}
 			else {
 
-				if ((1ULL << dMove.from) & position->board.pieceLocations[position->status.isWhite][KING]) {
+				if (getTileBB(dMove.from) & position->board.pieceLocations[position->status.isWhite][KING]) {
 					if (dMove.from == E1)
 					{
 						if (dMove.to == A1) {
@@ -195,7 +195,7 @@ namespace KRONOS
 					}
 
 					for (int p = 0; p < 5; p++) {
-						if ((1ULL << dMove.from) & position->board.pieceLocations[position->status.isWhite][p]) {
+						if (getTileBB(dMove.from) & position->board.pieceLocations[position->status.isWhite][p]) {
 							dMove.moved_Piece = p;
 							break;
 						}
@@ -273,9 +273,6 @@ namespace KRONOS
 				srand(time(NULL));
 				if (mode == POLY_MODE::RANDOM) {
 					return decodeU16Move(endian_swap_u16(getRandomMove(&entries)->move), position);
-				}
-				else if (mode == POLY_MODE::PURE_RANDOM) {
-					return decodeU16Move(endian_swap_u16(entries[std::distance(entries.begin(), select_randomly(entries.begin(), entries.end()))].move), position);
 				}
 				else if (mode == POLY_MODE::BEST_WEIGHT) {
 				    std::sort(entries.begin(), entries.end(), [](const POLY_BOOK_ENTRY& X, const POLY_BOOK_ENTRY& Y) -> bool { return X.weight > Y.weight; });

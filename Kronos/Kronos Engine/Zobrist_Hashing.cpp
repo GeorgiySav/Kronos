@@ -12,10 +12,6 @@ namespace KRONOS {
 		
 		ZobristGenerator::ZobristGenerator()
 		{
-			std::random_device rd;
-			std::mt19937_64 gen(rd());
-			std::uniform_int_distribution<u64> dist;
-
 			for (int c = 0; c < 2; c++) {
 				for (int p = 0; p < 6; p++) {
 					for (int s = 0; s < 64; s++) {
@@ -89,12 +85,10 @@ namespace KRONOS {
 			prevHash ^= (prevPos.status.EP != no_Tile ? enPassantFiles[prevPos.status.EP % 8] : 0ULL);
 			prevHash ^= (position.status.EP != no_Tile ? enPassantFiles[position.status.EP % 8] : 0ULL);
 			
-			if (flag == ENPASSANT) {
+			if (flag == ENPASSANT)
 				prevHash ^= pieceVals[!prevPos.status.isWhite][PAWN][((prevPos.status.isWhite) ? (move.to - 8) : (move.to + 8))];
-			}
-			else if (flag & CAPTURE) {
+			else if (flag & CAPTURE)
 				prevHash ^= pieceVals[!prevPos.status.isWhite][prevPos.getPieceType(to)][to];
-			}
 			else if (flag == KING_CASTLE || flag == QUEEN_CASTLE) {
 				if (flag == KING_CASTLE) {
 					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][(prevPos.status.isWhite) ? H1 : H8];
@@ -108,22 +102,17 @@ namespace KRONOS {
 
 			if (flag & PROMOTION) {
 				prevHash ^= pieceVals[prevPos.status.isWhite][PAWN][to];
-				if (flag & CAPTURE) {
+				if (flag & CAPTURE) 
 					flag ^= CAPTURE;
-				}
 
-				if (flag == KNIGHT_PROMOTION) {
+				if (flag == KNIGHT_PROMOTION)
 					prevHash ^= pieceVals[prevPos.status.isWhite][KNIGHT][to];
-				}
-				else if (flag == BISHOP_PROMOTION) {
+				else if (flag == BISHOP_PROMOTION)
 					prevHash ^= pieceVals[prevPos.status.isWhite][BISHOP][to];
-				}
-				else if (flag == ROOK_PROMOTION) {
+				else if (flag == ROOK_PROMOTION) 
 					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][to];
-				}
-				else if (flag == QUEEN_PROMOTION) {
+				else if (flag == QUEEN_PROMOTION)
 					prevHash ^= pieceVals[prevPos.status.isWhite][QUEEN][to];
-				}
 			}
 			
 			if (prevPos.status.WKcastle != position.status.WKcastle) {
@@ -147,7 +136,6 @@ namespace KRONOS {
 			prevHash ^= sideToMove[position.status.isWhite];
 
 			position.hash = prevHash;
-
 		}
 
 		void ZobristGenerator::nullMove(u64& hash, int oldEP) {

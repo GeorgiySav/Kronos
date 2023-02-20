@@ -12,7 +12,5 @@ int main() {
 	
 	app->run();
 
-	//std::unique_ptr<KRONOS::KronosEngine> chess = std::make_unique<KRONOS::KronosEngine>();
-
 	return 0;
 }

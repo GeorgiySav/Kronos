@@ -9,8 +9,9 @@ KronosEngine::KronosEngine()
 {
 	KRONOS::initRays();
 	KRONOS::initMagics();
+	KRONOS::initMGVars();
 	
-	perftTest(FENtoBoard(FEN_START_POSITION), 5);
+	//perftTest(FENtoBoard(FEN_START_POSITION), 6);
 	
 	KRONOS::EVALUATION::initEvalVars();
 	KRONOS::SEARCH::initVars();
@@ -21,10 +22,10 @@ KronosEngine::KronosEngine()
 	else
 		std::cout << "failed to initialise syzygy" << std::endl;
 
-	game.setGame(GAME_TYPE::AI_GAME);
+	game.setGame();
 
 	NUM_THREADS = std::thread::hardware_concurrency();
-	search.initSearchThreads(1);
+	search.initSearchThreads(NUM_THREADS - 3);
 
 }
 

@@ -21,16 +21,28 @@ namespace KRONOS
 		void initVars() {
 			for (int d = 1; d < 64; d++) {
 				for (int m = 1; m < 64; m++) {
-					LMR[d][m] = log(d) * log(m) / 2 - 0.2;
+					LMR[d][m] = std::floor(log(d) * log(m) / 2 - 0.2);
 				}
-			}
-			for (int d = 1; d < 9; d++) {
-				LMP[0][d] = 2.5 + 2 * d * d / 4.5;
-				LMP[1][d] = 4.0 + 4 * d * d / 4.5;
 			}
 		}
 
 		using namespace HASH;
+
+		class Spin_Lock {
+		private:
+			std::atomic_flag atomic_flag = ATOMIC_FLAG_INIT;
+
+		public:
+			Spin_Lock() {
+				atomic_flag.clear(std::memory_order_release);
+			}
+			void lock() {
+				while (atomic_flag.test_and_set(std::memory_order_acquire));
+			}
+			void unlock() {
+				atomic_flag.clear(std::memory_order_release);
+			}
+		};
 
 		Thread::Thread(int id) {
 			ID = id;
@@ -62,6 +74,8 @@ namespace KRONOS
 		{
 			sleep();
 			thread = std::thread(&Search_Thread::think, this);
+			stop = false;
+			stopIter = false;
 		}
 
 		Search_Thread::Search_Thread(const Search_Thread& other) : Thread(other.ID), SM(other.SM) {
@@ -137,7 +151,7 @@ namespace KRONOS
 			u64& nodeHash = nodePosition.hash;
 			bool nodeCheck = inCheck(nodePosition);
 
-			if (stop)
+			if (stop || stopIter)
 				return 0;
 			if (repeatedDraw())
 				return 0;
@@ -189,7 +203,7 @@ namespace KRONOS
 				NULL_MOVE,
 				NULL_MOVE);
 
-			int16_t bestScore = -INFINITE;
+			int16_t bestScore = -INFINITE_SCORE;
 			Move move;
 			int movesSearched = 0;
 
@@ -208,7 +222,7 @@ namespace KRONOS
 
 				movesSearched++;
 
-				if (stop)
+				if (stop || stopIter)
 					return 0;
 
 				if (score > bestScore) {
@@ -244,7 +258,7 @@ namespace KRONOS
 				return quiescence(alpha, beta, plyFromRoot, inPV);
 			}
 
-			if (stop)
+			if (stop || stopIter)
 				return 0;
 			if (repeatedDraw())
 				return 0;
@@ -294,7 +308,7 @@ namespace KRONOS
 				killer1.at(threadPly),
 				killer2.at(threadPly));
 
-			int16_t bestScore = -INFINITE;
+			int16_t bestScore = -INFINITE_SCORE;
 			Move bestMoveInThisPosition;
 			BOUND bound = BOUND::ALPHA;
 			Move move;
@@ -307,8 +321,7 @@ namespace KRONOS
 			bool improving = !nodeCheck && threadPly >= 2 && (evalHistory.at(threadPly) > evalHistory.at(threadPly - 2) || evalHistory.at(threadPly - 2) == UNDEFINED);
 
 			// reduction based on pv, improving for quieet moves
-			int baseReduction = 0;
-			baseReduction += (!inPV) + (!improving);
+			int baseReduction = (!inPV) + (!improving);
 
 			while (movePicker.nextMove(*this, move)) { 
 				int score = 0;
@@ -330,13 +343,13 @@ namespace KRONOS
 					int R = 1;
 					if (!move.isTactical() && depth > 2) {
 						R = LMR[std::min(depth, 63)][std::min(movesSearched, 63)];
-
+					
 						R += baseReduction;
-
+					
 						// reduce killers less
 						if (move == killer1.at(threadPly - 1) || move == killer2.at(threadPly - 1))
 							R -= 2;
-
+					
 						// make sure that we don't extend or drop in quiescence search
 						R = std::min(depth - 1, std::max(R, 1));
 					}
@@ -358,7 +371,7 @@ namespace KRONOS
 
 				movesSearched++;
 
-				if (stop)
+				if (stop || stopIter)
 					return 0;
 
 				if (!move.isTactical() && quiets.size() < 64)
@@ -421,8 +434,8 @@ namespace KRONOS
 				nodePosition,
 				false,
 				MoveIntToMove(tte.move, &nodePosition),
-				killer1.at(0),
-				killer2.at(0));
+				NULL_MOVE,
+				NULL_MOVE);
 
 			if (!movePicker.hasMoves()) {
 				if (nodeCheck)
@@ -431,8 +444,7 @@ namespace KRONOS
 					return 0;
 			}
 
-			int16_t bestScore = -INFINITE;
-			BOUND bound = BOUND::ALPHA;
+			int16_t bestScore = -INFINITE_SCORE;
 			Move move;
 			int movesSearched = 0;
 			Move_List quiets;
@@ -459,13 +471,8 @@ namespace KRONOS
 					int R = 1;
 					if (!move.isTactical() && depth > 2) {
 						R = LMR[std::min(depth, 63)][std::min(movesSearched, 63)];
-
-						R++;
-
-						// reduce killers less
-						if (move == killer1.at(0) || move == killer2.at(0)) 
-							R -= 2;
-
+					
+					
 						// make sure that we don't extend or drop in quiescence search
 						R = std::min(depth - 1, std::max(R, 1));
 					}
@@ -486,7 +493,7 @@ namespace KRONOS
 
 				movesSearched++;
 
-				if (stop)
+				if (stop || stopIter)
 					return 0;
 				
 				if (!move.isTactical() && quiets.size() < 64)
@@ -496,13 +503,6 @@ namespace KRONOS
 					bestScore = score;
 					if (score > alpha) {
 						bestMoveThisIteration = move;
-						bound = BOUND::EXACT;
-						if (score >= beta) {
-							if (!move.isTactical())
-								updateKillers(move);
-							bound = BOUND::BETA;
-							break;
-						}
 						alpha = score;
 					}
 				}
@@ -518,30 +518,70 @@ namespace KRONOS
 				bestMoveThisIteration.toIntMove(),
 				depth,
 				ScoreToTranpositionTable(bestScore, 0),
-				(int)bound);
+				(int)BOUND::EXACT);
 
 			return bestScore;
 		}
 
+		Spin_Lock spinLock;
+
+		unsigned trailing_zeroes(int n) {
+			unsigned bits = 0, x = n;
+
+			if (x) {
+				while ((x & 1) == 0) {
+					++bits;
+					x >>= 1;
+				}
+			}
+			return bits;
+		}
+
 		void Search_Thread::interativeDeepening()
 		{
-			int MAX_ITERATIVE_DETPH = 20;
-			int depth;
-			int score;
+			int score = 0;
 
-			for (depth = 1; depth <= MAX_ITERATIVE_DEPTH; depth++)
+			stop = false;
+
+			for (int cDepth = SM.getCurrentDepth(); !stop; cDepth = SM.getCurrentDepth())
 			{
+				stopIter = false;
+			
+				depth = cDepth + (ID % 3);
 
-				score = root(depth, -INFINITE, INFINITE);
+				score = root(depth, -INFINITE_SCORE, INFINITE_SCORE);
 
-				if (stop)
+				if (stop) {
+					//std::cout << "Thread " << ID << " instructed to stop" << std::endl;
 					break;
+				}
+				else if (stopIter)
+					continue;
+				else {
+					// update the best move and new depth
+					spinLock.lock(); // use a spinlock so that multiple threads don't attempt to change the best move at the same time
 
-				bestMove = Search_Move(bestMoveThisIteration, depth, score);
+					if (stop) {
+						spinLock.unlock();
+						break;
+					}
+					else if (stopIter) {
+						spinLock.unlock();
+						continue;
+					}
+					else {
+						if (depth > SM.getBestDepth()) { // only replace if the depth is largest
+							// now we know that this thread has the best move
+							std::cout << "Thread " << ID << " found move " << boardTilesStrings[bestMoveThisIteration.from] << " " << boardTilesStrings[bestMoveThisIteration.to] << " at depth " << depth << "\n";
+							SM.updateBestMove(bestMoveThisIteration, depth, score);
+							SM.callWorseThreads();
+						}
+					}
 
+					spinLock.unlock();
+				}
 			}
-
-			SM.stopSearch();
+			//SM.stopSearch();
 		}
 
 		void Search_Thread::think()
@@ -552,6 +592,7 @@ namespace KRONOS
 				}
 				else {
 					interativeDeepening();
+					std::cout << "Thread " << ID << " is sleeping" << std::endl;
 					sleep();
 				}
 			}

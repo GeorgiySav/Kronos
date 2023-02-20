@@ -77,12 +77,12 @@ namespace KRONOS
 					break;
 				}
 
-				if ((1ULL << to) & position->board.occupied[BOTH]) {
+				if (getTileBB(to) & position->board.occupied[BOTH]) {
 					flag |= CAPTURE;
 				}
 				
 				for (int p = 0; p < 6; p++) {
-					if ((1ULL << from) & position->board.pieceLocations[position->status.isWhite][p]) {
+					if (getTileBB(from) & position->board.pieceLocations[position->status.isWhite][p]) {
 						pieceType = p;
 						break;
 					}

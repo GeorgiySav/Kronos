@@ -20,7 +20,7 @@ namespace KRONOS {
 		static void initEvalVars() {
 			for (int c = 0; c < 2; c++) {
 				for (int tile = 0; tile < 64; tile++) {
-					KING_RING[c][tile] = getKingAttacks(1ULL << tile) | (1ULL << tile);
+					KING_RING[c][tile] = getKingAttacks(tile) | (1ULL << tile);
 					if (c == WHITE && tile < 8) KING_RING[c][tile] |= (KING_RING[c][tile] << 8);
 					if (c == BLACK && tile > 55) KING_RING[c][tile] |= (KING_RING[c][tile] >> 8);
 					KING_RING[c][tile] |= tile % 8 == 0 ? KING_RING[c][tile] << 1 : 0;
@@ -31,7 +31,7 @@ namespace KRONOS {
 			for (int c = 0; c < 2; c++) {
 				for (int s = 0; s < 3; s++) {
 					int tile = KING_SQUARE[c][s];
-					KING_SHELTER_MASK_1[c][s] = (getKingAttacks(1ULL << tile) | (1ULL << tile)) & (c == WHITE ? rankMask[RANK_2] : rankMask[RANK_7]);
+					KING_SHELTER_MASK_1[c][s] = (getKingAttacks(tile) | (1ULL << tile)) & (c == WHITE ? rankMask[RANK_2] : rankMask[RANK_7]);
 					KING_SHELTER_MASK_2[c][s] = pawnPush(KING_SHELTER_MASK_1[c][s], c);
 					KING_SHELTER_MASK_3[c][s] = pawnPush(KING_SHELTER_MASK_2[c][s], c);
 				}

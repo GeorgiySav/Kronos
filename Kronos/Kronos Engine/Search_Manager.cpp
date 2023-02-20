@@ -15,6 +15,7 @@ namespace KRONOS
 			transTable.setSize(175);
 			transTable.resetAge();
 			evalTable.setSize(5);
+			infiniteSearching = false;
 		}
 		
 		Search_Manager::~Search_Manager()
@@ -59,11 +60,14 @@ namespace KRONOS
 
 		void Search_Manager::waitForThreads() {
 			for (auto& thread : threads) {
-				while (!thread.isSleeping());
+				while (!thread.isSleeping())
+					std::this_thread::sleep_for(std::chrono::milliseconds(0));
+				std::cout << "" << thread.getID() << " is sleeping\n";
 			}
+			std::cout << "All threads are sleeping" << std::endl;
 		}
 
-		Move Search_Manager::getBestMove(std::vector<Position>* positions, int curPly, int timeMS)
+		Move Search_Manager::getBestMove(std::vector<Position>* positions, int curPly, int timeMS, int MAX_DEPTH)
 		{
 			Move m;
 			m = openingBook.getBookMove(&positions->at(curPly));
@@ -77,29 +81,62 @@ namespace KRONOS
 			if (curPly >= MAX_PLY)
 				return NULL_MOVE;
 
+			currentDepth = 1;
+			bestMove.depth = 0;
+			bestMove.move = NULL_MOVE;
+			timedSearching = true;
+
 			transTable.updateAge();
 
 			setThreads(positions, curPly);
 
 			beginSearch();
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(timeMS));
+			auto start = std::chrono::high_resolution_clock::now();
+
+			while (currentDepth <= MAX_DEPTH && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() < std::chrono::milliseconds(timeMS).count() && timedSearching)
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 			stopSearch();
 			waitForThreads();
 
-			Search_Move move;
-			for (auto& thread : threads) {
-				Search_Move temp = thread.getBestMove();
+			std::cout << "Best Thread Info: " << " { Depth: " << bestMove.depth << " | Score: " << bestMove.score << " | Move: " << boardTilesStrings[bestMove.move.from] << " " << boardTilesStrings[bestMove.move.to] << " }" << std::endl;
 
-				std::cout << "Thread " << thread.getID() << " {\n\tDepth: " << temp.depth << "\n\tScore: " << temp.score << "\n}" << std::endl;
+			return bestMove.move;
 
-				if (move.depth < thread.getBestMove().depth)
-					move = thread.getBestMove();
+		}
+
+		bool Search_Manager::infiniteSearch(std::vector<Position>* positions, int curPly, int MAX_DEPTH)
+		{
+			currentDepth = 1;
+			transTable.updateAge();
+
+			currentDepth = 1;
+			bestMove.depth = 0;
+			bestMove.move = NULL_MOVE;
+
+			setThreads(positions, curPly);
+			beginSearch();
+			
+			infiniteSearching = true;
+
+			while (true) {
+				if (!infiniteSearching) {
+					std::cout << "Stopped search as it was cancelled" << std::endl;
+					break;
+				}
+				if (currentDepth > MAX_DEPTH) {
+					std::cout << "Stopped search as reached max depth" << std::endl;
+					break;
+				}
 			}
 
-			return move.move;
+			stopSearch();
+			waitForThreads();
 
+			infiniteSearching = false;
+			
+			return true;
 		}
 
 	}// SEARCH

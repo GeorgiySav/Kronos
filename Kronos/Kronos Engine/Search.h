@@ -10,6 +10,7 @@ namespace KRONOS
 {
 	namespace SEARCH
 	{
+
 		class Thread {
 		protected:
 			std::thread thread;
@@ -68,6 +69,8 @@ namespace KRONOS
 			bool stop;
 			bool stopIter;
 
+			int depth;
+
 			bool repeatedDraw();
 			void updateHistory(Move& newMove, Move_List& quiets, bool side, int depth);
 			void updateKillers(Move& newMove);
@@ -92,8 +95,11 @@ namespace KRONOS
 			void beginThink();
 			void stopSearch();
 			void stopIteration() { stopIter = true; };
+			int getIterDepth() { return depth; }
 
 			Search_Move getBestMove() { return bestMove; }
+
+			bool hasStopped() { return stop; }
 		};
 	} // SEARCH
 } // KRONOS

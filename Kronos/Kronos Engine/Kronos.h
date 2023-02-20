@@ -1,11 +1,6 @@
 #pragma once
 #include <iostream>
 #include <string>
-#include <cstdio>
-#include <cassert>
-#include <map>
-#include <sstream>
-#include <array>
 #include <chrono>
 #include <memory>
 #include <thread>
@@ -22,6 +17,8 @@
 #include "Game.h"
 #include "Tuner.h"
 #include "FEN.h"
+#include "PGN.h"
+#include "consts.h"
 
 namespace KRONOS
 {
@@ -33,10 +30,14 @@ namespace KRONOS
 		SEARCH::Search_Manager search;
 		
 		std::future<Move> searchThread;
-		bool busy = false;
-		
+		std::future<bool> infiniteThread;
+		bool busyTimed = false;
+		bool busyInfinite = false;
+		int searchDepth = 20;
+		int timeForSearch = 1000;
+
 		int NUM_THREADS = std::thread::hardware_concurrency();
-		EVALUATION::PARAMS::Eval_Parameters params;
+		EVALUATION::PARAMS::Eval_Parameters params;		
 
 	public:
 
@@ -61,31 +62,83 @@ namespace KRONOS
 
 		void setFen(std::string FEN) {
 			game.clear();
-			game.setGame(GAME_TYPE::AI_GAME, FEN);
+			game.setGameFEN(FEN);
 		}
 
 		void startSearchForBestMove() {
-			if (!busy) {
-				searchThread = std::async(&SEARCH::Search_Manager::getBestMove, &search, game.getPositions(), game.getPly(), 1000);
-				busy = true;
+			if (!busyTimed && !busyInfinite) {
+				std::cout << "Began timed search" << std::endl;
+				searchThread = std::async(&SEARCH::Search_Manager::getBestMove, &search, game.getPositions(), game.getPly(), timeForSearch, searchDepth);
+				busyTimed = true;
 			}
 		}
 
 		bool searchFinished() {
-			if (busy) {
-				return searchThread._Is_ready();
+			if (busyTimed) {
+				return searchThread.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 			}
 			return false;
 		}
 
+		void stopTimedSearch() {
+			if (busyTimed) {
+				std::cout << "Stopped timed search" << std::endl;
+				search.cancelTimedSearch();
+				searchThread.get();
+				busyTimed = false;
+			}
+		}
+
 		Move getBestMove() {
-			if (searchThread._Is_ready()) {
-				busy = false;
+			if (busyTimed && searchThread.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+				busyTimed = false;
 				return searchThread.get();
 			}
-			else {
-				return NULL_MOVE;
+			return NULL_MOVE;
+		}
+
+		void stopInfiniteSearch() {
+			if (busyInfinite) {
+				search.cancelInfiniteSearch();
+				infiniteThread.get();
+				std::cout << "Stopped infinite search" << std::endl;
+				busyInfinite = false;
 			}
+		}
+
+		void beginInfiniteSearch() {
+			stopInfiniteSearch();
+			infiniteThread = std::async(&SEARCH::Search_Manager::infiniteSearch, &search, game.getPositions(), game.getPly(), searchDepth);
+			busyInfinite = true;
+			std::cout << "Began infinite search" << std::endl;
+		}
+
+		void checkIfInfiniteThreadFinished() {
+			if (busyInfinite && infiniteThread.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+				infiniteThread.get();
+				busyInfinite = false;
+				std::cout << "Infinite search finished" << std::endl;
+			}
+		}
+
+		bool isInfiniting() { return busyInfinite; }
+		bool isTimedSearching() { return busyTimed; }
+
+
+		int getDepthSearchedTo() {
+			return search.getBestDepth();
+		}
+
+		int getScoreEvaluated() {
+			return search.getCurrentScore();
+		}
+
+		std::string getBestMoveSoFar() {
+			return KronosMoveToAlgebraic(search.getBestMoveSoFar(), game.getPositions()->at(game.getPly()));
+		}
+
+		std::string getPgnMove(Move move) {
+			return KronosMoveToAlgebraic(move, game.getPositions()->at(game.getPly()));
 		}
 
 		Board* getBitBoardsPointer() {
@@ -99,29 +152,50 @@ namespace KRONOS
 		KRONOS::Move_List* getMovesPointer() {
 			return game.getMovesPointer();
 		}
-		
-		void traceEval() {
-			//search.evaluate.tracedEval(positions[ply]);
-			//std::cout << "Evaluate at a depth of 5: " << search.searchWithAlphaBeta(&positions, ply, 5) << std::endl << std::endl;
+
+		Board* getBoard(int ply) {
+			return &game.getPositions()->at(ply).board;
 		}
 
-		friend std::ostream& operator<<(std::ostream& os, const KronosEngine& bb) {
+		int getMaterialScore(bool side) {
+			return game.getMaterial(side);
+		}
 
-			//os << "White Pawns: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][PAWN]) << std::endl;
-			//os << "White Knights: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][KNIGHT]) << std::endl;
-			//os << "White Bishops: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][BISHOP]) << std::endl;
-			//os << "White Rooks: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][ROOK]) << std::endl;
-			//os << "White Queens: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][QUEEN]) << std::endl;
-			//os << "White King: \n" << _BitBoard(positions[ply].board.pieceLocations[WHITE][KING]) << std::endl;
-			//
-			//os << "Black Pawns: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][PAWN]) << std::endl;
-			//os << "Black Knights: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][KNIGHT]) << std::endl;
-			//os << "Black Bishops: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][BISHOP]) << std::endl;
-			//os << "Black Rooks: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][ROOK]) << std::endl;
-			//os << "Black Queens: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][QUEEN]) << std::endl;
-			//os << "Black King: \n" << _BitBoard(positions[ply].board.pieceLocations[BLACK][KING]) << std::endl;;
+		void setNumCores(int n) {
+			search.initSearchThreads(n);
+		}
 
-			return os;
+		int getNumCores() {
+			return search.getNumberOfCores();
+		}
+
+		void setTransSize(int mb) {
+			search.changeTransTableSize(mb);
+		}
+
+		size_t getTransSize() {
+			return search.getTransSize();
+		}
+
+		void setSearchDepth(int newDepth) {
+			searchDepth = newDepth;
+		}
+
+		int getSearchDepth() {
+			return searchDepth;
+		}
+
+		void setTimeForSearch(int newTime) {
+			timeForSearch = newTime;
+		}
+
+		int getTimeForSearch() {
+			return timeForSearch;
+		}
+
+		template <GAME_TYPE type>
+		void createGame(const std::string& fen = FEN_START_POSITION) {
+			game.createGame<type>(fen);
 		}
 
 	};

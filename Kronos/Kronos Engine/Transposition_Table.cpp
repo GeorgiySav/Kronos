@@ -23,19 +23,19 @@ namespace KRONOS {
 
 		void Transposition_Table::saveEntry(u64 hash, u16 move, int depth, int16_t eval, int bound)
 		{
-			int highest = -INFINITE;
+			int highest = -INFINITE_SCORE;
 			transEntry& replace = getEntry(hash)->bucket[0];
 			
 			for (int i = 0; i < BUCKET_SIZE; i++) {
 				transEntry& entry = getEntry(hash)->bucket[i];
 				if (entry.hashLock == lock(hash)) {
-					if (entry.depth >= depth || bound == (int)BOUND::EXACT) {
+					if (entry.depth <= depth || bound == (int)BOUND::EXACT) {
 						replace = entry;
 						break;
 					}
 					else return; // don't want to replace an entry with a worse one
 				}
-				int score = (((64 + currentAge - entry.getAge()) % 64) << 8) - entry.depth;
+				int score = ((64 + currentAge - entry.getAge()) % 64) - entry.depth;
 				if (score > highest) {
 					highest = score;
 					replace = entry;

@@ -35,14 +35,15 @@ namespace KRONOS {
 			
 			hashEntry* getEntry(const u64 hash) { return &table[hash & mask]; }
 			void clear() { memset(table, 0, size * sizeof(hashEntry)); }
-			void setSize(int sizeMB) {
-				size = (1 << 20) / sizeof(hashEntry); // sizeMb must be atleast 1 MB
-				for (sizeMB <<= 19; size * sizeof(hashEntry) <= sizeMB; size <<= 1);
+			void setSize(size_t sizeMB) {
+				size = sizeMB * 1000 * 1000;
+				size /= sizeof(hashEntry);
 				mask = size - 1;
 				delete[] table;
 				table = new hashEntry[size];
 				clear();
 			}
+			size_t getSizeMB() { return size * sizeof(hashEntry) / 1000 / 1000; }
 			HashLower lock(u64 hash) const { return HASHLOWER(hash); }
 		};
 

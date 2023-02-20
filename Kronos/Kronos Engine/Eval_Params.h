@@ -12,6 +12,7 @@ namespace KRONOS {
 				Score value;
 				int16_t phase;
 				int8_t flags;
+				Material() : value({ 0, 0 }), phase(0), flags(0) {}
 			};
 
 			static Score pawnPST[64] = {

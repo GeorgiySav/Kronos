@@ -37,81 +37,47 @@ namespace KRONOS {
 			case (STAGE_FILTER_MOVES):
 			{
 				stage++;
-				int tacticalScores[64] = { 0 };
-				int quietScores[200] = { 0 };
+				std::vector<int> tacticalScores;
+				tacticalScores.reserve(10);
+				std::vector<int> quietScores;
+				quietScores.reserve(20);
 				int currentScore = 0;
 				for (int i = 0; i < moves.size(); i++) {
 					if (moves.at(i).isTactical()) {
-						if (moves.at(i).flag & PROMOTION) {
-							if (!(moves.at(i).flag & CAPTURE)) { // pure promotion
-								switch (moves.at(i).flag)
-								{
-								case (KNIGHT_PROMOTION):
-									currentScore = 1001;
-									break;
-								case (BISHOP_PROMOTION):
-									currentScore = 999;
-									break;
-								case (ROOK_PROMOTION):
-									currentScore = 1000;
-									break;
-								case (QUEEN_PROMOTION):
-									currentScore = 1002;
-									break;
-								}
-							}
-							else {
-								switch (moves.at(i).flag)
-								{
-								case (KNIGHT_PROMOTION | CAPTURE):
-									currentScore = 1001;
-									break;
-								case (BISHOP_PROMOTION | CAPTURE):
-									currentScore = 999;
-									break;
-								case (ROOK_PROMOTION | CAPTURE):
-									currentScore = 1000;
-									break;
-								case (QUEEN_PROMOTION | CAPTURE):
-									currentScore = 1002;
-									break;
-								}
-								currentScore += MVV_LVA(moves.at(i));
-							}
-						}
-						else
+						if (moves.at(i).flag & CAPTURE)
 							currentScore = MVV_LVA(moves.at(i));
+						if (moves.at(i).flag & PROMOTION) {
+							switch (moves.at(i).flag & 0b1011)
+							{
+							case (KNIGHT_PROMOTION):
+								currentScore = 1001;
+								break;
+							case (BISHOP_PROMOTION):
+								currentScore = 999;
+								break;
+							case (ROOK_PROMOTION):
+								currentScore = 1000;
+								break;
+							case (QUEEN_PROMOTION):
+								currentScore = 1002;
+								break;
+							}
+						}
 						// insert it into the array where it is sorted in descending order
-						if (tacticals.size()) {
-							int j = 0;
-							while (j < tacticals.size() && currentScore < tacticalScores[j])
-								j++;
-							tacticals.insert(moves.at(i), j);
-							for (int k = tacticals.size() - 2; k >= j; k--)
-								tacticalScores[k + 1] = tacticalScores[k];
-							tacticalScores[j] = currentScore;
-						}
-						else {
-							tacticals.add(moves.at(i));
-							tacticalScores[0] = currentScore;
-						}
+						int j = 0;
+						while (j < tacticals.size() && currentScore < tacticalScores[j])
+							j++;
+						tacticals.insert(moves.at(i), j);
+						tacticalScores.insert(tacticalScores.begin() + j, currentScore);
 					}
 					else {
 						currentScore = sData.getHistoryValue(position.status.isWhite, moves.at(i));
 
-						if (quiets.size()) {
-							int j = 0;
-							while (j < quiets.size() && currentScore < quietScores[j])
-								j++;
-							quiets.insert(moves.at(i), j);
-							for (int k = quiets.size() - 2; k >= j; k--)
-								quietScores[k + 1] = quietScores[k];
-							quietScores[j] = currentScore;
-						}
-						else {
-							quiets.add(moves.at(i));
-							quietScores[0] = currentScore;
-						}
+						int j = 0;
+						while (j < quiets.size() && currentScore < quietScores[j])
+							j++;
+						quiets.insert(moves.at(i), j);
+						quietScores.insert(quietScores.begin() + j, currentScore);
 					}
 				}
 			}

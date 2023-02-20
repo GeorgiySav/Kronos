@@ -114,7 +114,6 @@ namespace KRONOS {
 			return 6;
 		}
 		bool SEE_GE(Move& move, int threshold) const;
-		bool givesCheck(Move& move);
 	private:
 		static int const PieceValues[6];
 	};
@@ -137,6 +136,8 @@ namespace KRONOS {
 		PROMOTION        = 0b1000
 	};
 
+	extern void initMGVars();
+
 	extern inline Move MoveIntToMove(uint16_t move, const Position* position);
 
 	extern constexpr void updatePosition(Position& position, Move move);
@@ -146,15 +147,22 @@ namespace KRONOS {
 	extern constexpr BitBoard Empty(const Board& brd);
 	extern constexpr BitBoard pawnAttackLeft(BitBoard brd, bool isWhite);
 	extern constexpr BitBoard pawnAttackRight(BitBoard brd, bool isWhite);
-	extern constexpr BitBoard getPawnAttacks(BitBoard brd, bool isWhite);
+	extern constexpr BitBoard generatePawnAttacks(BitBoard brd, bool isWhite);
 	extern constexpr BitBoard epRank(bool isWhite);
-	extern constexpr BitBoard getPawnEP(BitBoard brd, int EPtile, bool isWhite);
+	extern constexpr BitBoard getPawnEP(int pawnPos, int EPtile, bool isWhite);
 	extern constexpr BitBoard pawnPush(BitBoard brd, bool isWhite);
 	extern constexpr BitBoard pawnStartRank(bool isWhite);
 	extern constexpr BitBoard pawnPromRank(bool isWhite);
-	extern constexpr BitBoard getPawnMoves(int pawnPos, const Board& brd, bool isWhite);
-	extern constexpr BitBoard getKnightAttacks(BitBoard brd);
-	extern constexpr BitBoard getKingAttacks(BitBoard brd);
+	extern constexpr BitBoard generatePawnMoves(int pawnPos, const Board& brd, bool isWhite);
+	extern constexpr BitBoard generateKnightAttacks(BitBoard brd);
+	extern constexpr BitBoard generateKingAttacks(BitBoard brd);
+
+	extern constexpr BitBoard getPawnPush(int tile, bool isWhite);
+	extern constexpr BitBoard getPawnAttacks(int tile, bool isWhite);
+	extern constexpr BitBoard getKnightAttacks(int tile);
+	extern constexpr BitBoard getKingAttacks(int tile);
+	extern constexpr BitBoard getTileBB(int tile);
+
 	extern constexpr void bishopCheckMask(const int bishopPos, const int kingPos, BitBoard& checkMask, BitBoard& kingBan);
 	extern constexpr void rookCheckMask(const int rookPos, const int kingPos, BitBoard& checkMask, BitBoard& kingBan);
 	extern constexpr void queenCheckMask(const int queenPos, const int kingPos, BitBoard& checkMask, BitBoard& kingBan);
@@ -164,7 +172,6 @@ namespace KRONOS {
 	extern constexpr void addPawnMoves(BitBoard movesBB, BitBoard captureBB, BitBoard epBB, int from, bool isWhite, Move_List& moves);
 	extern bool inCheck(const Position& position);
 	extern constexpr void generateMoves(bool isWhite, const Board& brd, const BoardStatus& st, Move_List& moves);
-	extern inline BitBoard generateAttacksToSquare(Position* position, int tile);
 
 	extern void perftTest(Position startPos, int depth);
 }

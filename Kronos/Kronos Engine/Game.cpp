@@ -3,6 +3,7 @@
 #include "consts.h"
 #include "Zobrist_Hashing.h"
 #include "FEN.h"
+#include "PGN.h"
 
 namespace KRONOS
 {
@@ -17,9 +18,8 @@ namespace KRONOS
 		
 	}
 
-	void Game::setGame(GAME_TYPE gt, std::string FEN)
+	void Game::setGameFEN(std::string FEN)
 	{
-		this->gameType = gt;
 		
 		this->clear();
 		positions[ply] = FENtoBoard(FEN);
@@ -27,10 +27,8 @@ namespace KRONOS
 		checkGameState();
 	}
 
-	void Game::setGame(GAME_TYPE gt)
+	void Game::setGame()
 	{
-		this->gameType = gt;
-		
 		this->clear();
 		positions[ply] = FENtoBoard(FEN_START_POSITION);
 		
@@ -40,6 +38,7 @@ namespace KRONOS
 		generateMoves(positions[ply].status.isWhite, positions[ply].board, positions[ply].status, moves);
 	}
 
+	
 	void Game::checkGameState()
 	{
 		// check to see if the game has ended through checkmate or stalemate
@@ -123,15 +122,24 @@ namespace KRONOS
 					gameState = GAME_STATE::DRAW_TO_LACK_OF_MATERIAL;
 					return;
 				}
-				// syzygy tablebase draw for AIs
-				if (gameType == GAME_TYPE::AI_GAME) {
-					if (populationCount(positions[ply].board.pieceLocations[WHITE][KNIGHT]) == 2
-					 || populationCount(positions[ply].board.pieceLocations[BLACK][KNIGHT]) == 2) {
-						gameState = GAME_STATE::DRAW_TO_LACK_OF_MATERIAL;
-						return;
-					}
-				}
 			}
+		}
+	}
+
+	void Game::calculateMaterial()
+	{
+		static int materialScores[] = {
+			1, 3, 3, 5, 9
+		};
+		for (int p = 0; p <= QUEEN; p++) {
+			int whiteScore = 0;
+			whiteScore += materialScores[PAWN] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][PAWN]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][PAWN]));
+			whiteScore += materialScores[KNIGHT] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][KNIGHT]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][KNIGHT]));
+			whiteScore += materialScores[BISHOP] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][BISHOP]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][BISHOP]));
+			whiteScore += materialScores[ROOK] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][ROOK]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][ROOK]));
+			whiteScore += materialScores[QUEEN] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][QUEEN]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][QUEEN]));
+			materialScore[WHITE] = whiteScore;
+			materialScore[BLACK] = whiteScore * -1;
 		}
 	}
 
@@ -142,27 +150,16 @@ namespace KRONOS
 			return false;
 
 		ply = ply + 1;
-		if (ply >= MAX_PLY && gameType == GAME_TYPE::AI_GAME)
-		{
-			ply = ply - 1;
-			gameState = GAME_STATE::CANCELLED_GAME;
-			return false;
-		}
+		positions[ply] = positions[ply - 1];
 		
-		if (ply >= MAX_PLY && gameType == GAME_TYPE::HUMAN_GAME)
-		{
-			positions.push_back(positions[ply - 1]);
-			moveHistory.push_back(move);
-		}
-		else {
-			positions[ply] = positions[ply - 1];
-		}
 		updatePosition(positions[ply], move);
 		positions[ply].hash = HASH::zobrist.generateHash(positions[ply]);
 		moveHistory[ply] = move;
 		
 		checkGameState();
 		
+		calculateMaterial();
+
 		return true;
 
 	}
@@ -174,6 +171,7 @@ namespace KRONOS
 		}
 		moves.clear();
 		generateMoves(positions[ply].status.isWhite, positions[ply].board, positions[ply].status, moves);
+		calculateMaterial();
 	}
 
 	void Game::clear() {

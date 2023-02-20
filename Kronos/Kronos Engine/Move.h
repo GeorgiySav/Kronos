@@ -16,7 +16,13 @@ namespace KRONOS
 		constexpr Move(int from, int to, int flag, u8 moved_Piece) : from(from), to(to), flag(flag), moved_Piece(moved_Piece) {}
 		constexpr ~Move() {}
 
-		uint16_t toIntMove();
+		constexpr u16 toIntMove() {
+			// xxxx xxxx xxxx xxxx
+			// xxxx xxxx xx11 1111 to
+			// xxxx 1111 11xx xxxx from
+			// 1111 xxxx xxxx xxxx promotion
+			return (to) | (from << 6) | ((flag & 0b1000) << 12);
+		}
 
 		friend bool operator == (const Move& lhs, const Move& rhs) {
 			return lhs.from == rhs.from && lhs.to == rhs.to && lhs.flag == rhs.flag && lhs.moved_Piece == rhs.moved_Piece;
@@ -27,7 +33,7 @@ namespace KRONOS
 
 	class  Move_List {
 	public:
-		constexpr Move_List() { moves.reserve(30); }
+		constexpr Move_List() { moves.reserve(35); }
 		constexpr void add(const Move& m) { moves.emplace_back(m); }
 		constexpr void clear() { moves.clear(); }
 		constexpr Move& at(const int index) { return moves.at(index); }
@@ -38,7 +44,7 @@ namespace KRONOS
 		constexpr void insert(const Move& m, int index) {
 			moves.insert(moves.begin() + index, m);
 		}
-		constexpr u8 size() { return moves.size(); }
+		constexpr int size() { return moves.size(); }
 
 	private:
 		std::vector<Move> moves;

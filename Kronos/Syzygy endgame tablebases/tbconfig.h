@@ -111,13 +111,13 @@
  * Define TB_KING_ATTACKS(square) to return the king attacks bitboard for a
  * king at `square'.
  */
-#define TB_KING_ATTACKS(square) KRONOS::getKingAttacks((1ULL << (square)))
+#define TB_KING_ATTACKS(square) KRONOS::getKingAttacks(square)
 
 /*
  * Define TB_KNIGHT_ATTACKS(square) to return the knight attacks bitboard for
  * a knight at `square'.
  */
-#define TB_KNIGHT_ATTACKS(square) KRONOS::getKnightAttacks(1ULL << (square))
+#define TB_KNIGHT_ATTACKS(square) KRONOS::getKnightAttacks(square)
 
 /*
  * Define TB_ROOK_ATTACKS(square, occ) to return the rook attacks bitboard
@@ -147,6 +147,6 @@
  *       nothing.  Etc.
  * NOTE: This definition must not include en passant captures.
  */
-#define TB_PAWN_ATTACKS(square, color) (KRONOS::pawnAttackLeft((1ULL << (square)), color) | KRONOS::pawnAttackRight((1ULL << (square)), color))
+#define TB_PAWN_ATTACKS(square, color) KRONOS::getPawnAttacks(square, color)
 
 #endif

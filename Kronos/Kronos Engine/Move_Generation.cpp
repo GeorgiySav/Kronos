@@ -6,13 +6,50 @@
 
 namespace KRONOS
 {
+	BitBoard PAWN_PUSH_TBL[2][64];
+	BitBoard PAWN_ATK_TBL[2][64];
+	BitBoard KNIGHT_ATK_TBL[64];
+	BitBoard KING_ATK_TBL[64];
+	BitBoard TILE_TBL[65];
+
+	void initMGVars() {
+		for (int s = 0; s < 2; s++) {
+			for (int t = 0; t < 64; t++) {
+				PAWN_ATK_TBL[s][t] = generatePawnAttacks(1ULL << t, s);
+				PAWN_PUSH_TBL[s][t] = pawnPush(1ULL << t, s);
+			}
+		}
+
+		for (int t = 0; t < 64; t++) {
+			KNIGHT_ATK_TBL[t] = generateKnightAttacks(1ULL << t);
+			KING_ATK_TBL[t] = generateKingAttacks(1ULL << t);
+			TILE_TBL[t] = (1ULL << t);
+		}
+		TILE_TBL[64] = EMPTY;
+	}
+
+	constexpr BitBoard getPawnPush(int tile, bool isWhite) {
+		return PAWN_PUSH_TBL[isWhite][tile];
+	}
+	constexpr BitBoard getTileBB(int tile) {
+		return TILE_TBL[tile];
+	}
+	constexpr BitBoard getPawnAttacks(int tile, bool isWhite) {
+		return PAWN_ATK_TBL[isWhite][tile];
+	}
+	constexpr BitBoard getKnightAttacks(int tile) {
+		return KNIGHT_ATK_TBL[tile];
+	}
+	constexpr BitBoard getKingAttacks(int tile) {
+		return KING_ATK_TBL[tile];
+	}
 
 	bool Position::SEE_GE(Move& move, int threshold) const {
 		int from = move.from;
 		int to = move.to;
 		int movedPiece = move.moved_Piece;
 		bool promo = move.flag & PROMOTION;
-		u64 toBB = 1ULL << to;
+		u64 toBB = getTileBB(to);
 
 		if (promo)
 			return true;
@@ -25,13 +62,13 @@ namespace KRONOS
 		if (swap <= 0)
 			return true;
 
-		BitBoard occ = board.occupied[BOTH] ^ (1ULL << from) ^ (1ULL << to);
-		BitBoard attackers = (getPawnAttacks(toBB, WHITE) & board.pieceLocations[BLACK][PAWN])
-			| (getPawnAttacks(toBB, BLACK) & board.pieceLocations[WHITE][PAWN])
-			| (getKnightAttacks(toBB) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]))
+		BitBoard occ = board.occupied[BOTH] ^ getTileBB(from) ^ getTileBB(to);
+		BitBoard attackers = (getPawnAttacks(to, WHITE) & board.pieceLocations[BLACK][PAWN])
+			| (getPawnAttacks(to, BLACK) & board.pieceLocations[WHITE][PAWN])
+			| (getKnightAttacks(to) & (board.pieceLocations[WHITE][KNIGHT] | board.pieceLocations[BLACK][KNIGHT]))
 			| (getBishopAttacks(occ, to) & (board.pieceLocations[WHITE][BISHOP] | board.pieceLocations[BLACK][BISHOP] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
 			| (getRookAttacks(occ, to) & (board.pieceLocations[WHITE][ROOK] | board.pieceLocations[BLACK][ROOK] | board.pieceLocations[WHITE][QUEEN] | board.pieceLocations[BLACK][QUEEN]))
-			| (getKingAttacks(toBB) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]));
+			| (getKingAttacks(to) & (board.pieceLocations[WHITE][KING] | board.pieceLocations[BLACK][KING]));
 		popBit(attackers, from);
 
 		BitBoard sideToMoveAtks, bb;
@@ -88,31 +125,6 @@ namespace KRONOS
 		return res;
 	}
 
-	bool Position::givesCheck(Move& move) {
-		BitBoard toBB = 1ULL << move.to;
-		if (move.moved_Piece == PAWN) {
-			if (toBB & getPawnAttacks(board.pieceLocations[!status.isWhite][KING], !status.isWhite))
-				return true;
-		}
-		else if (move.moved_Piece == KNIGHT) {
-			if (toBB & getKnightAttacks(board.pieceLocations[!status.isWhite][KING]))
-				return true;
-		}
-		else if (move.moved_Piece == BISHOP) {
-			if (toBB & getBishopAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING])))
-				return true;
-		}
-		else if (move.moved_Piece == ROOK) {
-			if (toBB & getRookAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING])))
-				return true;
-		}
-		else if (move.moved_Piece == QUEEN) {
-			if (toBB & (getBishopAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING])) | getRookAttacks(board.occupied[BOTH], bitScanForward(board.pieceLocations[!status.isWhite][KING]))))
-				return true;
-		}
-		return false;
-	}
-
 	inline Move MoveIntToMove(uint16_t move, const Position* position)
 	{
 		if (move == 0)
@@ -140,7 +152,7 @@ namespace KRONOS
 		}
 
 		for (int p = 0; p < 6; p++) {
-			if (position->board.pieceLocations[position->status.isWhite][p] & (1ULL << newMove.from)) {
+			if (position->board.pieceLocations[position->status.isWhite][p] & getTileBB(newMove.from)) {
 				newMove.moved_Piece = p;
 				break;
 			}
@@ -148,7 +160,7 @@ namespace KRONOS
 
 		if (newMove.moved_Piece == PAWN) {
 			// check for enpassant
-			if ((abs(newMove.to - newMove.from) == 7 || abs(newMove.to - newMove.from) == 9) && !((1ULL << newMove.to) & position->board.occupied[BOTH])) {
+			if ((abs(newMove.to - newMove.from) == 7 || abs(newMove.to - newMove.from) == 9) && !(getTileBB(newMove.to) & position->board.occupied[BOTH])) {
 				newMove.flag = ENPASSANT;
 			}
 		}
@@ -167,7 +179,7 @@ namespace KRONOS
 			}
 		}
 
-		if ((1ULL << newMove.to) & position->board.occupied[BOTH])
+		if (getTileBB(newMove.to) & position->board.occupied[BOTH])
 			newMove.flag |= CAPTURE;
 
 		return newMove;
@@ -186,7 +198,7 @@ namespace KRONOS
 			if (abs(move.to - move.from) == 16) position.status.EP = move.to + (position.status.isWhite ? -8 : 8);
 			else if (move.flag & PROMOTION) {
 				popBit(position.board.pieceLocations[position.status.isWhite][PAWN], move.from);
-				if ((move.flag & 0b1011) == KNIGHT_PROMOTION)      setBit(position.board.pieceLocations[position.status.isWhite][KNIGHT], move.to);
+				if      ((move.flag & 0b1011) == KNIGHT_PROMOTION) setBit(position.board.pieceLocations[position.status.isWhite][KNIGHT], move.to);
 				else if ((move.flag & 0b1011) == BISHOP_PROMOTION) setBit(position.board.pieceLocations[position.status.isWhite][BISHOP], move.to);
 				else if ((move.flag & 0b1011) == ROOK_PROMOTION)   setBit(position.board.pieceLocations[position.status.isWhite][ROOK], move.to);
 				else                                               setBit(position.board.pieceLocations[position.status.isWhite][QUEEN], move.to);
@@ -207,7 +219,7 @@ namespace KRONOS
 		}
 		else if (move.moved_Piece == KING) {
 			if (position.status.isWhite) { position.status.WKcastle = false; position.status.WQcastle = false; }
-			else { position.status.BKcastle = false; position.status.BQcastle = false; }
+			else                         { position.status.BKcastle = false; position.status.BQcastle = false; }
 
 			if (move.flag == KING_CASTLE) {
 				setBit(position.board.pieceLocations[position.status.isWhite][ROOK], ((position.status.isWhite) ? F1 : F8));
@@ -219,9 +231,9 @@ namespace KRONOS
 			}
 		}
 
-		BitBoard moveBB = (1ULL << move.from) | (1ULL << move.to);
+		BitBoard moveBB = getTileBB(move.from) | getTileBB(move.to);
 		if ((move.flag & CAPTURE) && move.flag != ENPASSANT) {
-			BitBoard notTaken = ~(1ULL << move.to);
+			BitBoard notTaken = ~getTileBB(move.to);
 			for (BitBoard& enemyPieceBB : position.board.pieceLocations[!position.status.isWhite])
 				enemyPieceBB &= notTaken;
 			assert(position.board.pieceLocations[!position.status.isWhite][KING] != EMPTY);
@@ -270,7 +282,7 @@ namespace KRONOS
 		return SEOne(brd);
 	}
 
-	constexpr BitBoard getPawnAttacks(BitBoard brd, bool isWhite) {
+	constexpr BitBoard generatePawnAttacks(BitBoard brd, bool isWhite) {
 		return (pawnAttackLeft(brd, isWhite) | pawnAttackRight(brd, isWhite));
 	}
 
@@ -279,8 +291,8 @@ namespace KRONOS
 		return rankMask[RANK_5];
 	}
 
-	constexpr BitBoard getPawnEP(BitBoard brd, int EPtile, bool isWhite) {
-		return getPawnAttacks(brd, isWhite) & (1ULL << EPtile) & (isWhite ? rankMask[RANK_6] : rankMask[RANK_3]);
+	constexpr BitBoard getPawnEP(int pawnPos, int EPtile, bool isWhite) {
+		return getPawnAttacks(pawnPos, isWhite) & getTileBB(EPtile) & (isWhite ? rankMask[RANK_6] : rankMask[RANK_3]);
 	}
 
 	constexpr BitBoard pawnPush(BitBoard brd, bool isWhite) {
@@ -298,16 +310,16 @@ namespace KRONOS
 		return rankMask[RANK_1];
 	}
 
-	constexpr BitBoard getPawnMoves(int pawnPos, const Board& brd, bool isWhite) {
+	constexpr BitBoard generatePawnMoves(int pawnPos, const Board& brd, bool isWhite) {
 		BitBoard moves = EMPTY;
 
-		moves |= pawnPush(1ULL << pawnPos, isWhite) & Empty(brd);
+		moves |= getPawnPush(pawnPos, isWhite) & Empty(brd);
 		moves |= ((pawnPush(moves, isWhite) & epRank(isWhite) & Empty(brd)));
 
 		return moves;
 	}
 
-	constexpr BitBoard getKnightAttacks(BitBoard brd) {
+	constexpr BitBoard generateKnightAttacks(BitBoard brd) {
 		constexpr u64 notABfile = 18229723555195321596ULL;
 		constexpr u64 notGHfile = 4557430888798830399ULL;
 
@@ -322,7 +334,7 @@ namespace KRONOS
 
 	}
 
-	constexpr BitBoard getKingAttacks(BitBoard brd) {
+	constexpr BitBoard generateKingAttacks(BitBoard brd) {
 		BitBoard attacks = 0ULL;
 
 		attacks |= (westOne(brd) | NWOne(brd) | SWOne(brd)) & notHFile;
@@ -338,24 +350,24 @@ namespace KRONOS
 			if (bishopPos < kingPos) {
 				// bishop is south east from the king
 				kingBan |= rays[bishopPos][NORTH_WEST];
-				checkMask |= (rays[bishopPos][SOUTH_EAST] ^ rays[kingPos][SOUTH_EAST]);
+				checkMask |= (rays[bishopPos][NORTH_WEST] & rays[kingPos][SOUTH_EAST]);
 			}
 			else {
 				// bishop is north west from the king
 				kingBan |= rays[bishopPos][SOUTH_EAST];
-				checkMask |= (rays[bishopPos][NORTH_WEST] ^ rays[kingPos][NORTH_WEST]);
+				checkMask |= (rays[bishopPos][SOUTH_EAST] & rays[kingPos][NORTH_WEST]);
 			}
 		}
 		else {
 			if (bishopPos < kingPos) {
 				// bishop is south west from the king
 				kingBan |= rays[bishopPos][NORTH_EAST];
-				checkMask |= (rays[bishopPos][SOUTH_WEST] ^ rays[kingPos][SOUTH_WEST]);
+				checkMask |= (rays[bishopPos][NORTH_EAST] & rays[kingPos][SOUTH_WEST]);
 			}
 			else {
 				// bishop is north east from the king
 				kingBan |= rays[bishopPos][SOUTH_WEST];
-				checkMask |= (rays[bishopPos][NORTH_EAST] ^ rays[kingPos][NORTH_EAST]);
+				checkMask |= (rays[bishopPos][SOUTH_WEST] & rays[kingPos][NORTH_EAST]);
 			}
 		}
 	}
@@ -366,24 +378,24 @@ namespace KRONOS
 			if (rookPos < kingPos) {
 				// rook is south from the king
 				kingBan |= rays[rookPos][NORTH];
-				checkMask |= (rays[rookPos][SOUTH] ^ rays[kingPos][SOUTH]);
+				checkMask |= (rays[rookPos][NORTH] & rays[kingPos][SOUTH]);
 			}
 			else {
 				// rook is north from the king
 				kingBan |= rays[rookPos][SOUTH];
-				checkMask |= (rays[rookPos][NORTH] ^ rays[kingPos][NORTH]);
+				checkMask |= (rays[rookPos][SOUTH] & rays[kingPos][NORTH]);
 			}
 		}
 		else {
 			if (rookPos < kingPos) {
 				// rook is west from the king
 				kingBan |= rays[rookPos][EAST];
-				checkMask |= (rays[rookPos][WEST] ^ rays[kingPos][WEST]);
+				checkMask |= (rays[rookPos][EAST] & rays[kingPos][WEST]);
 			}
 			else {
 				// rook is east from the king
 				kingBan |= rays[rookPos][WEST];
-				checkMask |= (rays[rookPos][EAST] ^ rays[kingPos][EAST]);
+				checkMask |= (rays[rookPos][WEST] & rays[kingPos][EAST]);
 			}
 		}
 	}
@@ -394,48 +406,48 @@ namespace KRONOS
 			if (queenPos < kingPos) {
 				// rook is south from the king
 				kingBan |= rays[queenPos][NORTH];
-				checkMask |= (rays[queenPos][SOUTH] ^ rays[kingPos][SOUTH]);
+				checkMask |= (rays[queenPos][NORTH] & rays[kingPos][SOUTH]);
 			}
 			else {
 				// rook is north from the king
 				kingBan |= rays[queenPos][SOUTH];
-				checkMask |= (rays[queenPos][NORTH] ^ rays[kingPos][NORTH]);
+				checkMask |= (rays[queenPos][SOUTH] & rays[kingPos][NORTH]);
 			}
 		}
 		else if (!(offset % 7)) {
 			if (queenPos < kingPos) {
 				// bishop is south east from the king
 				kingBan |= rays[queenPos][NORTH_WEST];
-				checkMask |= (rays[queenPos][SOUTH_EAST] ^ rays[kingPos][SOUTH_EAST]);
+				checkMask |= (rays[queenPos][NORTH_WEST] & rays[kingPos][SOUTH_EAST]);
 			}
 			else {
 				// bishop is north west from the king
 				kingBan |= rays[queenPos][SOUTH_EAST];
-				checkMask |= (rays[queenPos][NORTH_WEST] ^ rays[kingPos][NORTH_WEST]);
+				checkMask |= (rays[queenPos][SOUTH_EAST] & rays[kingPos][NORTH_WEST]);
 			}
 		}
 		else if (!(offset % 9)) {
 			if (queenPos < kingPos) {
 				// bishop is south west from the king
 				kingBan |= rays[queenPos][NORTH_EAST];
-				checkMask |= (rays[queenPos][SOUTH_WEST] ^ rays[kingPos][SOUTH_WEST]);
+				checkMask |= (rays[queenPos][NORTH_EAST] & rays[kingPos][SOUTH_WEST]);
 			}
 			else {
 				// bishop is north east from the king
 				kingBan |= rays[queenPos][SOUTH_WEST];
-				checkMask |= (rays[queenPos][NORTH_EAST] ^ rays[kingPos][NORTH_EAST]);
+				checkMask |= (rays[queenPos][SOUTH_WEST] & rays[kingPos][NORTH_EAST]);
 			}
 		}
 		else {
 			if (queenPos < kingPos) {
 				// rook is west from the king
 				kingBan |= rays[queenPos][EAST];
-				checkMask |= (rays[queenPos][WEST] ^ rays[kingPos][WEST]);
+				checkMask |= (rays[queenPos][EAST] & rays[kingPos][WEST]);
 			}
 			else {
 				// rook is east from the king
 				kingBan |= rays[queenPos][WEST];
-				checkMask |= (rays[queenPos][EAST] ^ rays[kingPos][EAST]);
+				checkMask |= (rays[queenPos][WEST] & rays[kingPos][EAST]);
 			}
 		}
 	}
@@ -474,7 +486,7 @@ namespace KRONOS
 		}
 		while (movesBB) {
 			int to = bitScanForward(movesBB);
-			if ((1ULL << to) & pawnPromRank(isWhite)) {
+			if (getTileBB(to) & pawnPromRank(isWhite)) {
 				moves.add(Move(from, to, KNIGHT_PROMOTION, PAWN));
 				moves.add(Move(from, to, BISHOP_PROMOTION, PAWN));
 				moves.add(Move(from, to, ROOK_PROMOTION, PAWN));
@@ -485,7 +497,7 @@ namespace KRONOS
 		}
 		while (captureBB) {
 			int to = bitScanForward(captureBB);
-			if ((1ULL << to) & pawnPromRank(isWhite)) {
+			if (getTileBB(to) & pawnPromRank(isWhite)) {
 				moves.add(Move(from, to, (CAPTURE | KNIGHT_PROMOTION), PAWN));
 				moves.add(Move(from, to, (CAPTURE | BISHOP_PROMOTION), PAWN));
 				moves.add(Move(from, to, (CAPTURE | ROOK_PROMOTION), PAWN));
@@ -499,8 +511,8 @@ namespace KRONOS
 	bool inCheck(const Position& position) {
 		bool side = position.status.isWhite;
 		int kingPos = bitScanForward(position.board.pieceLocations[side][KING]);
-		return (getPawnAttacks(position.board.pieceLocations[side][KING], side) & position.board.pieceLocations[!side][PAWN])
-			|| (getKnightAttacks(position.board.pieceLocations[side][KING]) & position.board.pieceLocations[!side][KNIGHT])
+		return (getPawnAttacks(kingPos, side) & position.board.pieceLocations[!side][PAWN])
+			|| (getKnightAttacks(kingPos) & position.board.pieceLocations[!side][KNIGHT])
 			|| (getBishopAttacks(position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][BISHOP] | position.board.pieceLocations[!side][QUEEN]))
 			|| (getRookAttacks(position.board.occupied[BOTH], kingPos) & (position.board.pieceLocations[!side][ROOK] | position.board.pieceLocations[!side][QUEEN]));
 	}
@@ -525,7 +537,7 @@ namespace KRONOS
 
 		BitBoard ePwnAtkL = pawnAttackLeft(brd.pieceLocations[!isWhite][PAWN], !isWhite);
 		BitBoard ePwnAtkR = pawnAttackRight(brd.pieceLocations[!isWhite][PAWN], !isWhite);
-		BitBoard eKnightAtk = getKnightAttacks(brd.pieceLocations[!isWhite][KNIGHT]);
+		BitBoard eKnightAtk = generateKnightAttacks(brd.pieceLocations[!isWhite][KNIGHT]);
 
 		BitBoard eB = brd.pieceLocations[!isWhite][BISHOP];
 		BitBoard eBishopAtk = 0ULL;
@@ -551,7 +563,7 @@ namespace KRONOS
 			eQueenAtk |= getBishopAttacks(brd.occupied[BOTH], tile) | getRookAttacks(brd.occupied[BOTH], tile);
 		}
 
-		BitBoard eKingAtk = getKingAttacks(brd.pieceLocations[!isWhite][KING]);
+		BitBoard eKingAtk = generateKingAttacks(brd.pieceLocations[!isWhite][KING]);
 
 		kingBan = ePwnAtkL | ePwnAtkR | eKnightAtk | eBishopAtk | eRookAtk | eQueenAtk | eKingAtk;
 
@@ -561,8 +573,8 @@ namespace KRONOS
 		BitBoard pawnCheckMask = UNIVERSE;
 
 		// get position of checks made by a knight or pawn
-		BitBoard checkers = (getKnightAttacks(1ULL << kingPos) & brd.pieceLocations[!isWhite][KNIGHT])
-			| (getPawnAttacks(king, isWhite) & brd.pieceLocations[!isWhite][PAWN]);
+		BitBoard checkers = (getKnightAttacks(kingPos) & brd.pieceLocations[!isWhite][KNIGHT])
+			| (getPawnAttacks(kingPos, isWhite) & brd.pieceLocations[!isWhite][PAWN]);
 
 		// sliding checks candidates
 		BitBoard canditates = (getRookAttacks(brd.occupied[!isWhite], kingPos) & (brd.pieceLocations[!isWhite][ROOK] | brd.pieceLocations[!isWhite][QUEEN]))
@@ -612,7 +624,7 @@ namespace KRONOS
 			}
 
 			if (numCheckers > 1) {
-				BitBoard kingMoves = getKingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~(kingBan);
+				BitBoard kingMoves = getKingAttacks(kingPos) & EnemyAndEmpty(brd, isWhite) & ~(kingBan);
 				BitBoard kingAttacks = kingMoves & brd.occupied[!isWhite];
 				kingMoves ^= kingAttacks;
 
@@ -639,12 +651,12 @@ namespace KRONOS
 
 			BitBoard pinnedMask = rays[kingPos][dir] ^ rays[attackingSlider][dir];
 
-			BitBoard posBB = 1ULL << pinnedPos;
+			BitBoard posBB = getTileBB(pinnedPos);
 
 			if (getBit(pawns, pinnedPos)) {
-				attacks = getPawnAttacks(posBB, isWhite) & brd.occupied[!isWhite] & pinnedMask & checkMask;
-				quietMoves = getPawnMoves(pinnedPos, brd, isWhite) & pinnedMask & checkMask;
-				ep = getPawnEP(posBB, st.EP, isWhite) & pinnedMask & (checkMask | pawnCheckMask);
+				attacks = getPawnAttacks(pinnedPos, isWhite) & brd.occupied[!isWhite] & pinnedMask & checkMask;
+				quietMoves = generatePawnMoves(pinnedPos, brd, isWhite) & pinnedMask & checkMask;
+				ep = getPawnEP(pinnedPos, st.EP, isWhite) & pinnedMask & (checkMask | pawnCheckMask);
 
 				addPawnMoves(quietMoves, attacks, ep, pinnedPos, isWhite, moves);
 
@@ -689,11 +701,11 @@ namespace KRONOS
 		while (pawns) {
 			from = bitScanForward(pawns);
 			popBit(pawns, from);
-			posBB = 1ULL << from;
+			posBB = getTileBB(from);
 
-			attacks = getPawnAttacks(posBB, isWhite) & brd.occupied[!isWhite] & checkMask;
-			quietMoves = getPawnMoves(from, brd, isWhite) & checkMask;
-			ep = getPawnEP(posBB, st.EP, isWhite) & (checkMask | pawnCheckMask);
+			attacks = getPawnAttacks(from, isWhite) & brd.occupied[!isWhite] & checkMask;
+			quietMoves = generatePawnMoves(from, brd, isWhite) & checkMask;
+			ep = getPawnEP(from, st.EP, isWhite) & (checkMask | pawnCheckMask);
 
 			/*
 
@@ -719,7 +731,7 @@ namespace KRONOS
 				if (king & epRank(!isWhite)) {
 					// we have to check whether there is either a rook or a queen on the same rank
 					// also we have to check that the attacking piece isn't blocked either
-					if ((getRookAttacks(brd.occupied[BOTH] & ~u64((posBB) | (1ULL << (isWhite ? (st.EP - 8) : (st.EP + 8)))), kingPos)
+					if ((getRookAttacks(brd.occupied[BOTH] & ~u64((posBB) | (getTileBB(isWhite ? (st.EP - 8) : (st.EP + 8)))), kingPos)
 						& epRank(!isWhite))
 						& (brd.pieceLocations[!isWhite][ROOK] | brd.pieceLocations[!isWhite][QUEEN])) {
 						ep = EMPTY;
@@ -734,9 +746,7 @@ namespace KRONOS
 			from = bitScanForward(knights);
 			popBit(knights, from);
 
-			posBB = 1ULL << from;
-
-			quietMoves = getKnightAttacks(posBB) & EnemyAndEmpty(brd, isWhite) & checkMask;
+			quietMoves = getKnightAttacks(from) & EnemyAndEmpty(brd, isWhite) & checkMask;
 			attacks = quietMoves & brd.occupied[!isWhite];
 			quietMoves ^= attacks;
 
@@ -778,7 +788,7 @@ namespace KRONOS
 
 		from = bitScanForward(king);
 
-		quietMoves = getKingAttacks(king) & EnemyAndEmpty(brd, isWhite) & ~kingBan;
+		quietMoves = getKingAttacks(from) & EnemyAndEmpty(brd, isWhite) & ~kingBan;
 		attacks = quietMoves & brd.occupied[!isWhite];
 		quietMoves ^= attacks;
 
@@ -794,22 +804,9 @@ namespace KRONOS
 
 	}
 
-	inline BitBoard generateAttacksToSquare(Position* position, int tile)
-	{
-		BitBoard attackers = 0ULL;
-		attackers |= (getPawnAttacks((1ULL << tile), BLACK) & position->board.pieceLocations[WHITE][PAWN]);
-		attackers |= (getPawnAttacks((1ULL << tile), WHITE) & position->board.pieceLocations[BLACK][PAWN]);
-		attackers |= (getKnightAttacks(1ULL << tile) & (position->board.pieceLocations[WHITE][KNIGHT] | position->board.pieceLocations[BLACK][KNIGHT]));
-		attackers |= (getBishopAttacks(position->board.occupied[BOTH], tile) & (position->board.pieceLocations[WHITE][BISHOP] | position->board.pieceLocations[BLACK][BISHOP] | position->board.pieceLocations[WHITE][QUEEN] | position->board.pieceLocations[BLACK][QUEEN]));
-		attackers |= (getRookAttacks(position->board.occupied[BOTH], tile) & (position->board.pieceLocations[WHITE][ROOK] | position->board.pieceLocations[BLACK][ROOK] | position->board.pieceLocations[WHITE][QUEEN] | position->board.pieceLocations[BLACK][QUEEN]));
-		attackers |= (getKingAttacks((1ULL << tile)) & (position->board.pieceLocations[WHITE][KING] | position->board.pieceLocations[BLACK][KING]));
-		return attackers;
-	}
-
 	constexpr int perft(std::vector<Position>& positions, int ply, int depth) {
-		if (depth < 1) {
+		if (depth < 1)
 			return 1;
-		}
 
 		Move_List moves;
 		generateMoves(positions.at(ply).status.isWhite, positions.at(ply).board, positions.at(ply).status, moves);

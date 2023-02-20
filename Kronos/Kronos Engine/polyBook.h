@@ -20,7 +20,6 @@ namespace KRONOS
 		{
 			// picks a random move based on the weight of each move
 			RANDOM,
-			PURE_RANDOM,
 			// picks the move with the highest weight, if there are multiple equal weights, pick one of them randomly
 			BEST_WEIGHT,
 			DEFAULT = BEST_WEIGHT
