@@ -81,6 +81,9 @@ std::optional<KRONOS::Move> Kronos_Board_UI::dropPiece(sf::RenderWindow& window,
 void Kronos_Board_UI::renderKronosBoard(sf::RenderWindow& window, KRONOS::Board* board, bool whiteBottom) {
 	window.draw(boardSprite);
 
+	if (board == nullptr)
+		return;
+
 	for (auto& colour : { KRONOS::WHITE, KRONOS::BLACK }) {
 		for (auto& piece : { KRONOS::PAWN, KRONOS::KNIGHT, KRONOS::BISHOP, KRONOS::ROOK, KRONOS::QUEEN, KRONOS::KING }) {
 			KRONOS::BitBoard bb = board->pieceLocations[colour][piece];

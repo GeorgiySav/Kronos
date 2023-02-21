@@ -1,4 +1,4 @@
-#include "Kronos_Application.h"
+﻿#include "Kronos_Application.h"
 #include "./Kronos Engine/PGN.h"
 
 #include <cstdio>
@@ -55,6 +55,7 @@ Kronos_Application::Kronos_Application()
 		evalText.setFillColor(sf::Color::Red);
 	}
 
+	
 	// imgui styling
 	{
 
@@ -165,7 +166,7 @@ void Kronos_Application::createKronosSetting(const std::string& enterMessage, co
 
 void Kronos_Application::run()
 {
-
+	kronosEngine->createGame<KRONOS::GAME_TYPE::ANALYSIS>();
 	kronosEngine->beginInfiniteSearch();
 
 	static int previousEval = 32001;
@@ -175,6 +176,8 @@ void Kronos_Application::run()
 	ImFont* mainFont = io.Fonts->AddFontFromFileTTF("./JetBrains Mono NL Bold Nerd Font Complete Mono Windows Compatible.ttf", 15);
 	ImGui::SFML::UpdateFontTexture();
 	IM_ASSERT(mainFont != NULL);
+
+	srand(time(0));
 
 	while (running) {
 		
@@ -186,12 +189,20 @@ void Kronos_Application::run()
 				pgnMoves.push_back(kronosEngine->getPgnMove(bMove));
 				kronosEngine->makeMove(bMove);
 				previewPly = pgnMoves.size();
-				kronosEngine->beginInfiniteSearch();
+				if (kronosEngine->getGameState() != KRONOS::GAME_STATE::PLAYING) {
+					renderEndOfGamePopUp = true;
+				}
+				else {
+					kronosEngine->beginInfiniteSearch();
+				}
 			}
 		}
 
 		if (previousEval != kronosEngine->getScoreEvaluated()) {
-			previousEval = kronosEngine->getScoreEvaluated();
+			if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::ANALYSIS)
+				previousEval = kronosEngine->getScoreEvaluated();
+			else
+				previousEval = 0;
 
 			float eval = previousEval * (kronosEngine->getStatusPointer()->isWhite ? 1 : -1);
 			float evalBarScale = calculateEvalBar(eval, whiteBottom);
@@ -237,7 +248,15 @@ void Kronos_Application::run()
 			pgnMoves.push_back(kronosEngine->getPgnMove(move.value()));
 			kronosEngine->makeMove(move.value());
 			previewPly = pgnMoves.size();
-			kronosEngine->beginInfiniteSearch();
+			if (kronosEngine->getGameState() != KRONOS::GAME_STATE::PLAYING) {
+				renderEndOfGamePopUp = true;
+			}
+			else if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_AI) {
+				kronosEngine->startSearchForBestMove();
+			}
+			else {
+				kronosEngine->beginInfiniteSearch();
+			}
 		}
 
 		// menu bar
@@ -246,15 +265,26 @@ void Kronos_Application::run()
 			if (ImGui::BeginMenu("Import")) {
 				if (ImGui::BeginMenu("FEN")) {
 					static char buffer[100];
+					ImGui::PushItemWidth(500.f);
 					if (ImGui::InputText("##", buffer, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
 						kronosEngine->stopInfiniteSearch();
-						kronosEngine->setFen(std::string(buffer));
+						kronosEngine->createGame<KRONOS::GAME_TYPE::ANALYSIS>(std::string(buffer));
 						kronosEngine->beginInfiniteSearch();
 						pgnMoves.clear();
 						memset(buffer, 0, sizeof(buffer));
 					}
+					ImGui::PopItemWidth();
 					ImGui::EndMenu();
 				}
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Export")) {
+				static char buffer[100];
+				strcpy(buffer, kronosEngine->getFen().c_str());
+				ImGui::PushItemWidth(500.f);
+				ImGui::InputText("##fe", buffer, 100, ImGuiInputTextFlags_ReadOnly);
+				ImGui::PopItemWidth();
 				ImGui::EndMenu();
 			}
 
@@ -265,7 +295,7 @@ void Kronos_Application::run()
 				}
 				if (ImGui::BeginMenu("Kronos Settings")) {
 
-					ImGui::BeginChild("##ks", ImVec2(470, 200), true);
+					ImGui::BeginChild("##ks", ImVec2(470, 130), true);
 
 					ImGui::Columns(2);
 					ImGui::SetColumnWidth(0, 300);
@@ -343,17 +373,20 @@ void Kronos_Application::run()
 					clearWarningPopUp = true;
 				}
 
-				if (ImGui::Button("Analysis")) {
+				if (ImGui::Button("Analysis", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
 					createAnalysis = true;
 					ImGui::OpenPopup("Clear Warning");
 					clearWarningPopUp = true;
 				}
 
-				if (ImGui::BeginPopupModal("Clear Warning", &clearWarningPopUp)) {
+				if (ImGui::BeginPopupModal("Clear Warning", &clearWarningPopUp, ImGuiWindowFlags_AlwaysUseWindowPadding |
+					ImGuiWindowFlags_NoCollapse |
+					ImGuiWindowFlags_NoResize |
+					ImGuiWindowFlags_NoMove)) {
 					ImGui::Text("The current board will be cleared");
 					ImGui::Text("Do you wish to proceed?");
 
-					if (ImGui::Button("Yes")) {
+					if (ImGui::Button("Yes", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.4775, 0))) {
 						clearWarningPopUp = false;
 
 						enterGameOptionsPopUp = true;
@@ -361,7 +394,7 @@ void Kronos_Application::run()
 						ImGui::CloseCurrentPopup();
 					}
 					ImGui::SameLine();
-					if (ImGui::Button("No")) {
+					if (ImGui::Button("No", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.4775, 0))) {
 						clearWarningPopUp = false;
 						createAIgame = false;
 						createOtB = false;
@@ -375,19 +408,24 @@ void Kronos_Application::run()
 				if (enterGameOptionsPopUp)
 					ImGui::OpenPopup("Enter Game Options");
 
-				if (ImGui::BeginPopupModal("Enter Game Options", &enterGameOptionsPopUp)) {
+				if (ImGui::BeginPopupModal("Enter Game Options", &enterGameOptionsPopUp, ImGuiWindowFlags_AlwaysUseWindowPadding |
+					ImGuiWindowFlags_NoCollapse |
+					ImGuiWindowFlags_NoResize |
+					ImGuiWindowFlags_NoMove)) {
 					ImGui::Text("Enter the FEN for the position");
 					ImGui::Text("Leaving it empty will result in the starting position");
 
 					static char buffer[100];
+					ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth());
 					ImGui::InputText("##ef", buffer, 100);
-				
+					ImGui::PopItemWidth();
+
 					static int selectedSide = KRONOS::WHITE;
 
 					if (createAIgame) {
 						if (selectedSide == KRONOS::WHITE)
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
-						bool selected = ImGui::Button("WHITE");
+						bool selected = ImGui::Button("WHITE", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.32, 0));
 						if (selectedSide == KRONOS::WHITE)
 							ImGui::PopStyleColor();
 						if (selected) selectedSide = KRONOS::WHITE;
@@ -396,7 +434,7 @@ void Kronos_Application::run()
 
 						if (selectedSide == KRONOS::BOTH)
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
-						selected = ImGui::Button("RANDOM");
+						selected = ImGui::Button("RANDOM", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.315, 0));
 						if (selectedSide == KRONOS::BOTH)
 							ImGui::PopStyleColor();
 						if (selected) selectedSide = KRONOS::BOTH;
@@ -405,13 +443,13 @@ void Kronos_Application::run()
 
 						if (selectedSide == KRONOS::BLACK)
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
-						selected = ImGui::Button("BLACK");
+						selected = ImGui::Button("BLACK", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.32, 0));
 						if (selectedSide == KRONOS::BLACK)
 							ImGui::PopStyleColor();
 						if (selected) selectedSide = KRONOS::BLACK;
 					}
 
-					if (ImGui::Button("Enter")) {
+					if (ImGui::Button("Enter", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
 
 						if (kronosEngine->isInfiniting())
 							kronosEngine->stopInfiniteSearch();
@@ -439,6 +477,9 @@ void Kronos_Application::run()
 								break;
 							}
 							kronosEngine->createGame<KRONOS::GAME_TYPE::HUMAN_VS_AI>(buffer);
+							if (playerSide != kronosEngine->getStatusPointer()->isWhite) {
+								kronosEngine->startSearchForBestMove();
+							}
 							createAIgame = false;
 						}
 						else if (createOtB) {
@@ -460,7 +501,8 @@ void Kronos_Application::run()
 						enterGameOptionsPopUp = false;
 						ImGui::CloseCurrentPopup();
 
-						kronosEngine->beginInfiniteSearch();
+						if (!kronosEngine->isInfiniting() && !kronosEngine->isTimedSearching())
+							kronosEngine->beginInfiniteSearch();
 					}
 
 					ImGui::EndPopup();
@@ -473,9 +515,11 @@ void Kronos_Application::run()
 		}
 
 		// kronos information box
-		if (ImGui::Begin("KRONOS Information")) {
+		if (ImGui::Begin("KRONOS Information", NULL, ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove)) {
 			
-			if (ImGui::BeginTable("##engineInfo", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable)) {
+			if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::ANALYSIS && ImGui::BeginTable("##searchInfo", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable)) {
 				ImGui::TableSetupColumn("Depth");
 				ImGui::TableSetupColumn("Score");
 				ImGui::TableSetupColumn("Best Move");
@@ -507,31 +551,53 @@ void Kronos_Application::run()
 
 				ImGui::EndTable();
 			}
-
-			ImGui::Text("Is Searching: %s", (kronosEngine->isInfiniting() ? "True" : "False"));
 			
 			ImGui::End();
 		}
 
-		if (ImGui::Begin("Moves")) {
+		if (ImGui::Begin("Moves", NULL, ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove)) {
+
+			if ((kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_AI 
+				|| kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_HUMAN)
+				&& kronosEngine->getGameState() != KRONOS::GAME_STATE::PLAYING 
+				&& ImGui::Button("Analyse Game", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+
+				kronosEngine->changeGameToAnalysis();
+
+				ImGui::CloseCurrentPopup();
+				renderEndOfGamePopUp = false;
+			}
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-			if (ImGui::Button("<<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+			if (ImGui::Button("<<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = 0;
 			}
 			ImGui::SameLine();
-			if (ImGui::Button("<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+			if (ImGui::Button("<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = std::max(0, previewPly - 1);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button(">", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+			if (ImGui::Button(">", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = std::min(int(pgnMoves.size()), previewPly + 1);
 			}
 			ImGui::SameLine();
-			if (ImGui::Button(">>", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.25, 0))) {
+			if (ImGui::Button(">>", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = pgnMoves.size();
 			}
-
+			ImGui::SameLine();
+			if (ImGui::Button("undo", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
+				if (kronosEngine->isInfiniting())
+					kronosEngine->stopInfiniteSearch();
+				else if (kronosEngine->isTimedSearching())
+					kronosEngine->stopTimedSearch();
+				kronosEngine->unmakeMove();
+				kronosEngine->beginInfiniteSearch();
+				if (pgnMoves.size())
+					pgnMoves.pop_back();
+				previewPly = pgnMoves.size();
+			}
 			float h = ImGui::GetContentRegionAvail().y;
 			if (ImGui::BeginChild("##scrolling", ImVec2(0, h), true)) {
 				if (ImGui::BeginTable("Moves", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders)) {
@@ -556,13 +622,40 @@ void Kronos_Application::run()
 			ImGui::End();
 		}
 
-		if (ImGui::Begin("WHITE")) {
+		if (ImGui::Begin("WHITE", NULL, ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove)) {
 			ImGui::Text(std::string("Material difference: " + std::to_string(kronosEngine->getMaterialScore(KRONOS::WHITE))).c_str());
 			ImGui::End();
 		}
-		if (ImGui::Begin("BLACK")) {
+		if (ImGui::Begin("BLACK", NULL, ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove)) {
 			ImGui::Text(std::string("Material difference: " + std::to_string(kronosEngine->getMaterialScore(KRONOS::BLACK))).c_str());
 			ImGui::End();
+		}
+
+		if (renderEndOfGamePopUp)
+			ImGui::OpenPopup("End Of Game");
+		if (ImGui::BeginPopupModal("End Of Game", &renderEndOfGamePopUp, ImGuiWindowFlags_AlwaysUseWindowPadding |
+			ImGuiWindowFlags_NoCollapse |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove)) {
+			ImGui::Text("Game Finished");
+			ImGui::Text(KRONOS::GAME_STATE_STRINGS[(int)kronosEngine->getGameState()].c_str());
+			if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_AI || kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_HUMAN) {
+				if (ImGui::Button("Analyse Game", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+					kronosEngine->changeGameToAnalysis();
+
+					ImGui::CloseCurrentPopup();
+					renderEndOfGamePopUp = false;
+				}
+			}
+			if (ImGui::Button("Close", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+				ImGui::CloseCurrentPopup();
+				renderEndOfGamePopUp = false;
+			}
+			ImGui::EndPopup();
 		}
 
 		ImGui::PopFont();
@@ -573,7 +666,7 @@ void Kronos_Application::run()
 
 void Kronos_Application::render()
 {
-	window.clear(sf::Color::Blue);
+	window.clear(sf::Color(60.f, 60.f, 60.f, 255.f));
 	boardUI.renderKronosBoard(window, kronosEngine->getBoard(previewPly), whiteBottom);
 	window.draw(whiteBar);
 	window.draw(blackBar);
@@ -596,18 +689,6 @@ void Kronos_Application::processInputs() {
 		}
 
 		if (events.type == sf::Event::KeyPressed) {
-			if (events.key.code == sf::Keyboard::Backspace) {
-				kronosEngine->stopInfiniteSearch();
-				kronosEngine->unmakeMove();
-				kronosEngine->beginInfiniteSearch();
-				if (pgnMoves.size())
-					pgnMoves.pop_back();
-				previewPly = pgnMoves.size();
-			}
-			if (events.key.code == sf::Keyboard::G) {
-				kronosEngine->stopInfiniteSearch();
-				kronosEngine->startSearchForBestMove();
-			}
 		}
 		
 		if (events.type == sf::Event::MouseButtonPressed) {
@@ -629,8 +710,16 @@ void Kronos_Application::processInputs() {
 						else {
 							pgnMoves.push_back(kronosEngine->getPgnMove(move.value()));
 							kronosEngine->makeMove(move.value());
-							kronosEngine->beginInfiniteSearch();
 							previewPly = pgnMoves.size();
+							if (kronosEngine->getGameState() != KRONOS::GAME_STATE::PLAYING ) {
+								renderEndOfGamePopUp = true;
+							}
+							else if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_AI) {
+								kronosEngine->startSearchForBestMove();
+							}
+							else {
+								kronosEngine->beginInfiniteSearch();
+							}
 						}
 					}
 				}

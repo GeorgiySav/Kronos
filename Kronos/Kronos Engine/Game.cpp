@@ -18,27 +18,6 @@ namespace KRONOS
 		
 	}
 
-	void Game::setGameFEN(std::string FEN)
-	{
-		
-		this->clear();
-		positions[ply] = FENtoBoard(FEN);
-
-		checkGameState();
-	}
-
-	void Game::setGame()
-	{
-		this->clear();
-		positions[ply] = FENtoBoard(FEN_START_POSITION);
-		
-		gameState = GAME_STATE::PLAYING;
-
-		moves.clear();
-		generateMoves(positions[ply].status.isWhite, positions[ply].board, positions[ply].status, moves);
-	}
-
-	
 	void Game::checkGameState()
 	{
 		// check to see if the game has ended through checkmate or stalemate
@@ -180,6 +159,9 @@ namespace KRONOS
 		moves.clear();
 		positions.resize(MAX_PLY);
 		moveHistory.resize(MAX_PLY);
+		gameState = GAME_STATE::PLAYING;
+		gameType = GAME_TYPE::EMPTY;
+		materialScore[0] = 0, materialScore[1] = 0;
 		ply = 0;
 	}
 

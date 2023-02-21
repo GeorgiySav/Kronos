@@ -7,8 +7,8 @@
 
 #include "Kronos Engine/Kronos.h"
 
-#define DEFAULT_WINDOW_WIDTH 1280
-#define DEFAULT_WINDOW_HEIGHT 728
+#define DEFAULT_WINDOW_WIDTH 994
+#define DEFAULT_WINDOW_HEIGHT 729
 
 struct PieceSprite {
 	sf::Texture texture;

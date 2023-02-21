@@ -60,11 +60,6 @@ namespace KRONOS
 			game.undoMove();
 		}
 
-		void setFen(std::string FEN) {
-			game.clear();
-			game.setGameFEN(FEN);
-		}
-
 		void startSearchForBestMove() {
 			if (!busyTimed && !busyInfinite) {
 				std::cout << "Began timed search" << std::endl;
@@ -196,6 +191,22 @@ namespace KRONOS
 		template <GAME_TYPE type>
 		void createGame(const std::string& fen = FEN_START_POSITION) {
 			game.createGame<type>(fen);
+		}
+		
+		GAME_TYPE getGameType() {
+			return game.getGameType();
+		}
+
+		GAME_STATE getGameState() {
+			return game.getGameState();
+		}
+
+		void changeGameToAnalysis() {
+			game.changeToAnalysis();
+		}
+
+		std::string getFen() {
+			return game.getFen();
 		}
 
 	};

@@ -153,93 +153,118 @@ namespace KRONOS
 		position.hash = HASH::zobrist.generateHash(position);
 
 		return position;
-
 	}
 
 	std::string BoardToFEN(const Position* position)
 	{
 		std::string FEN = "";
 		int emptyCount = 0;
-
-		for (int tile = 0; tile < 64; tile++)
-		{
-			if (tile % 8 == 0)
-			{
-				if (emptyCount)
-				{
-					FEN += std::to_string(emptyCount);
-					emptyCount = 0;
+		
+		for (int row = 7; row >= 0; row--) {
+			for (int rank = 0; rank < 8; rank++) {
+				int tile = 8 * row + rank;
+				if (tile % 8 == 0) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "/";
 				}
-				FEN += "/";
-			}
 
-			if (position->board.pieceLocations[WHITE][PAWN] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "P";
-			}
-			else if (position->board.pieceLocations[BLACK][PAWN] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "p";
-			}
-			else if (position->board.pieceLocations[WHITE][KNIGHT] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "N";
-			}
-			else if (position->board.pieceLocations[BLACK][KNIGHT] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "n";
-			}
-			else if (position->board.pieceLocations[WHITE][BISHOP] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "B";
-			}
-			else if (position->board.pieceLocations[BLACK][BISHOP] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "b";
-			}
-			else if (position->board.pieceLocations[WHITE][ROOK] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "R";
-			}
-			else if (position->board.pieceLocations[BLACK][ROOK] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "r";
-			}
-			else if (position->board.pieceLocations[WHITE][QUEEN] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "Q";
-			}
-			else if (position->board.pieceLocations[BLACK][QUEEN] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "q";
-			}
-			else if (position->board.pieceLocations[WHITE][KING] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "K";
-			}
-			else if (position->board.pieceLocations[BLACK][KING] & (1ULL << tile)) {
-				if (emptyCount)
-					FEN += std::to_string(emptyCount);
-				FEN += "k";
-			}
-			else {
-				emptyCount++;
+				if (position->board.pieceLocations[WHITE][PAWN] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "P";
+				}
+				else if (position->board.pieceLocations[BLACK][PAWN] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "p";
+				}
+				else if (position->board.pieceLocations[WHITE][KNIGHT] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "N";
+				}
+				else if (position->board.pieceLocations[BLACK][KNIGHT] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "n";
+				}
+				else if (position->board.pieceLocations[WHITE][BISHOP] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "B";
+				}
+				else if (position->board.pieceLocations[BLACK][BISHOP] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "b";
+				}
+				else if (position->board.pieceLocations[WHITE][ROOK] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "R";
+				}
+				else if (position->board.pieceLocations[BLACK][ROOK] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "r";
+				}
+				else if (position->board.pieceLocations[WHITE][QUEEN] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "Q";
+				}
+				else if (position->board.pieceLocations[BLACK][QUEEN] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "q";
+				}
+				else if (position->board.pieceLocations[WHITE][KING] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "K";
+				}
+				else if (position->board.pieceLocations[BLACK][KING] & (1ULL << tile)) {
+					if (emptyCount) {
+						FEN += std::to_string(emptyCount);
+						emptyCount = 0;
+					}
+					FEN += "k";
+				}
+				else {
+					emptyCount++;
+				}
 			}
 		}
 
 		if (emptyCount)
 			FEN += std::to_string(emptyCount);
+
+		FEN.erase(FEN.begin());
 
 		FEN += " ";
 

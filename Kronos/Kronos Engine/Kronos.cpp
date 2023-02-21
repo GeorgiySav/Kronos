@@ -22,8 +22,6 @@ KronosEngine::KronosEngine()
 	else
 		std::cout << "failed to initialise syzygy" << std::endl;
 
-	game.setGame();
-
 	NUM_THREADS = std::thread::hardware_concurrency();
 	search.initSearchThreads(NUM_THREADS - 3);
 

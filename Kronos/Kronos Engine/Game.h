@@ -20,13 +20,13 @@ namespace KRONOS
 	};
 
 	static std::string GAME_STATE_STRINGS[] = {
-		"PLAYING",
-		"WHITE_DEALT_CHECKMATE",
-		"BLACK_DEALT_CHECKMATE",
-		"DRAW_TO_50_MOVE",
-		"DRAW_TO_STALEMATE",
-		"DRAW_TO_REPETITION",
-		"DRAW_TO_LACK_OF_MATERIAL",
+		"Playing",
+		"White dealt checkmate",
+		"Black dealt checkmate",
+		"Draw to 50 move",
+		"Stalemate",
+		"Draw to repition",
+		"Draw to lack of material",
 		"CANCELLED_GAME"
 	};
 
@@ -57,8 +57,6 @@ namespace KRONOS
 		~Game();
 	
 		void clear();
-		void setGameFEN(std::string FEN);
-		void setGame();
 
 		template <GAME_TYPE type>
 		void createGame(const std::string& FEN)
@@ -104,6 +102,14 @@ namespace KRONOS
 
 		int getMaterial(bool side) {
 			return materialScore[side];
+		}
+
+		void changeToAnalysis() {
+			gameType = GAME_TYPE::ANALYSIS;
+		}
+
+		std::string getFen() {
+			return BoardToFEN(&positions.at(ply));
 		}
 	
 	};

@@ -42,6 +42,7 @@ private:
 	float playerInfoOffset = 1.5f + 50.0f + 600.0f + 1.5f;
 	sf::Vector2f evalBarPos;
 
+	bool renderEndOfGamePopUp = false;
 
 	// engine
 	std::unique_ptr<KRONOS::KronosEngine> kronosEngine;
