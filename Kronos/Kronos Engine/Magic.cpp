@@ -6,25 +6,40 @@
 
 namespace KRONOS
 {
+	template<int tblSize>
+	struct Magic {
+		BitBoard mask;
+		int shift;
+		u64 attacks[tblSize] = {};
+
+		Magic() : mask(0), shift(0) {}
+		~Magic() {}
+
+		// adds an attack bitboard to tablebase
+		void addAttack(int index, u64 attack) {
+			attacks[index] = attack;
+		}
+	};
 
 	Magic<512> mBishopTable[64];
 	Magic<4096> mRookTable[64];
 	
 	u64 generateBishopMask(int tile) {
-		u64 mask = 0ULL;
+		u64 mask = EMPTY;
 
 		mask |= rays[tile][NORTH_EAST];
 		mask |= rays[tile][NORTH_WEST];
 		mask |= rays[tile][SOUTH_EAST];
 		mask |= rays[tile][SOUTH_WEST];
 
+		// removes on bits on the edges of the bitboard
 		mask &= ~(fileMask[A] | fileMask[H] | rankMask[RANK_1] | rankMask[RANK_8]);
 
 		return mask;
 	}
 
 	u64 generateRookMask(int tile) {
-		u64 mask = 0ULL;
+		u64 mask = EMPTY;
 
 		mask |= rays[tile][NORTH] & ~(rankMask[RANK_8]);
 		mask |= rays[tile][EAST] & ~(fileMask[H]);
@@ -36,7 +51,6 @@ namespace KRONOS
 
 	u64 generateRookAttack(BitBoard blockers, int tile) {
 		u64 attacks = EMPTY;
-
 
 		/*
 
@@ -120,6 +134,9 @@ namespace KRONOS
 		return mBishopTable[tile].attacks[occ];
 	}
 
+	// gets the occupancy bitboard from a mask and index
+	// with the index being 0 the occ bitboard will contain no blockers
+	// with the index being the max value, the occ will contain all blockers
 	BitBoard occupancyFromIndex(int index, u64 mask) {
 		u64 blockers = EMPTY;
 		int bits = populationCount(mask);
@@ -168,10 +185,4 @@ namespace KRONOS
 
 		}
 	}
-
-	void deleteMagics()
-	{
-		
-	}
-
 } // namespace KRONOS

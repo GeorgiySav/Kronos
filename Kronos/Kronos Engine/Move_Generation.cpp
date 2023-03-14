@@ -249,20 +249,6 @@ namespace KRONOS
 
 	}
 
-	inline Position newPosition(Position curPos, Move move) {
-		Position newPos = curPos;
-		updatePosition(newPos, move);
-		return newPos;
-	}
-
-	inline void makeNullMove(Position& position) {
-		u64 newHash = position.hash;
-		HASH::zobrist.nullMove(newHash, position.status.EP);
-		position.status.isWhite = !position.status.isWhite;
-		position.status.EP = no_Tile;
-		position.hash = newHash;
-	}
-
 	constexpr BitBoard EnemyAndEmpty(const Board& brd, bool isWhite) {
 		if (isWhite) return ~brd.occupied[WHITE];
 		return ~brd.occupied[BLACK];
@@ -827,7 +813,6 @@ namespace KRONOS
 			auto begin = std::chrono::steady_clock::now();
 			std::cout << "PLY " << i << ": " << perft(positions, 0, i) << " | Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin).count() << "\n";
 		}
-		std::cout << "";
 	}
 
 } // namespace KRONOS

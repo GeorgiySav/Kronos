@@ -14,11 +14,8 @@ namespace KRONOS {
 		}; 
 
 		Evaluation::Evaluation()
-			: position(Position()), ally(false), enem(false) 
-		{
-
+			: position(Position()), ally(false), enem(false) {
 			totalPhase = PARAM.QUEEN_PHASE * 2 + PARAM.ROOK_PHASE * 4 + PARAM.BISHOP_PHASE * 4 + PARAM.KNIGHT_PHASE * 4;
-
 		}
 
 		Evaluation::~Evaluation() {
@@ -26,7 +23,6 @@ namespace KRONOS {
 		}
 
 		constexpr void Evaluation::initialise(bool side) {
-
 			phase = 0;
 
 			BitBoard kingBB = position.board.pieceLocations[side][KING];
@@ -44,7 +40,6 @@ namespace KRONOS {
 		}
 
 		constexpr Score Evaluation::countMaterial(bool side) {
-
 			Score score = SCORE_ZERO;
 			score += PARAM.PAWN_VALUE * populationCount(position.board.pieceLocations[side][PAWN]);
 
@@ -118,7 +113,7 @@ namespace KRONOS {
 					if (getTileBB(tile) & outpostTiles)
 						score += PARAM.KNIGHT_OUTPOST_BONUS;
 					else if (atks & outpostTiles & ~position.board.occupied[side])
-						score += PARAM.KNIGHT_X_OUTPOST_BONUS;				
+						score += PARAM.KNIGHT_ATK_OUTPOST_BONUS;				
 				}
 				if constexpr (pieceType == BISHOP)
 				{
@@ -202,8 +197,8 @@ namespace KRONOS {
 			shelter += PARAM.KING_SHELTER_F1 * populationCount(kingShelter & shelterMask1 & kingFileMask);
 			shelter += PARAM.KING_SHELTER_2 * populationCount(kingShelter & shelterMask2 & ~kingFileMask);
 			shelter += PARAM.KING_SHELTER_F2 * populationCount(kingShelter & shelterMask2 & kingFileMask);
-			shelter += PARAM.KingStorm1 * populationCount(kingStorm & shelterMask2);
-			shelter += PARAM.KingStorm2 * populationCount(kingStorm & shelterMask3);
+			shelter += PARAM.KING_STORM_1 * populationCount(kingStorm & shelterMask2);
+			shelter += PARAM.KING_STORM_2 * populationCount(kingStorm & shelterMask3);
 
 			return shelter;
 		}
@@ -274,8 +269,8 @@ namespace KRONOS {
 				popBit(passers, tile);
 
 				int rank = side == WHITE ? tile / 8 : 7 - tile / 8;
-				score += PARAM.PASSER_DIST_ALLY[rank] * std::max(std::abs(int(kingPos / 8) - int(tile / 8)), std::abs((kingPos % 8) - (tile % 8)));
-				score += PARAM.PASSER_DIST_ENEMY[rank] * std::max(std::abs(int(enemKingPos / 8) - int(tile / 8)), std::abs((enemKingPos % 8) - (tile % 8)));
+				score += PARAM.PASSED_DISTANCE_TO_ALLY[rank] * std::max(std::abs(int(kingPos / 8) - int(tile / 8)), std::abs((kingPos % 8) - (tile % 8)));
+				score += PARAM.PASSED_DISTANCE_TO_ENEMY[rank] * std::max(std::abs(int(enemKingPos / 8) - int(tile / 8)), std::abs((enemKingPos % 8) - (tile % 8)));
 				score += PARAM.PASSER_BONUS[rank];
 				
 				if (getTileBB(tile) & notBlocked)
@@ -283,7 +278,7 @@ namespace KRONOS {
 				if (getTileBB(tile) & safePush)
 					score += PARAM.PASSER_SAFE_PUSH[rank];
 				if (getTileBB(tile) & safeProm)
-					score += PARAM.PASSER_SAFE_PROM[rank];
+					score += PARAM.PASSER_SAFE_PROMOTION[rank];
 			}
 
 			return score;
@@ -299,13 +294,13 @@ namespace KRONOS {
 			push |= pawnPush(push, side) & epRank(side) & safePush;
 			score += PARAM.THREAT_PAWN_PUSH_VALUE * populationCount(push & pushTarget);
 			score += PARAM.THREAT_WEAK_PAWNS_VALUE * populationCount(position.board.pieceLocations[!side][PAWN] & weakTiles);
-			score += PARAM.THREAT_PAWNSxMINORS_VALUE * populationCount(attacks[side][PAWN] & minors);
-			score += PARAM.THREAT_MINORSxMINORS_VALUE * populationCount((attacks[side][KNIGHT] | attacks[side][BISHOP]) & minors);
-			score += PARAM.THREAT_MAJORSxWEAK_MINORS_VALUE * populationCount((attacks[side][ROOK] | attacks[side][QUEEN]) & minors & weakTiles);
-			score += PARAM.THREAT_PAWN_MINORSxMAJORS_VALUE * populationCount((attacks[side][PAWN] | attacks[side][KNIGHT] | attacks[side][BISHOP]) & (position.board.pieceLocations[!side][ROOK] | position.board.pieceLocations[!side][QUEEN]));
-			score += PARAM.THREAT_ALLxQUEENS_VALUE * populationCount(attacks[side][6] & position.board.pieceLocations[!side][QUEEN]);
-			score += PARAM.THREAT_KINGxMINORS_VALUE * populationCount(attacks[side][KING] & minors & weakTiles);
-			score += PARAM.THREAT_KINGxROOKS_VALUE * populationCount(attacks[side][KING] & position.board.pieceLocations[!side][ROOK] & weakTiles);
+			score += PARAM.THREAT_PAWNS_ATK_MINORS_VALUE * populationCount(attacks[side][PAWN] & minors);
+			score += PARAM.THREAT_MINORS_ATK_MINORS_VALUE * populationCount((attacks[side][KNIGHT] | attacks[side][BISHOP]) & minors);
+			score += PARAM.THREAT_MAJORS_ATK_WEAK_MINORS_VALUE * populationCount((attacks[side][ROOK] | attacks[side][QUEEN]) & minors & weakTiles);
+			score += PARAM.THREAT_PAWN_MINORS_ATK_MAJORS_VALUE * populationCount((attacks[side][PAWN] | attacks[side][KNIGHT] | attacks[side][BISHOP]) & (position.board.pieceLocations[!side][ROOK] | position.board.pieceLocations[!side][QUEEN]));
+			score += PARAM.THREAT_ALL_ATK_QUEENS_VALUE * populationCount(attacks[side][6] & position.board.pieceLocations[!side][QUEEN]);
+			score += PARAM.THREAT_KING_ATK_MINORS_VALUE * populationCount(attacks[side][KING] & minors & weakTiles);
+			score += PARAM.THREAT_KING_ATK_ROOKS_VALUE * populationCount(attacks[side][KING] & position.board.pieceLocations[!side][ROOK] & weakTiles);
 			return score;
 		}
 

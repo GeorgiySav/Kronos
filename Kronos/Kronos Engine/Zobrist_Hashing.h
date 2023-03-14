@@ -21,8 +21,8 @@ namespace KRONOS {
 			~ZobristGenerator() {};
 
 			u64 generateHash(const Position& position);
+			// applies a move to a hash
 			void updateHash(const Position& prevPos, Position& position, Move& move);
-			void nullMove(u64& hash, int oldEP);
 		};
 
 		inline ZobristGenerator zobrist;

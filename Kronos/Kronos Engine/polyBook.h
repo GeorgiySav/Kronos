@@ -30,13 +30,18 @@ namespace KRONOS
 			POLY_BOOK_ENTRY* book = nullptr;
 			int numEntries = 0;
 			POLY_MODE mode;
+			// decodes a polyglot integer move to a kronos move
 			constexpr Move decodeU16Move(u16 move, const Position* position);
 		public:
 			Opening_Book();
 			~Opening_Book();
+			// sets the mode of the book
 			void setMode(POLY_MODE mode);
+			// loads a opening book into RAM
 			void readBook(const char* filename);
+			// calculates the polyglot hash of a position
 			u64 polyKeyFromPosition(const Position* position);
+			// returns a book move if the position is found in the opening book
 			Move getBookMove(const Position* position);
 		};
 

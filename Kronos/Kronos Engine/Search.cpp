@@ -14,9 +14,6 @@ namespace KRONOS
 	{
 
 		int LMR[64][64];
-		int LMP[2][9];
-
-		const int LATE_MOVE_PRUNING_DEPTH = 8;
 
 		void initVars() {
 			for (int d = 1; d < 64; d++) {
@@ -100,7 +97,7 @@ namespace KRONOS
 			while (index >= 0) {
 				if (threadPositions.at(index).hash == hash) {
 					count++;
-					if (count >= 3)
+					if (count >= 2)
 						return true;
 				}
 				index--;
@@ -109,7 +106,7 @@ namespace KRONOS
 			while (index >= 0) {
 				if (previousPositions->at(index).hash == hash) {
 					count++;
-					if (count >= 3)
+					if (count >= 2)
 						return true;
 				}
 				index--;
@@ -139,6 +136,7 @@ namespace KRONOS
 
 		void Search_Thread::updateKillers(Move& newMove)
 		{
+			// don't update killer moves if the killer move is already the new move
 			if (newMove != killer1.at(threadPly)) {
 				killer2.at(threadPly) = killer1.at(threadPly);
 				killer1.at(threadPly) = newMove;
@@ -151,6 +149,7 @@ namespace KRONOS
 			u64& nodeHash = nodePosition.hash;
 			bool nodeCheck = inCheck(nodePosition);
 
+			// check for draws
 			if (stop || stopIter)
 				return 0;
 			if (repeatedDraw())
@@ -166,6 +165,7 @@ namespace KRONOS
 				return alpha;
 			}
 
+			// probe the transposition table
 			transEntry tte;
 			tte.move = NULL;
 			int16_t tteEval = UNDEFINED;
@@ -178,6 +178,7 @@ namespace KRONOS
 				}
 			}
 
+			// probe the SYZYGY table
 			int wdl = SYZYGY::probeWDL(&nodePosition);
 			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
 			{
@@ -208,7 +209,6 @@ namespace KRONOS
 			int movesSearched = 0;
 
 			while (movePicker.nextMove(*this, move)) {
-
 				// make the move
 				threadPly++;
 				threadPositions.at(threadPly) = nodePosition;
@@ -225,6 +225,7 @@ namespace KRONOS
 				if (stop || stopIter)
 					return 0;
 
+				// alpha beta
 				if (score > bestScore) {
 					bestScore = score;
 					if (score > alpha) {
@@ -236,6 +237,7 @@ namespace KRONOS
 				}
 
 			}
+			// check for mates
 			if (movesSearched == 0) {
 				if (nodeCheck)
 					return -MATE + plyFromRoot;
@@ -254,10 +256,12 @@ namespace KRONOS
 			bool nodeCheck = inCheck(nodePosition);
 			int16_t nodeEval = UNDEFINED;
 
+			// terminate condition
 			if (depth < 1) {
 				return quiescence(alpha, beta, plyFromRoot, inPV);
 			}
 
+			// check for draws
 			if (stop || stopIter)
 				return 0;
 			if (repeatedDraw())
@@ -273,6 +277,7 @@ namespace KRONOS
 				return alpha;
 			}
 
+			// probe transposition table
 			transEntry tte;
 			tte.move = NULL;
 			if (SM.transTable.probe(nodeHash, tte)) {
@@ -285,6 +290,7 @@ namespace KRONOS
 				}
 			}
 
+			// probe SYZYGY table
 			int wdl = SYZYGY::probeWDL(&nodePosition);
 			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
 			{
@@ -320,8 +326,9 @@ namespace KRONOS
 			// a position is improving if the eval has gone up compared to the position 2 ply ago
 			bool improving = !nodeCheck && threadPly >= 2 && (evalHistory.at(threadPly) > evalHistory.at(threadPly - 2) || evalHistory.at(threadPly - 2) == UNDEFINED);
 
-			// reduction based on pv, improving for quieet moves
+			// reduction based on pv, improving for quiet moves
 			int baseReduction = (!inPV) + (!improving);
+
 
 			while (movePicker.nextMove(*this, move)) { 
 				int score = 0;
@@ -333,23 +340,17 @@ namespace KRONOS
 				zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
 
 				if (movesSearched == 0) {
-
 					score = -alphaBeta(depth - 1, -beta, -alpha, plyFromRoot + 1, inPV);
-
 				}
 				else {
-
 					// Late Move Reductions
 					int R = 1;
 					if (!move.isTactical() && depth > 2) {
 						R = LMR[std::min(depth, 63)][std::min(movesSearched, 63)];
-					
 						R += baseReduction;
-					
 						// reduce killers less
 						if (move == killer1.at(threadPly - 1) || move == killer2.at(threadPly - 1))
 							R -= 2;
-					
 						// make sure that we don't extend or drop in quiescence search
 						R = std::min(depth - 1, std::max(R, 1));
 					}
@@ -360,11 +361,10 @@ namespace KRONOS
 					// if a reduced move fails high, research
 					if (score > alpha && R != 1)
 						score = -alphaBeta(depth - 1, -alpha - 1, -alpha, plyFromRoot + 1, false);
-
+					// if a node returns higher than expected, research
 					if (score > alpha && score < beta) {
 						score = -alphaBeta(depth - 1, -beta, -alpha, plyFromRoot + 1, inPV);
 					}
-
 				}
 				// undo move
 				threadPly--;
@@ -377,12 +377,14 @@ namespace KRONOS
 				if (!move.isTactical() && quiets.size() < 64)
 					quiets.add(move);
 
+				// alpha beta
 				if (score > bestScore) {
 					bestScore = score;
 					if (score > alpha) {
 						bound = BOUND::EXACT;
 						bestMoveInThisPosition = move;
 						if (score >= beta) {
+							// update killers if a beta cut off occurs
 							if (!move.isTactical())
 								updateKillers(move);
 							bound = BOUND::BETA;
@@ -391,8 +393,8 @@ namespace KRONOS
 						alpha = score;
 					}
 				}
-
 			}
+			// check for mates
 			if (movesSearched == 0) {
 				if (nodeCheck)
 					return -MATE + plyFromRoot;
@@ -400,6 +402,7 @@ namespace KRONOS
 					return 0;
 			}
 
+			// update history values if the best move is a quiet move
 			if (!bestMoveInThisPosition.isTactical()) {
 				updateHistory(bestMoveInThisPosition, quiets, nodePosition.status.isWhite, depth);
 			}
@@ -407,6 +410,7 @@ namespace KRONOS
 			if (bound == HASH::BOUND::EXACT && !inPV)
 				bound = HASH::BOUND::ALPHA;
 
+			// saves this node to the transposition table
 			SM.transTable.saveEntry(
 				nodeHash,
 				bestMoveInThisPosition.toIntMove(),
@@ -424,6 +428,7 @@ namespace KRONOS
 			bool nodeCheck = inCheck(nodePosition);
 			int16_t nodeEval = UNDEFINED;
 
+			// probe the transposition table
 			transEntry tte;
 			tte.move = NULL;
 			if (SM.transTable.probe(nodeHash, tte)) {
@@ -437,6 +442,7 @@ namespace KRONOS
 				NULL_MOVE,
 				NULL_MOVE);
 
+			// check for mates and stalemates
 			if (!movePicker.hasMoves()) {
 				if (nodeCheck)
 					return -MATE;
@@ -461,18 +467,14 @@ namespace KRONOS
 				zobrist.updateHash(nodePosition, threadPositions.at(threadPly), move);
 
 				if (movesSearched == 0) {
-
 					score = -alphaBeta(depth - 1, -beta, -alpha, 1, true);
-
 				}
 				else {
-
 					// Late Move Reductions
 					int R = 1;
 					if (!move.isTactical() && depth > 2) {
 						R = LMR[std::min(depth, 63)][std::min(movesSearched, 63)];
-					
-					
+						
 						// make sure that we don't extend or drop in quiescence search
 						R = std::min(depth - 1, std::max(R, 1));
 					}
@@ -505,6 +507,7 @@ namespace KRONOS
 						bestMoveThisIteration = move;
 						alpha = score;
 					}
+					// beta cut offs cannot occur in the first position
 				}
 
 			}
@@ -524,18 +527,6 @@ namespace KRONOS
 		}
 
 		Spin_Lock spinLock;
-
-		unsigned trailing_zeroes(int n) {
-			unsigned bits = 0, x = n;
-
-			if (x) {
-				while ((x & 1) == 0) {
-					++bits;
-					x >>= 1;
-				}
-			}
-			return bits;
-		}
 
 		void Search_Thread::interativeDeepening()
 		{
@@ -577,7 +568,6 @@ namespace KRONOS
 							SM.callWorseThreads();
 						}
 					}
-
 					spinLock.unlock();
 				}
 			}
@@ -587,9 +577,11 @@ namespace KRONOS
 		void Search_Thread::think()
 		{
 			while (!exitFlag) {
+				// when sleeping, wait for new instructions
 				if (sleepFlag) {
 					wait();
 				}
+				// otherwise perform the search and then sleep once completed
 				else {
 					interativeDeepening();
 					std::cout << "Thread " << ID << " is sleeping" << std::endl;
@@ -606,7 +598,6 @@ namespace KRONOS
 			threadPly = 0;
 			bestMoveThisIteration = NULL_MOVE;
 			bestMove = Search_Move();
-			numNodes = 0;
 			memset(historyTable, 0, sizeof(historyTable));
 			killer1.clear();
 			killer2.clear();

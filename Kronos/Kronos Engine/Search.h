@@ -32,6 +32,7 @@ namespace KRONOS
 			int getID() { return ID; }
 		};
 
+		// initialises tables
 		extern void initVars();
 
 		struct Search_Move {
@@ -64,25 +65,27 @@ namespace KRONOS
 
 			EVALUATION::Evaluation eval;
 
-			int numNodes;
-
 			bool stop;
 			bool stopIter;
 
 			int depth;
 
+			// checks if a position would end due to repeition
 			bool repeatedDraw();
+			// updates a history value
 			void updateHistory(Move& newMove, Move_List& quiets, bool side, int depth);
+			// updates killer moves
 			void updateKillers(Move& newMove);
 
 			int16_t quiescence(int alpha, int beta, int plyFromRoot, bool inPV);
 			int16_t alphaBeta(int depth, int alpha, int beta, int plyFromRoot, bool inPV);
 			int16_t root(int depth, int alpha, int beta);
 			void interativeDeepening();
+
+			// idle loop
 			void think();
 			
 			void setData(std::vector<Position>* prevPoss, int curPly);
-
 		public:
 			Search_Thread(int ID, Search_Manager& sm);
 			Search_Thread(const Search_Thread& other);

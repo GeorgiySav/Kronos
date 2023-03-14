@@ -106,21 +106,17 @@ namespace KRONOS
 
 			polyKey ^= (position->status.isWhite ? polyNums[780] : 0ULL);
 			return polyKey;
-
 		}
 
 		constexpr Move Opening_Book::decodeU16Move(u16 move, const Position* position)
 		{
-
 			/*
-			
 				000 000 000 000 000 move code
 				000 000 000 000 111 to file
 				000 000 000 111 000 to rank
 				000 000 111 000 000 from file
 				000 111 000 000 000 from rank
 				111 000 000 000 000 promotion
-
 			*/
 
 			constexpr int toFileMask =   0b111;
@@ -140,13 +136,14 @@ namespace KRONOS
 				flag = CAPTURE;
 			}
 
+			// check for en passant
 			if (position->status.EP != no_Tile
 				&& ((getTileBB(dMove.from) & position->board.pieceLocations[position->status.isWhite][PAWN]) && (getTileBB(dMove.to) & getTileBB(position->status.EP)))) {
 				flag = ENPASSANT;
 				dMove.moved_Piece = PAWN;
 			}
 			else {
-
+				// check for castling
 				if (getTileBB(dMove.from) & position->board.pieceLocations[position->status.isWhite][KING]) {
 					if (dMove.from == E1)
 					{
@@ -174,7 +171,7 @@ namespace KRONOS
 				}
 				else
 				{
-
+					// check for promotions
 					if (move & promoMask) {
 						switch ((move & promoMask) >> 12)
 						{
@@ -208,6 +205,7 @@ namespace KRONOS
 			return dMove;
 		}
 
+		// polyglot uses a different endian system so I have to swap their values to match mine
 		u16 endian_swap_u16(u16 x)
 		{
 			x = (x >> 8) |
@@ -228,34 +226,19 @@ namespace KRONOS
 			return x;
 		}
 
+		// returns a random move with the chance of picking a move being dependant on its weight
 		POLY_BOOK_ENTRY* getRandomMove(std::vector<POLY_BOOK_ENTRY>* moves)
 		{
 			unsigned int totalWeights = 0;
-			for (auto& move : *moves)
-			{
+			for (auto& move : *moves) {
 				totalWeights += move.weight;
 			}
 			float p = (rand() / static_cast<float>(RAND_MAX) * totalWeights);
 			POLY_BOOK_ENTRY* current = &moves->at(0);
-			while ((p -= current->weight) > 0)
-			{
+			while ((p -= current->weight) > 0) {
 				current++;
 			}
 			return current;
-		}
-
-		template<typename Iter, typename RandomGenerator>
-		Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
-			std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
-			std::advance(start, dis(g));
-			return start;
-		}
-
-		template<typename Iter>
-		Iter select_randomly(Iter start, Iter end) {
-			static std::random_device rd;
-			static std::mt19937 gen(rd());
-			return select_randomly(start, end, gen);
 		}
 
 		Move Opening_Book::getBookMove(const Position* position)
@@ -275,6 +258,7 @@ namespace KRONOS
 					return decodeU16Move(endian_swap_u16(getRandomMove(&entries)->move), position);
 				}
 				else if (mode == POLY_MODE::BEST_WEIGHT) {
+					// sort the opening book moves based on their weight
 				    std::sort(entries.begin(), entries.end(), [](const POLY_BOOK_ENTRY& X, const POLY_BOOK_ENTRY& Y) -> bool { return X.weight > Y.weight; });
 					
 					int upperLimit = 0;
@@ -282,6 +266,7 @@ namespace KRONOS
 					while (upperLimit < entries.size() - 1 && entries[upperLimit].weight == entries[upperLimit + 1].weight)
 						upperLimit++;
 
+					// if there are multiple best moves, then pick one randomly
 					if (upperLimit)
 						return decodeU16Move(endian_swap_u16(entries[rand() % upperLimit].move), position);
 					else

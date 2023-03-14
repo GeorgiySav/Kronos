@@ -3,7 +3,7 @@
 #include "consts.h"
 #include "Zobrist_Hashing.h"
 #include "FEN.h"
-#include "PGN.h"
+#include "AlgMove.h"
 
 namespace KRONOS
 {
@@ -43,7 +43,7 @@ namespace KRONOS
 			while (index >= 0) {
 				if (positions.at(index).hash == compHash) {
 					count = count + 1;
-					if (count >= 3) {
+					if (count >= 2) {
 						gameState = GAME_STATE::DRAW_TO_REPETITION;
 						return;
 					}
@@ -60,7 +60,6 @@ namespace KRONOS
 		}
 
 		// check to see if the game has ended through insufficient material
-
 		int numPieces = populationCount(positions[ply].board.occupied[BOTH]);
 		if (numPieces == 2) {
 			gameState = GAME_STATE::DRAW_TO_LACK_OF_MATERIAL;
@@ -80,13 +79,13 @@ namespace KRONOS
 			
 			if (whiteNum == blackNum) {
 				/*
-				    this means that both sides have a king and another pieces
+				    this means that both sides have a king and another piece
 					game will end by insufficient material if both sides have either a:
 						knight or
 						bishop
 				*/
 				if ((positions[ply].board.pieceLocations[WHITE][KNIGHT] | positions[ply].board.pieceLocations[WHITE][BISHOP]) &&
-					(positions[ply].board.pieceLocations[BLACK][KNIGHT] | positions[ply].board.pieceLocations[BLACK][KNIGHT])) {
+					(positions[ply].board.pieceLocations[BLACK][KNIGHT] | positions[ply].board.pieceLocations[BLACK][BISHOP])) {
 					gameState = GAME_STATE::DRAW_TO_LACK_OF_MATERIAL;
 					return;
 				}
@@ -97,7 +96,9 @@ namespace KRONOS
 					it is possible to checkmate with two knights, however it is very unlikely
 				*/
 				if (populationCount(positions[ply].board.pieceLocations[WHITE][BISHOP]) == 2
-				 || populationCount(positions[ply].board.pieceLocations[BLACK][BISHOP]) == 2) {
+				 || populationCount(positions[ply].board.pieceLocations[BLACK][BISHOP]) == 2
+				 || (positions[ply].board.pieceLocations[WHITE][BISHOP] && positions[ply].board.pieceLocations[WHITE][KNIGHT])
+				 || (positions[ply].board.pieceLocations[BLACK][BISHOP] && positions[ply].board.pieceLocations[BLACK][KNIGHT])) {
 					gameState = GAME_STATE::DRAW_TO_LACK_OF_MATERIAL;
 					return;
 				}
@@ -110,40 +111,40 @@ namespace KRONOS
 		static int materialScores[] = {
 			1, 3, 3, 5, 9
 		};
-		for (int p = 0; p <= QUEEN; p++) {
-			int whiteScore = 0;
-			whiteScore += materialScores[PAWN] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][PAWN]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][PAWN]));
-			whiteScore += materialScores[KNIGHT] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][KNIGHT]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][KNIGHT]));
-			whiteScore += materialScores[BISHOP] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][BISHOP]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][BISHOP]));
-			whiteScore += materialScores[ROOK] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][ROOK]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][ROOK]));
-			whiteScore += materialScores[QUEEN] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][QUEEN]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][QUEEN]));
-			materialScore[WHITE] = whiteScore;
-			materialScore[BLACK] = whiteScore * -1;
-		}
+		int whiteScore = 0;
+		whiteScore += materialScores[PAWN] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][PAWN]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][PAWN]));
+		whiteScore += materialScores[KNIGHT] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][KNIGHT]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][KNIGHT]));
+		whiteScore += materialScores[BISHOP] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][BISHOP]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][BISHOP]));
+		whiteScore += materialScores[ROOK] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][ROOK]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][ROOK]));
+		whiteScore += materialScores[QUEEN] * (populationCount(positions.at(ply).board.pieceLocations[WHITE][QUEEN]) - populationCount(positions.at(ply).board.pieceLocations[BLACK][QUEEN]));
+		materialScore[WHITE] = whiteScore;
+		materialScore[BLACK] = whiteScore * -1;
 	}
 
 	bool Game::makeMove(Move move)
-	{
-		
+	{	
 		if (gameState != GAME_STATE::PLAYING)
 			return false;
 
+		// increment ply, copy the last position into the new postion, apply the move
 		ply = ply + 1;
-		positions[ply] = positions[ply - 1];
+		if (ply == positions.size())
+			positions.push_back(positions[ply - 1]);
+		else
+			positions[ply] = positions[ply - 1];
 		
 		updatePosition(positions[ply], move);
 		positions[ply].hash = HASH::zobrist.generateHash(positions[ply]);
 		moveHistory[ply] = move;
 		
-		checkGameState();
-		
+		checkGameState();	
 		calculateMaterial();
 
 		return true;
-
 	}
 
 	void Game::undoMove() {
+		// decrement ply
 		if (ply > 0) {
 			ply = ply - 1;
 			gameState = GAME_STATE::PLAYING;

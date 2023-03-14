@@ -90,7 +90,7 @@
     <ClCompile Include="Kronos_UI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Kronos Engine\PGN.cpp">
+    <ClCompile Include="Kronos Engine\AlgMove.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -194,19 +194,13 @@
     <ClInclude Include="Kronos Engine\FEN.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Search_Manager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Kronos Engine\Search_Manager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Move_Picker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Kronos Engine\Move_Picker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Kronos Engine\PGN.h">
+    <ClInclude Include="Kronos Engine\AlgMove.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -246,7 +240,6 @@
     <None Include="Opening Books\Titans.bin">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Simplified_Overview.cd" />
     <None Include="Kronos_UI.cpp" />
   </ItemGroup>
 </Project>

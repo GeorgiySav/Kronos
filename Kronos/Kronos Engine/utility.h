@@ -21,9 +21,9 @@ namespace KRONOS
 
 	typedef unsigned short uShort;
 
-
 	typedef int basic_score;
 
+	// used for tapered evaluation
 	struct Score {
 		basic_score middleGame;
 		basic_score endGame;
@@ -52,8 +52,7 @@ namespace KRONOS
 
 	const Score SCORE_ZERO = Score(0, 0);
 
-
-
+	// counts the number of a particular character in a string
 	static int count(const std::string& str, char aChar)
 	{
 		int count = 0;
@@ -87,21 +86,5 @@ namespace KRONOS
 		while (it != s.end() && std::isdigit(*it)) ++it;
 		return !s.empty() && it == s.end();
 	}
-
-	template <typename T>
-	struct skip
-	{
-		T& t;
-		std::size_t n;
-		skip(T& v, std::size_t s) : t(v), n(s) {}
-		auto begin() -> decltype(std::begin(t))
-		{
-			return std::next(std::begin(t), n);
-		}
-		auto end() -> decltype(std::end(t))
-		{
-			return std::end(t);
-		}
-	};
 
 } // namespace KRONOS

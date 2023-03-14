@@ -13,7 +13,6 @@ namespace KRONOS {
 		typedef uint32_t HashLower;
 #define HASHLOWER(x) (HashLower)(x >> 32)
 #define BUCKET_SIZE 3
-#define ABDADA_BUCKET_SIZE 4
 
 		enum class BOUND : u8 {
 			EXACT,
@@ -35,6 +34,7 @@ namespace KRONOS {
 			
 			hashEntry* getEntry(const u64 hash) { return &table[hash & mask]; }
 			void clear() { memset(table, 0, size * sizeof(hashEntry)); }
+			// calculates the size of the table based on the number of MB given
 			void setSize(size_t sizeMB) {
 				size = sizeMB * 1000 * 1000;
 				size /= sizeof(hashEntry);
@@ -44,10 +44,10 @@ namespace KRONOS {
 				clear();
 			}
 			size_t getSizeMB() { return size * sizeof(hashEntry) / 1000 / 1000; }
+			// returns the lower 32 bits of a hash
 			HashLower lock(u64 hash) const { return HASHLOWER(hash); }
 		};
 
-		#pragma pack(push, 1)
 		struct transEntry
 		{
 			HashLower hashLock; // 32
@@ -62,11 +62,10 @@ namespace KRONOS {
 		private:
 			u8 age; // 8
 		};
-		#pragma pack(pop)
 
 		struct transBucket {
 			transEntry bucket[BUCKET_SIZE]; // 80 * 3 = 240
-			int16_t Padding;
+			int16_t Padding; // used to make sure that the buckets are aligned properly
 		};
 
 		class Transposition_Table : public HASH_TABLE<transBucket>
@@ -76,20 +75,20 @@ namespace KRONOS {
 		public:
 			void resetAge() { currentAge = 0; }
 			void updateAge() { currentAge = (currentAge + 1) % 64; }
+			// saves a searched node into the table
 			void saveEntry(u64 hash, u16 move, int depth, int16_t eval, int bound);
+			// attempts to find if an existing entry of the position exists in the table
 			bool probe(u64 hash, transEntry& entry);
 		};
-		
+	
 		extern inline int ScoreToTranpositionTable(int score, u8 ply);
 		extern inline int TranspositionTableToScore(int score, u8 ply);
 
-		#pragma pack(push, 1)
 		struct evalEntry
 		{
 			HashLower hashLock;
 			int16_t eval;
 		};
-		#pragma pack(pop)
 
 		struct Eval_Bucket {
 			evalEntry bucket[5]; // 48 * 5 = 240
@@ -98,25 +97,9 @@ namespace KRONOS {
 
 		struct Eval_Table : public HASH_TABLE<Eval_Bucket>
 		{
+			// gets the static evaluation of a position if it is in the table
 			int16_t getEval(Position& position, EVALUATION::Evaluation& evaluation);
 		};
 
-		struct ABDADA_ENTRY {
-			HashLower hashLock;
-			u8 depth;
-		};
-
-		struct ABDADA_BUCKET {
-			ABDADA_ENTRY bucket[ABDADA_BUCKET_SIZE]; // 4 * (32 + 8) = 160 bits
-		};
-
-		struct ABDADA_TABLE : public HASH_TABLE<ABDADA_BUCKET>
-		{
-			void setBusy(u64 hash, u8 depth);
-			void resetBusy(u64 hash, u8 depth);
-			bool isBusy(u64 hash, u8 depth);
-		};
-
 	}
-
 }

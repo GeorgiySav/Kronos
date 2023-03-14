@@ -4,7 +4,8 @@
 #include "BitBoard.h"
 
 namespace KRONOS {
-	
+
+	// numerical values for tiles
 	enum boardTiles : int {
 		A1, B1, C1, D1, E1, F1, G1, H1,
 		A2, B2, C2, D2, E2, F2, G2, H2,
@@ -16,6 +17,7 @@ namespace KRONOS {
 		A8, B8, C8, D8, E8, F8, G8, H8, no_Tile
 	};
 
+	// string values for tiles
 	static const char* boardTilesStrings[] = {
 		"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 		"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -27,12 +29,14 @@ namespace KRONOS {
 		"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", "no_Tile"
 	};
 
+	// enum for sides
 	enum sides : int {
 		BLACK,
 		WHITE,
 		BOTH
 	};
 
+	// enum for pieces
 	enum Pieces : int {
 		PAWN,
 		KNIGHT,
@@ -42,6 +46,7 @@ namespace KRONOS {
 		KING
 	};	
 
+	// stores the bitboard information about a position
 	struct Board {
 
 		// piece bit boards
@@ -78,6 +83,7 @@ namespace KRONOS {
 								pieceLocations[isWhite][ROOK] | pieceLocations[isWhite][QUEEN]  | pieceLocations[isWhite][KING];
 		}
 
+		// merges bitboards together
 		constexpr void mergeBoth() {
 			mergeColour<WHITE>(); mergeColour<BLACK>();
 			occupied[BOTH] = occupied[WHITE] | occupied[BLACK];

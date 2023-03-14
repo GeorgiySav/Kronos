@@ -15,9 +15,8 @@
 #include "Zobrist_Hashing.h"
 #include "Search_Manager.h"
 #include "Game.h"
-#include "Tuner.h"
 #include "FEN.h"
-#include "PGN.h"
+#include "AlgMove.h"
 #include "consts.h"
 
 namespace KRONOS
@@ -35,31 +34,27 @@ namespace KRONOS
 		bool busyInfinite = false;
 		int searchDepth = 20;
 		int timeForSearch = 1000;
+		int searchPositionIndex = 0;
 
 		int NUM_THREADS = std::thread::hardware_concurrency();
 		EVALUATION::PARAMS::Eval_Parameters params;		
-
 	public:
-
 		KronosEngine();
 		~KronosEngine();
 
-		int BoardCoordsToIndex(std::string coord) {
-			return ((coord[1] - '1') * 8) + (coord[0] - 'a');
-		}
-
-		std::string BoardIndexToCoords(int index) {
-			return std::string(1, 'a' + (index % 8)) + std::string(1, '1' + (index / 8));
-		}
-
+		// applies a move to the current game
 		inline void makeMove(Move move) {
 			game.makeMove(move);
+			searchPositionIndex = game.getPly();
 		}			
-		
+	
+		// undos a move
 		void unmakeMove() {
 			game.undoMove();
+			searchPositionIndex = game.getPly();
 		}
 
+		// starts a timed search
 		void startSearchForBestMove() {
 			if (!busyTimed && !busyInfinite) {
 				std::cout << "Began timed search" << std::endl;
@@ -68,6 +63,7 @@ namespace KRONOS
 			}
 		}
 
+		// checks if the timed search has finished
 		bool searchFinished() {
 			if (busyTimed) {
 				return searchThread.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -75,6 +71,7 @@ namespace KRONOS
 			return false;
 		}
 
+		// stops the timed search
 		void stopTimedSearch() {
 			if (busyTimed) {
 				std::cout << "Stopped timed search" << std::endl;
@@ -84,6 +81,7 @@ namespace KRONOS
 			}
 		}
 
+		// returns the best move once the timed search has finished
 		Move getBestMove() {
 			if (busyTimed && searchThread.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
 				busyTimed = false;
@@ -92,6 +90,32 @@ namespace KRONOS
 			return NULL_MOVE;
 		}
 
+		// makes KRONOS passive search the first position in a game
+		void setSearchPositionIndexFirst() {
+			searchPositionIndex = 0;
+		}
+		// makes KRONOS passive search the last position in a game
+		void setSearchPositionIndexLast() {
+			searchPositionIndex = game.getPly();
+		}
+		// makes KRONOS passive search the previous position in a game
+		void decrementSearchPositionIndex() {
+			searchPositionIndex = std::max(searchPositionIndex - 1, 0);
+		}
+		// makes KRONOS passive search the next position in a game
+		void incrementSearchPostiionsIndex() {
+			searchPositionIndex = std::min(searchPositionIndex + 1, game.getPly());
+		}
+
+		// starts the passive search
+		void beginInfiniteSearch() {
+			stopInfiniteSearch();
+			infiniteThread = std::async(&SEARCH::Search_Manager::infiniteSearch, &search, game.getPositions(), searchPositionIndex, searchDepth);
+			busyInfinite = true;
+			std::cout << "Began infinite search" << std::endl;
+		}
+	
+		// stops the passive search
 		void stopInfiniteSearch() {
 			if (busyInfinite) {
 				search.cancelInfiniteSearch();
@@ -101,13 +125,7 @@ namespace KRONOS
 			}
 		}
 
-		void beginInfiniteSearch() {
-			stopInfiniteSearch();
-			infiniteThread = std::async(&SEARCH::Search_Manager::infiniteSearch, &search, game.getPositions(), game.getPly(), searchDepth);
-			busyInfinite = true;
-			std::cout << "Began infinite search" << std::endl;
-		}
-
+		// checks if the passive search has finished
 		void checkIfInfiniteThreadFinished() {
 			if (busyInfinite && infiniteThread.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
 				infiniteThread.get();
@@ -116,9 +134,23 @@ namespace KRONOS
 			}
 		}
 
+		// creates a new game
+		template <GAME_TYPE type>
+		void createGame(const std::string& fen = FEN_START_POSITION) {
+			game.createGame<type>(fen);
+			search.transTable.clear();
+			search.transTable.resetAge();
+			search.evalTable.clear();
+			searchPositionIndex = 0;
+		}
+
+		// when a game is finished, the user can analyse that game
+		void changeGameToAnalysis() {
+			game.changeToAnalysis();
+		}
+
 		bool isInfiniting() { return busyInfinite; }
 		bool isTimedSearching() { return busyTimed; }
-
 
 		int getDepthSearchedTo() {
 			return search.getBestDepth();
@@ -140,8 +172,8 @@ namespace KRONOS
 			return game.getBoardPointer();
 		}
 
-		BoardStatus* getStatusPointer() {
-			return game.getStatusPointer();
+		BoardStatus* getStatusPointer(int ply) {
+			return &game.getPositions()->at(ply).status;
 		}
 		
 		KRONOS::Move_List* getMovesPointer() {
@@ -151,7 +183,7 @@ namespace KRONOS
 		Board* getBoard(int ply) {
 			return &game.getPositions()->at(ply).board;
 		}
-
+	
 		int getMaterialScore(bool side) {
 			return game.getMaterial(side);
 		}
@@ -188,10 +220,6 @@ namespace KRONOS
 			return timeForSearch;
 		}
 
-		template <GAME_TYPE type>
-		void createGame(const std::string& fen = FEN_START_POSITION) {
-			game.createGame<type>(fen);
-		}
 		
 		GAME_TYPE getGameType() {
 			return game.getGameType();
@@ -201,9 +229,6 @@ namespace KRONOS
 			return game.getGameState();
 		}
 
-		void changeGameToAnalysis() {
-			game.changeToAnalysis();
-		}
 
 		std::string getFen() {
 			return game.getFen();

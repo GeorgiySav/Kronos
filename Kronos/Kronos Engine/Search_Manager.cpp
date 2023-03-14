@@ -71,56 +71,54 @@ namespace KRONOS
 		{
 			Move m;
 			m = openingBook.getBookMove(&positions->at(curPly));
-			if (m != NULL_MOVE)
+			if (m != NULL_MOVE) // if there is a book move, return it
 				return m;
 
 			int wdl = SYZYGY::probeDTZ(&positions->at(curPly), &m);
-			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL)
+			if (wdl != (int)SYZYGY::SyzygyResult::SYZYGY_FAIL) // if there is a best endgame move, return it
 				return m;
 
-			if (curPly >= MAX_PLY)
+			if (curPly >= MAX_PLY) // don't search if the current position is too large
 				return NULL_MOVE;
 
+			// prepare and set all variables
 			currentDepth = 1;
 			bestMove.depth = 0;
 			bestMove.move = NULL_MOVE;
 			timedSearching = true;
-
 			transTable.updateAge();
-
 			setThreads(positions, curPly);
 
+			// tell threads to begin searching
 			beginSearch();
 
 			auto start = std::chrono::high_resolution_clock::now();
-
 			while (currentDepth <= MAX_DEPTH && std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() < std::chrono::milliseconds(timeMS).count() && timedSearching)
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				std::this_thread::sleep_for(std::chrono::milliseconds(1)); // wait for threads until they finish, or they exceed the maximum depth or run out of time
 
+			// tells all threads to stop
 			stopSearch();
 			waitForThreads();
 
 			std::cout << "Best Thread Info: " << " { Depth: " << bestMove.depth << " | Score: " << bestMove.score << " | Move: " << boardTilesStrings[bestMove.move.from] << " " << boardTilesStrings[bestMove.move.to] << " }" << std::endl;
 
 			return bestMove.move;
-
 		}
 
 		bool Search_Manager::infiniteSearch(std::vector<Position>* positions, int curPly, int MAX_DEPTH)
 		{
+			// prepare all variables
 			currentDepth = 1;
 			transTable.updateAge();
-
-			currentDepth = 1;
 			bestMove.depth = 0;
 			bestMove.move = NULL_MOVE;
-
 			setThreads(positions, curPly);
+
+			// tell the threads to begin searching
 			beginSearch();
 			
 			infiniteSearching = true;
-
-			while (true) {
+			while (true) { // continue searching until it is cancelled or exceeds the maximum depth
 				if (!infiniteSearching) {
 					std::cout << "Stopped search as it was cancelled" << std::endl;
 					break;
@@ -131,11 +129,11 @@ namespace KRONOS
 				}
 			}
 
+			// stops all threads
 			stopSearch();
 			waitForThreads();
 
-			infiniteSearching = false;
-			
+			infiniteSearching = false;	
 			return true;
 		}
 

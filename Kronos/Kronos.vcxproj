@@ -173,7 +173,7 @@
     <ClCompile Include="Kronos Engine\Magic.cpp" />
     <ClCompile Include="Kronos Engine\Move_Generation.cpp" />
     <ClCompile Include="Kronos Engine\Move_Picker.cpp" />
-    <ClCompile Include="Kronos Engine\PGN.cpp" />
+    <ClCompile Include="Kronos Engine\AlgMove.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.cpp" />
     <ClCompile Include="Kronos Engine\polyBook.h" />
     <ClCompile Include="Kronos Engine\Search_Manager.cpp" />
@@ -206,7 +206,7 @@
     <ClInclude Include="Kronos Engine\Eval_Params.h" />
     <ClInclude Include="Kronos Engine\Kronos.h" />
     <ClInclude Include="Kronos Engine\Move_Picker.h" />
-    <ClInclude Include="Kronos Engine\PGN.h" />
+    <ClInclude Include="Kronos Engine\AlgMove.h" />
     <ClInclude Include="Kronos Engine\Rays.h" />
     <ClInclude Include="Kronos Engine\Magic.h" />
     <ClInclude Include="Kronos Engine\Magic_Vars.h" />
@@ -221,8 +221,6 @@
     <ClInclude Include="Kronos Engine\Transposition_Table.h" />
     <ClInclude Include="Kronos Engine\Move.h" />
     <ClInclude Include="Kronos Engine\SyzygyTB.h" />
-    <ClInclude Include="Move_Picker.h" />
-    <ClInclude Include="Search_Manager.h" />
     <ClInclude Include="Syzygy endgame tablebases\stdendian.h" />
     <ClInclude Include="Syzygy endgame tablebases\tbconfig.h" />
     <ClInclude Include="Syzygy endgame tablebases\tbprobe.h" />
@@ -236,7 +234,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Kronos_UI.cpp" />
-    <None Include="Simplified_Overview.cd" />
     <None Include="imgui.ini" />
     <None Include="openal32.dll" />
     <None Include="Opening Books\baron30.bin" />

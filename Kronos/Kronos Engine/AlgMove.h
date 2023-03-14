@@ -5,7 +5,6 @@
 #include "Game.h"
 
 namespace KRONOS {
-
+	// converts a Kronos move to algebraic notation
 	extern std::string KronosMoveToAlgebraic(const Move& move, const Position& position);
-	extern void processPGN(std::string PGN, std::vector<Position>& positions, std::vector<Move>& moves, std::vector<std::string>& pgnMoves);
 }

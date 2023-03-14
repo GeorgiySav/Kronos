@@ -4,6 +4,7 @@ namespace KRONOS {
 	
 	namespace HASH {
 
+		// returns a random unsigned 64 bit integer
 		uint64_t rand64() {
 			static uint64_t s = 0xDEADBEEFDEADBEEF;
 			s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
@@ -12,6 +13,7 @@ namespace KRONOS {
 		
 		ZobristGenerator::ZobristGenerator()
 		{
+			// initialises all variables
 			for (int c = 0; c < 2; c++) {
 				for (int p = 0; p < 6; p++) {
 					for (int s = 0; s < 64; s++) {
@@ -72,24 +74,27 @@ namespace KRONOS {
 
 		void ZobristGenerator::updateHash(const Position& prevPos, Position& position, Move& move)
 		{
-			u64 prevHash = position.hash;
+			u64 prevHash = prevPos.hash;
 			
 			int from = move.from;
 			int to = move.to;
 			u8 piece = move.moved_Piece;
 			u8 flag = move.flag;
-			
+		
+			// move the piece in the hash
 			prevHash ^= pieceVals[prevPos.status.isWhite][piece][from];
 			prevHash ^= pieceVals[prevPos.status.isWhite][piece][to];
 
+			// remove or add en passant information
 			prevHash ^= (prevPos.status.EP != no_Tile ? enPassantFiles[prevPos.status.EP % 8] : 0ULL);
 			prevHash ^= (position.status.EP != no_Tile ? enPassantFiles[position.status.EP % 8] : 0ULL);
-			
+		
+			// remove piece that was attacked by en passant
 			if (flag == ENPASSANT)
 				prevHash ^= pieceVals[!prevPos.status.isWhite][PAWN][((prevPos.status.isWhite) ? (move.to - 8) : (move.to + 8))];
 			else if (flag & CAPTURE)
 				prevHash ^= pieceVals[!prevPos.status.isWhite][prevPos.getPieceType(to)][to];
-			else if (flag == KING_CASTLE || flag == QUEEN_CASTLE) {
+			else if (flag == KING_CASTLE || flag == QUEEN_CASTLE) { // move rooks in castling
 				if (flag == KING_CASTLE) {
 					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][(prevPos.status.isWhite) ? H1 : H8];
 					prevHash ^= pieceVals[prevPos.status.isWhite][ROOK][(prevPos.status.isWhite) ? F1 : F8];
@@ -100,6 +105,7 @@ namespace KRONOS {
 				}
 			}
 
+			// check for promotions
 			if (flag & PROMOTION) {
 				prevHash ^= pieceVals[prevPos.status.isWhite][PAWN][to];
 				if (flag & CAPTURE) 
@@ -115,6 +121,7 @@ namespace KRONOS {
 					prevHash ^= pieceVals[prevPos.status.isWhite][QUEEN][to];
 			}
 			
+			// update castling rights
 			if (prevPos.status.WKcastle != position.status.WKcastle) {
 				prevHash ^= castlingRights[0][0];
 				prevHash ^= castlingRights[0][1];
@@ -137,12 +144,5 @@ namespace KRONOS {
 
 			position.hash = prevHash;
 		}
-
-		void ZobristGenerator::nullMove(u64& hash, int oldEP) {
-			hash ^= sideToMove[0];
-			hash ^= sideToMove[1];
-			hash ^= oldEP != no_Tile ? enPassantFiles[oldEP % 8] : 0ULL;
-		}
 	} // namsapce HASH
-
 } // namespace KRONOS

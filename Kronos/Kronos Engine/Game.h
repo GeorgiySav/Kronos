@@ -16,18 +16,16 @@ namespace KRONOS
 		DRAW_TO_STALEMATE,
 		DRAW_TO_REPETITION,
 		DRAW_TO_LACK_OF_MATERIAL,
-		CANCELLED_GAME,
 	};
 
 	static std::string GAME_STATE_STRINGS[] = {
 		"Playing",
 		"White dealt checkmate",
 		"Black dealt checkmate",
-		"Draw to 50 move",
+		"Draw due to 50 move rule",
 		"Stalemate",
-		"Draw to repition",
-		"Draw to lack of material",
-		"CANCELLED_GAME"
+		"Draw due to repetition",
+		"Draw due to lack of material",
 	};
 
 	enum class GAME_TYPE {
@@ -50,14 +48,18 @@ namespace KRONOS
 
 		Move_List moves;
 
+		// used to check if the game has ended yet
 		void checkGameState();
+		// used to calculate the material difference
 		void calculateMaterial();
 	public:
 		Game();
 		~Game();
-	
+
+		// clears all information
 		void clear();
 
+		// creates a game
 		template <GAME_TYPE type>
 		void createGame(const std::string& FEN)
 		{
@@ -68,10 +70,11 @@ namespace KRONOS
 			gameType = type;
 		}
 
+		// makes a move
 		bool makeMove(Move move);
+		// unmakes a move
 		void undoMove();
-
-		
+	
 		GAME_STATE getGameState() {
 			return gameState;
 		}

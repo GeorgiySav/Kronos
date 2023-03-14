@@ -10,6 +10,7 @@ namespace KRONOS {
 
 		using namespace PARAMS;
 
+		// pre computed values for evaluation
 		inline BitBoard KING_RING[2][64];
 		inline BitBoard KING_SHELTER_MASK_1[2][3];
 		inline BitBoard KING_SHELTER_MASK_2[2][3];
@@ -17,6 +18,7 @@ namespace KRONOS {
 		inline const int KING_SQUARE[2][3] = { {B8, E8, G8}, {B1, E1, G1} };
 		inline const int FILE_TO_SHELTER[8] = { 0, 0, 0, 1, 1, 2, 2, 2 };
 
+		// intialises the tables above
 		static void initEvalVars() {
 			for (int c = 0; c < 2; c++) {
 				for (int tile = 0; tile < 64; tile++) {
@@ -61,24 +63,33 @@ namespace KRONOS {
 			BitBoard outpostTiles = 0ULL;
 
 			int pieceCountImb[2][6] = {};
-
+			
+			// prepares the evaluation for a side
 			constexpr void initialise(bool side);
+			// counts the amount of material
 			constexpr Score countMaterial(bool side);
+			// evaluates the strength of a piece
 			template <Pieces pieceType>
 			constexpr Score evaluatePiece(bool side);
+			// evalutes the pawn structure
 			constexpr Score pawnStructure(bool side);
+			// evaluates the pawn storm
 			constexpr basic_score pawnStorm(bool side, int tile);
+			// evaluates the passed pawns
 			constexpr Score passedPawns(bool side);
+			// evaluates the pressure on the king
 			inline Score kingPressure(bool side);
+			// evaluates threats
 			constexpr Score threats(bool side);
+			// evaluates control
 			constexpr Score control(bool side);
-
 
 		public:
 
 			Evaluation();
 			~Evaluation();
 
+			// returns the evaluation of a position
 			int evaluate(const Position& position);
 
 			void setParams(PARAMS::Eval_Parameters* newParams) {

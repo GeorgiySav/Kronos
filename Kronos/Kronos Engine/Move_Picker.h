@@ -15,6 +15,7 @@ namespace KRONOS {
 			STAGE_FINISHED
 		};
 
+		// forward decleration
 		class Search_Thread;
 		class Move_Picker {
 		private:
@@ -36,18 +37,17 @@ namespace KRONOS {
 
 			bool quiescenceSearch;
 
+			// return the MVV LVA score of a move
 			int MVV_LVA(Move& move);
-
-		public:
+	public:
 			Move_Picker(Position& position, bool isQuie, Move hashMove, Move k1, Move k2);
 			~Move_Picker();
 
+			// returns the next best move
 			bool nextMove(Search_Thread& sData, Move& nextMove);
 			bool hasMoves() { return moves.size(); }
 
 			int getStage() { return stage; }
-
-
 		};
 
 	} // SEARCH

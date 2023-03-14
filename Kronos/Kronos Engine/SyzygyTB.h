@@ -20,12 +20,14 @@ namespace KRONOS
 				SYZYGY_FAIL
 			};
 
+			// constructor and destsructor for the SYZYGY tablebases
 			extern bool initSYZYGY(const char* filePath);
 			extern void freeSYZYGY();
 
+			// probes the score of the current position
 			extern inline int probeWDL(const Position* position);
-			extern inline int probeDTZ(const Position* position , Move* bestMove);
-		
+			// probes the distance to zero and returns the best move
+			extern inline int probeDTZ(const Position* position , Move* bestMove);	
 		}
 	}
 }

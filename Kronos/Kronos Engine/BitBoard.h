@@ -6,13 +6,14 @@
 #include "utility.h"
 
 namespace KRONOS {
+		
+	const u64 EMPTY = 0ULL; // empty bitboaord
+	const u64 UNIVERSE = 0xFFFFFFFFFFFFFFFFULL; // full bitboard
 	
-	const u64 EMPTY = 0ULL;
-	const u64 UNIVERSE = 0xFFFFFFFFFFFFFFFFULL;
-	
-	const u64 notAFile = 18374403900871474942ULL;
-	const u64 notHFile = 9187201950435737471ULL;
-	
+	const u64 notAFile = 18374403900871474942ULL; // full bitboard by for the A file
+	const u64 notHFile = 9187201950435737471ULL; // full bitboard by for the H file
+
+	// bitboard masks of all files
 	const u64 fileMask[8]{
 		72340172838076673ULL,
 		144680345676153346ULL,
@@ -28,6 +29,7 @@ namespace KRONOS {
 		A, B, C, D, E, F, G, H
 	};
 
+	// bitboard masks of all ranks
 	const u64 rankMask[8]{
 		255ULL,
 		65280ULL,
@@ -51,6 +53,7 @@ namespace KRONOS {
 		return rankMask[tile / 8];
 	}
 
+	// used for bitscanning
 	const int BitTable[64] = {
 		0, 47,  1, 56, 48, 27,  2, 60,
        57, 49, 41, 37, 28, 16,  3, 61,
@@ -61,14 +64,13 @@ namespace KRONOS {
        25, 39, 14, 33, 19, 30,  9, 24,
        13, 18,  8, 12,  7,  6,  5, 63
 	};
-
 	static const u64 debruijn64 = 0x03f79d71b4cb0a89;
-
+	// finds the least significant bit
 	CompileTime int bitScanForward(u64 bb) {
 		assert(bb != 0);
 		return BitTable[((bb ^ (bb - 1)) * debruijn64) >> 58];
 	}
-
+	// finds the most significant bit
 	CompileTime int bitScanReverse(u64 bb) {
 		assert(bb != 0);
 		bb |= bb >> 1;
@@ -79,7 +81,7 @@ namespace KRONOS {
 		bb |= bb >> 32;
 		return BitTable[(bb * debruijn64) >> 58];
 	}
-
+	// finds the number of bits set to 1
 	CompileTime int populationCount(u64 bb) {
 		int count = 0;
 		while (bb) {
@@ -89,54 +91,14 @@ namespace KRONOS {
 		return count;
 	}
 
-	CompileTime u64 northOne(u64 b) { return (b << 8); }
-	CompileTime u64 southOne(u64 b) { return (b >> 8); }
-	CompileTime u64 eastOne(u64 b)  { return (b << 1) & notAFile; }
-	CompileTime u64 westOne(u64 b)  { return (b >> 1) & notHFile; }
-	CompileTime u64 NEOne(u64 b)    { return (b << 9) & notAFile; }
-	CompileTime u64 NWOne(u64 b)    { return (b << 7) & notHFile; }
-	CompileTime u64 SEOne(u64 b)    { return (b >> 7) & notAFile; }
-	CompileTime u64 SWOne(u64 b)    { return (b >> 9) & notHFile; }
-
-	CompileTime u64 flipX(u64 b)	   { constexpr u64 k1 = 0x00FF00FF00FF00FF;
-								         constexpr u64 k2 = 0x0000FFFF0000FFFF;
-								         b = ((b >> 8) & k1) | ((b & k1) << 8);
-								         b = ((b >> 16) & k2) | ((b & k2) << 16);
-								         b = (b >> 32) | (b << 32);
-								         return b; }
-	CompileTime u64 flipY(u64 b)	   { constexpr u64 k1 = 0x5555555555555555;
-						                 constexpr u64 k2 = 0x3333333333333333;
-						                 constexpr u64 k4 = 0x0f0f0f0f0f0f0f0f;
-						                 b = ((b >> 1) & k1) | ((b & k1) << 1);
-						                 b = ((b >> 2) & k2) | ((b & k2) << 2);
-						                 b = ((b >> 4) & k4) | ((b & k4) << 4);
-						                 return b; }
-	CompileTime u64 flipA1H8(u64 b) { u64 t = 0ULL;
-								      constexpr u64 k1 = 0x5500550055005500;
-								      constexpr u64 k2 = 0x3333000033330000;
-								      constexpr u64 k4 = 0x0f0f0f0f00000000;
-								      t = k4 & (b ^ (b << 28));
-								      b ^= t ^ (t >> 28);
-								      t = k2 & (b ^ (b << 14));
-								      b ^= t ^ (t >> 14);
-								      t = k1 & (b ^ (b << 7));
-								      b ^= t ^ (t >> 7);
-								      return b; }	
-	CompileTime u64 flipA8H1(u64 b) { u64 t = 0ULL;
-								      constexpr u64 k1 = 0xaa00aa00aa00aa00;
-								      constexpr u64 k2 = 0xcccc0000cccc0000;
-								      constexpr u64 k4 = 0xf0f0f0f00f0f0f0f;
-								      t = b ^ (b << 36);
-								      b ^= k4 & (t ^ (b >> 36));
-								      t = k2 & (b ^ (b << 18));
-								      b ^= t ^ (t >> 18);
-								      t = k1 & (b ^ (b << 9));
-								      b ^= t ^ (t >> 9);
-								      return b; }
-
-	CompileTime u64 rotate180(u64 b)  { return flipX(flipY(b)); }
-	CompileTime u64 rotate90C(u64 b)  { return flipX(flipA1H8(b)); }
-	CompileTime u64 rotate90AC(u64 b) { return flipA1H8(flipY(b)); }
+	CompileTime u64 northOne(u64 b) { return (b << 8); } // shifts bits north by one
+	CompileTime u64 southOne(u64 b) { return (b >> 8); } // shifts bits south by one
+	CompileTime u64 eastOne(u64 b)  { return (b << 1) & notAFile; } // shifts bits east by one
+	CompileTime u64 westOne(u64 b)  { return (b >> 1) & notHFile; } // shifts bits west by one
+	CompileTime u64 NEOne(u64 b)    { return (b << 9) & notAFile; } // shifts bits north east by one
+	CompileTime u64 NWOne(u64 b)    { return (b << 7) & notHFile; } // shifts bits north west by one
+	CompileTime u64 SEOne(u64 b)    { return (b >> 7) & notAFile; } // shifts bits south east by one
+	CompileTime u64 SWOne(u64 b)    { return (b >> 9) & notHFile; }	// shifts bits south west by one
 
 	CompileTime u64 shiftNorth(u64 b, int n) { for (int i = 0; i < n; i++) b = northOne(b); return b; }
 	CompileTime u64 shiftSouth(u64 b, int n) { for (int i = 0; i < n; i++) b = southOne(b); return b; }
@@ -148,11 +110,16 @@ namespace KRONOS {
 	CompileTime u64 shiftSE(u64 b, int n) { for (int i = 0; i < n; i++) b = SEOne(b); return b; }
 	CompileTime u64 shiftSW(u64 b, int n) { for (int i = 0; i < n; i++) b = SWOne(b); return b; }
 
+	// sets bits north of one bits to one
 	CompileTime u64 northFill(u64 b)   { return b |= b << 8, b |= b << 16, b |= b << 32; }
+	// sets bits south of one bits to one
 	CompileTime u64 southFill(u64 b)   { return b |= b >> 8, b |= b >> 16, b |= b >> 32;  }
+	// set bits north of one bits to one, excluding the original bits
 	CompileTime u64 northFillEx(u64 b) { return b |= b << 8, b |= b << 16, (b |= b << 32) << 8; }
+	// set bits south of one bits to one, excluding the original bits
 	CompileTime u64 southFillEx(u64 b) { return b |= b >> 8, b |= b >> 16, (b |= b >> 32) >> 8; }
 
+	// fills bitboards depending on the side
 	CompileTime u64 pawnFill(u64 brd, bool isWhite) {
 		if (isWhite) return northFill(brd);
 		else return southFill(brd);
@@ -165,6 +132,7 @@ namespace KRONOS {
 
 	CompileTime u64 fileFill(u64 b) { return northFill(b) | southFill(b); }
 
+	// returns the string representation of a bitboard
 	static std::string _BitBoard(u64 b) {
 		std::string str = "";
 		for (int i = 56; i >= 0; i -= 8) {

@@ -1,5 +1,5 @@
 ﻿#include "Kronos_Application.h"
-#include "./Kronos Engine/PGN.h"
+#include "./Kronos Engine/AlgMove.h"
 
 #include <cstdio>
 
@@ -8,19 +8,13 @@ Kronos_Application::Kronos_Application()
 	, boardUI(Kronos_Board_UI())
 	, events(sf::Event())
 {
-
+	// initialises the engine
 	kronosEngine = std::make_unique<KRONOS::KronosEngine>();
 
+	// initialises ImGui by giving it the SFML window
 	ImGui::SFML::Init(window);
 
-	//kronosEngine->setFen("r4rk1/pp2pp1p/3p2p1/6B1/3Q3P/1P6/1RPKnPP1/q6R w - - 0 1");
-
-	/*
-		menu bar is 22px thick
-		board is at y = 75
-		player information therefore 75 - 22 - 3 = 50px thick
-	*/
-
+	// sets the positions of SFML UI elements
 	boardPos = { 33.f, 75.f };
 	playerInfoPos = { 33.f, 23.5f };
 	evalBarPos = { 1.5f, boardPos.y };
@@ -30,7 +24,8 @@ Kronos_Application::Kronos_Application()
 
 	whiteBar.setFillColor(sf::Color::White);
 	blackBar.setFillColor(sf::Color::Black);
-	
+
+	// initalises the postiions of the evaluation bar
 	if (!whiteBottom) {
 		whiteBar.setPosition(evalBarPos);
 		whiteBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() * 0.5));
@@ -46,17 +41,17 @@ Kronos_Application::Kronos_Application()
 		whiteBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() - blackBar.getGlobalBounds().height));
 	}
 
+	// intialises the fonts
 	if (!font.loadFromFile("./JetBrains Mono NL Bold Nerd Font Complete Mono Windows Compatible.ttf")) {
 		std::cout << "Couldn't load font" << std::endl;
 	}
 	else {
 		evalText.setFont(font);
-		evalText.setCharacterSize(15);
-		evalText.setFillColor(sf::Color::Red);
-	}
+		evalText.setCharacterSize(12);
+		evalText.setFillColor(sf::Color(128, 128, 128));
+	}	
 
-	
-	// imgui styling
+	// ImGui styling
 	{
 
 		ImGuiStyle& style = ImGui::GetStyle();
@@ -115,12 +110,16 @@ Kronos_Application::Kronos_Application()
 
 Kronos_Application::~Kronos_Application()
 {
+	// shutdowns ImGui
 	ImGui::SFML::Shutdown();
+	// makes sure that all threads are sleeping before destroying the engine
+	kronosEngine->stopTimedSearch();
 	kronosEngine->stopInfiniteSearch();
 }
 
+// calculates the size of the evaluation bar depending on score
 float calculateEvalBar(int evaluation, bool whiteBottom) {
-	float value = 1 / (1 + exp(-0.003 * evaluation));
+	float value = 1 / (1 + exp(-0.005 * evaluation));
 	if (whiteBottom)
 		return 1 - value;
 	else
@@ -145,6 +144,7 @@ void Kronos_Application::createKronosSetting(const std::string& enterMessage, co
 	sliderValue = std::max(min, sliderValue);
 
 	if (ImGui::Button(enterId.c_str())) {
+		// ensures that all engine threads are idle when changing the engine variables
 		if (kronosEngine->isInfiniting()) {
 			kronosEngine->stopInfiniteSearch();
 			setFunc(sliderValue);
@@ -166,23 +166,28 @@ void Kronos_Application::createKronosSetting(const std::string& enterMessage, co
 
 void Kronos_Application::run()
 {
+	// by default, the application will start with the starting position
 	kronosEngine->createGame<KRONOS::GAME_TYPE::ANALYSIS>();
 	kronosEngine->beginInfiniteSearch();
 
+	// keeps tract of evaluation
 	static int previousEval = 32001;
 
+	// loads the font into ImGui
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->AddFontDefault();
 	ImFont* mainFont = io.Fonts->AddFontFromFileTTF("./JetBrains Mono NL Bold Nerd Font Complete Mono Windows Compatible.ttf", 15);
 	ImGui::SFML::UpdateFontTexture();
 	IM_ASSERT(mainFont != NULL);
 
+	// sets the seed of the random generator
 	srand(time(0));
 
 	while (running) {
-		
+		// checks to see if the thread has finished to release resources	
 		kronosEngine->checkIfInfiniteThreadFinished();
-		
+	
+		// checks to see if a timed search has finished and to apply it
 		if (kronosEngine->searchFinished()) {
 			KRONOS::Move bMove = kronosEngine->getBestMove();
 			if (bMove != KRONOS::NULL_MOVE) {
@@ -198,18 +203,22 @@ void Kronos_Application::run()
 			}
 		}
 
+		// evaluation bar, only chanege things if the evaluation has changed
 		if (previousEval != kronosEngine->getScoreEvaluated()) {
+
 			if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::ANALYSIS)
 				previousEval = kronosEngine->getScoreEvaluated();
 			else
 				previousEval = 0;
 
-			float eval = previousEval * (kronosEngine->getStatusPointer()->isWhite ? 1 : -1);
+			float eval = previousEval * (kronosEngine->getStatusPointer(previewPly)->isWhite ? 1 : -1);
 			float evalBarScale = calculateEvalBar(eval, whiteBottom);
 
+			// checks to see if the engine has found a mate in n moves
 			if (std::abs(eval) >= 32000 - kronosEngine->getSearchDepth()) {
 				evalText.setString("M" + std::to_string(int(32000 - std::abs(eval))));
 			}
+			// otherwise just display the evaluation
 			else {
 				float scaledEval = std::abs(eval) * 0.01;
 				std::stringstream ss;
@@ -217,11 +226,19 @@ void Kronos_Application::run()
 				evalText.setString(ss.str());
 			}
 
+			// set the positions
 			if (!whiteBottom) {
 				whiteBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() * evalBarScale));
 
 				blackBar.setPosition(sf::Vector2f(whiteBar.getPosition().x, whiteBar.getPosition().y + whiteBar.getGlobalBounds().height));
 				blackBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() - whiteBar.getGlobalBounds().height));
+
+				if (evalBarScale > 0.5) {
+					evalText.setPosition(whiteBar.getPosition().x + (whiteBar.getGlobalBounds().width - evalText.getGlobalBounds().width) * 0.5, whiteBar.getPosition().y + whiteBar.getGlobalBounds().height - evalText.getCharacterSize() - 2.5);
+				}
+				else {
+					evalText.setPosition(whiteBar.getPosition().x + (whiteBar.getGlobalBounds().width - evalText.getGlobalBounds().width) * 0.5, blackBar.getPosition().y + 2.5);
+				}
 			}
 			else {
 				blackBar.setSize(sf::Vector2f(30, boardUI.getBoardWidth() * evalBarScale));
@@ -238,6 +255,7 @@ void Kronos_Application::run()
 			}
 		}
 
+		// process inputs for SFML and ImGui
 		processInputs();
 		ImGui::SFML::Update(window, deltaClock.restart());
 		
@@ -255,22 +273,26 @@ void Kronos_Application::run()
 				kronosEngine->startSearchForBestMove();
 			}
 			else {
+				if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_HUMAN)
+					flipBoard();
 				kronosEngine->beginInfiniteSearch();
 			}
 		}
 
 		// menu bar
 		if (ImGui::BeginMainMenuBar()) {
-			
+			// import a position through FEN			
 			if (ImGui::BeginMenu("Import")) {
 				if (ImGui::BeginMenu("FEN")) {
 					static char buffer[100];
 					ImGui::PushItemWidth(500.f);
 					if (ImGui::InputText("##", buffer, 100, ImGuiInputTextFlags_EnterReturnsTrue)) {
 						kronosEngine->stopInfiniteSearch();
+						kronosEngine->stopTimedSearch();
 						kronosEngine->createGame<KRONOS::GAME_TYPE::ANALYSIS>(std::string(buffer));
 						kronosEngine->beginInfiniteSearch();
 						pgnMoves.clear();
+						previewPly = 0;
 						memset(buffer, 0, sizeof(buffer));
 					}
 					ImGui::PopItemWidth();
@@ -279,6 +301,7 @@ void Kronos_Application::run()
 				ImGui::EndMenu();
 			}
 
+			// export a position through FEN
 			if (ImGui::BeginMenu("Export")) {
 				static char buffer[100];
 				strcpy(buffer, kronosEngine->getFen().c_str());
@@ -288,11 +311,14 @@ void Kronos_Application::run()
 				ImGui::EndMenu();
 			}
 
+			// settings page
 			if (ImGui::BeginMenu("Settings")) {
-				if (ImGui::Button("Flip Board")) {
+				// flips the board
+				if (ImGui::Button("Flip Board", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
 					previousEval = 32001;
 					flipBoard();
 				}
+				// settings for kronos
 				if (ImGui::BeginMenu("Kronos Settings")) {
 
 					ImGui::BeginChild("##ks", ImVec2(470, 130), true);
@@ -300,6 +326,7 @@ void Kronos_Application::run()
 					ImGui::Columns(2);
 					ImGui::SetColumnWidth(0, 300);
 
+					// change the number of cores
 					static int numCores = 0;
 					createKronosSetting(
 						"Enter new number of cores: ",
@@ -310,6 +337,7 @@ void Kronos_Application::run()
 						1,
 						std::thread::hardware_concurrency());
 
+					// change the size of the transposition table
 					static int transSize = 0;
 					createKronosSetting(
 						"Enter new transposition table size (MB): ",
@@ -321,6 +349,7 @@ void Kronos_Application::run()
 						1024
 					);
 
+					// change the maximum depth the engine can search to
 					static int maxDepth = 0;
 					createKronosSetting(
 						"Enter maximum depth (ply): ",
@@ -332,6 +361,7 @@ void Kronos_Application::run()
 						KRONOS::MAX_ITERATIVE_DEPTH
 					);
 
+					// change the response time of the AI
 					static int timePerMove = 0;
 					createKronosSetting(
 						"Enter maximum time per move (ms): ",
@@ -343,8 +373,6 @@ void Kronos_Application::run()
 						1800000
 					);
 
-											
-
 					ImGui::Columns();
 					ImGui::EndChild();
 					ImGui::EndMenu();
@@ -352,14 +380,9 @@ void Kronos_Application::run()
 				ImGui::EndMenu();
 			}
 
+			// create a game
 			if (ImGui::BeginMenu("Options")) {
 
-				/*
-					1. Select the option
-					2. Give the warning that the current board state will be cleared
-					3. If yes, clear the board state and set up the chosen option
-					   If not, do nothing
-				*/
 				static bool clearWarningPopUp = false, enterGameOptionsPopUp = false, createAIgame = false, createOtB = false, createAnalysis = false;
 
 				if (ImGui::Button("Play against the AI")) {
@@ -372,13 +395,13 @@ void Kronos_Application::run()
 					ImGui::OpenPopup("Clear Warning");
 					clearWarningPopUp = true;
 				}
-
 				if (ImGui::Button("Analysis", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
 					createAnalysis = true;
 					ImGui::OpenPopup("Clear Warning");
 					clearWarningPopUp = true;
 				}
 
+				// makes sure that the user doesn't accidentally clear their current game
 				if (ImGui::BeginPopupModal("Clear Warning", &clearWarningPopUp, ImGuiWindowFlags_AlwaysUseWindowPadding |
 					ImGuiWindowFlags_NoCollapse |
 					ImGuiWindowFlags_NoResize |
@@ -408,6 +431,7 @@ void Kronos_Application::run()
 				if (enterGameOptionsPopUp)
 					ImGui::OpenPopup("Enter Game Options");
 
+				// gives the user options about the game they are about to create
 				if (ImGui::BeginPopupModal("Enter Game Options", &enterGameOptionsPopUp, ImGuiWindowFlags_AlwaysUseWindowPadding |
 					ImGuiWindowFlags_NoCollapse |
 					ImGuiWindowFlags_NoResize |
@@ -415,6 +439,7 @@ void Kronos_Application::run()
 					ImGui::Text("Enter the FEN for the position");
 					ImGui::Text("Leaving it empty will result in the starting position");
 
+					// the user can import a position to play
 					static char buffer[100];
 					ImGui::PushItemWidth(ImGui::GetWindowContentRegionWidth());
 					ImGui::InputText("##ef", buffer, 100);
@@ -422,6 +447,7 @@ void Kronos_Application::run()
 
 					static int selectedSide = KRONOS::WHITE;
 
+					// the user can select what side they want to play as during an AI game
 					if (createAIgame) {
 						if (selectedSide == KRONOS::WHITE)
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
@@ -450,16 +476,18 @@ void Kronos_Application::run()
 					}
 
 					if (ImGui::Button("Enter", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
-
+						// makes sure the threads are idle since the position is about to change
 						if (kronosEngine->isInfiniting())
 							kronosEngine->stopInfiniteSearch();
 						else if (kronosEngine->isTimedSearching())
 							kronosEngine->stopTimedSearch();
 
+						// checks to see if the FEN is empty
 						if (buffer[0] == '\0') {
 							strcpy(buffer, KRONOS::FEN_START_POSITION.c_str());
 						}
 
+						// creates the games
 						if (createAIgame) {
 							switch (selectedSide)
 							{
@@ -477,14 +505,19 @@ void Kronos_Application::run()
 								break;
 							}
 							kronosEngine->createGame<KRONOS::GAME_TYPE::HUMAN_VS_AI>(buffer);
-							if (playerSide != kronosEngine->getStatusPointer()->isWhite) {
+							if (playerSide != kronosEngine->getStatusPointer(0)->isWhite) {
 								kronosEngine->startSearchForBestMove();
 							}
 							createAIgame = false;
 						}
 						else if (createOtB) {
-							if (!whiteBottom) flipBoard();
 							kronosEngine->createGame<KRONOS::GAME_TYPE::HUMAN_VS_HUMAN>(buffer);
+							if (kronosEngine->getStatusPointer(0)->isWhite) {
+								if (!whiteBottom) flipBoard();
+							}
+							else {
+								if (whiteBottom) flipBoard();
+							}
 							createOtB = false;
 						}
 						else if (createAnalysis) {
@@ -511,6 +544,25 @@ void Kronos_Application::run()
 				ImGui::EndMenu();
 			}
 
+			// help page
+			if (ImGui::BeginMenu("Help")) {
+				static char helpText[] =
+					"How to use create and export games\n"\
+					"To begin a game or analysis session, click on \"options\" on the menu bar, select your desired game and follow the instructions provided.\n"\
+					"If you want to import a position, please use the FEN notation and then paste it into \"import\" on the menu bar or when creating a new game.\n"\
+					"If you want to export a position, click on \"export\" and you will have the option to copy the FEN of the most recent position.\n\n"\
+					"How to traverse a game\n"\
+					"While a game is present, on the right of the board, there is a move list that allows for the user to preview previous positions using the buttons above.\n"\
+					"The undo button will remove the most recent position from the game.\n\n"\
+					"How to configure KRONOS\n"\
+					"Click on \"settings\" on the menu bar and then \"Kronos settings\". You will then be given options to change variables that control the engine\n"\
+				;
+				if (ImGui::BeginChild("##cht", ImVec2(500, 260))) {
+					ImGui::TextWrapped(helpText);
+					ImGui::EndChild();
+				}
+				ImGui::EndMenu();
+			}
 			ImGui::EndMainMenuBar();
 		}
 
@@ -518,13 +570,13 @@ void Kronos_Application::run()
 		if (ImGui::Begin("KRONOS Information", NULL, ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoMove)) {
-			
+		
+			// information about the current search
 			if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::ANALYSIS && ImGui::BeginTable("##searchInfo", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable)) {
 				ImGui::TableSetupColumn("Depth");
 				ImGui::TableSetupColumn("Score");
 				ImGui::TableSetupColumn("Best Move");
 				ImGui::TableHeadersRow();
-
 
 				ImGui::TableNextColumn();
 				ImGui::Text(std::to_string(kronosEngine->getDepthSearchedTo()).c_str());
@@ -538,6 +590,7 @@ void Kronos_Application::run()
 				ImGui::EndTable();
 			}
 
+			// information about how much hardware the engine is using
 			if (ImGui::BeginTable("##hardwareInfo", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable)) {
 				ImGui::TableSetupColumn("Number of cores");
 				ImGui::TableSetupColumn("Transposition Size (MB)");
@@ -555,10 +608,12 @@ void Kronos_Application::run()
 			ImGui::End();
 		}
 
+		// moves list
 		if (ImGui::Begin("Moves", NULL, ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoMove)) {
 
+			// gives the user the option to analyse their finished game
 			if ((kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_AI 
 				|| kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_HUMAN)
 				&& kronosEngine->getGameState() != KRONOS::GAME_STATE::PLAYING 
@@ -570,21 +625,44 @@ void Kronos_Application::run()
 				renderEndOfGamePopUp = false;
 			}
 
+			// preview buttons
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 			if (ImGui::Button("<<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = 0;
+				// change what position the engine is passively searching
+				// do not start a search if the engine is searching for a new move
+				if (!kronosEngine->isTimedSearching()) {
+					kronosEngine->stopInfiniteSearch();
+					kronosEngine->setSearchPositionIndexFirst();
+					kronosEngine->beginInfiniteSearch();
+				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("<", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = std::max(0, previewPly - 1);
+				if (!kronosEngine->isTimedSearching()) {
+					kronosEngine->stopInfiniteSearch();
+					kronosEngine->decrementSearchPositionIndex();
+					kronosEngine->beginInfiniteSearch();
+				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button(">", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = std::min(int(pgnMoves.size()), previewPly + 1);
+				if (!kronosEngine->isTimedSearching()) {
+					kronosEngine->stopInfiniteSearch();
+					kronosEngine->incrementSearchPostiionsIndex();
+					kronosEngine->beginInfiniteSearch();
+				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button(">>", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
 				previewPly = pgnMoves.size();
+				if (!kronosEngine->isTimedSearching()) {
+					kronosEngine->stopInfiniteSearch();
+					kronosEngine->setSearchPositionIndexLast();
+					kronosEngine->beginInfiniteSearch();
+				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("undo", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.2, 0))) {
@@ -598,6 +676,7 @@ void Kronos_Application::run()
 					pgnMoves.pop_back();
 				previewPly = pgnMoves.size();
 			}
+			// table to show the moves made
 			float h = ImGui::GetContentRegionAvail().y;
 			if (ImGui::BeginChild("##scrolling", ImVec2(0, h), true)) {
 				if (ImGui::BeginTable("Moves", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_Borders)) {
@@ -622,6 +701,7 @@ void Kronos_Application::run()
 			ImGui::End();
 		}
 
+		// player information
 		if (ImGui::Begin("WHITE", NULL, ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoResize |
 			ImGuiWindowFlags_NoMove)) {
@@ -635,6 +715,7 @@ void Kronos_Application::run()
 			ImGui::End();
 		}
 
+		// tells the user how the game ended
 		if (renderEndOfGamePopUp)
 			ImGui::OpenPopup("End Of Game");
 		if (ImGui::BeginPopupModal("End Of Game", &renderEndOfGamePopUp, ImGuiWindowFlags_AlwaysUseWindowPadding |
@@ -646,7 +727,6 @@ void Kronos_Application::run()
 			if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_AI || kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_HUMAN) {
 				if (ImGui::Button("Analyse Game", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
 					kronosEngine->changeGameToAnalysis();
-
 					ImGui::CloseCurrentPopup();
 					renderEndOfGamePopUp = false;
 				}
@@ -659,48 +739,78 @@ void Kronos_Application::run()
 		}
 
 		ImGui::PopFont();
-		
+	
+		// renders the application
 		render();
 	}
 }
 
 void Kronos_Application::render()
 {
+	// clears the screen
 	window.clear(sf::Color(60.f, 60.f, 60.f, 255.f));
+	// renders the board
 	boardUI.renderKronosBoard(window, kronosEngine->getBoard(previewPly), whiteBottom);
+	// renders the evaluation bar
 	window.draw(whiteBar);
 	window.draw(blackBar);
 	window.draw(evalText);
+	// renders the ImGui elements
 	ImGui::SFML::Render(window);
+	// displays the window
 	window.display();
 }
 
 void Kronos_Application::processInputs() {
-	
+
+	// loops through each input event
 	while (window.pollEvent(events)) {
 		static sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 		mousePos = sf::Mouse::getPosition(window);
 		sf::Vector2i relPos;
 
 		ImGui::SFML::ProcessEvent(events);
+
+		// checks to see if the user has requested to close the window
 		if (events.type == sf::Event::Closed) {
 			window.close();
 			running = false;
 		}
 
+		// checks for key presses
 		if (events.type == sf::Event::KeyPressed) {
+			if (events.key.code == sf::Keyboard::Left) {
+				previewPly = std::max(0, previewPly - 1);
+				if (!kronosEngine->isTimedSearching()) {
+					kronosEngine->stopInfiniteSearch();
+					kronosEngine->decrementSearchPositionIndex();
+					kronosEngine->beginInfiniteSearch();
+				}
+			}
+			if (events.key.code == sf::Keyboard::Right) {
+				previewPly = std::min(int(pgnMoves.size()), previewPly + 1);
+				if (!kronosEngine->isTimedSearching()) {
+					kronosEngine->stopInfiniteSearch();
+					kronosEngine->incrementSearchPostiionsIndex();
+					kronosEngine->beginInfiniteSearch();
+				}
+			}
 		}
-		
+	
+		// checks for mouse presses
 		if (events.type == sf::Event::MouseButtonPressed) {
 			if (events.key.code == sf::Mouse::Left) {
-				if (previewPly == pgnMoves.size() && boardUI.getBoardSpritePointer()->getGlobalBounds().contains(sf::Vector2f(mousePos))) {
-					boardUI.selectPiece(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getMovesPointer(), kronosEngine->getStatusPointer()->isWhite, whiteBottom);
+				// attempts to select a piece
+				if (kronosEngine->getGameState() == KRONOS::GAME_STATE::PLAYING && previewPly == pgnMoves.size() && boardUI.getBoardSpritePointer()->getGlobalBounds().contains(sf::Vector2f(mousePos))) {
+					boardUI.selectPiece(window, kronosEngine->getBitBoardsPointer(), kronosEngine->getMovesPointer(), kronosEngine->getStatusPointer(pgnMoves.size())->isWhite, whiteBottom);
 				}
 			}
 		}
 
+		// checks for mouse releases
 		if (events.type == sf::Event::MouseButtonReleased) {
 			if (events.key.code == sf::Mouse::Left) {
+				// attempts to drop a piece
 				if (boardUI.getBoardSpritePointer()->getGlobalBounds().contains(sf::Vector2f(mousePos))) {
 					if (auto move = boardUI.dropPiece(window, kronosEngine->getBitBoardsPointer(), whiteBottom)) {
 						kronosEngine->stopInfiniteSearch();
@@ -718,6 +828,8 @@ void Kronos_Application::processInputs() {
 								kronosEngine->startSearchForBestMove();
 							}
 							else {
+								if (kronosEngine->getGameType() == KRONOS::GAME_TYPE::HUMAN_VS_HUMAN)
+									flipBoard();
 								kronosEngine->beginInfiniteSearch();
 							}
 						}
@@ -732,6 +844,7 @@ void Kronos_Application::processInputs() {
 
 void Kronos_Application::flipBoard()
 {
+	// changes the positions of UI elements when the board is flipped
 	whiteBottom = !whiteBottom;
 	if (whiteBottom == true) {
 		blackBar.setPosition(evalBarPos);

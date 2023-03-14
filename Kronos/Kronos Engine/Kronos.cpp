@@ -3,32 +3,29 @@
 #include "polyBook.h"
 #include "SyzygyTB.h"
 
-using namespace KRONOS;
-
-KronosEngine::KronosEngine()
+namespace KRONOS
 {
-	KRONOS::initRays();
-	KRONOS::initMagics();
-	KRONOS::initMGVars();
-	
-	//perftTest(FENtoBoard(FEN_START_POSITION), 6);
-	
-	KRONOS::EVALUATION::initEvalVars();
-	KRONOS::SEARCH::initVars();
+	KronosEngine::KronosEngine()
+	{
+		// initialise tables
+		KRONOS::initRays();
+		KRONOS::initMagics();
+		KRONOS::initMGVars();
+		
+		KRONOS::EVALUATION::initEvalVars();
+		KRONOS::SEARCH::initVars();
 
-	if (SEARCH::SYZYGY::initSYZYGY("./Syzygy endgame tablebases/Tablebases/")) {
-		std::cout << "initialised syzygy" << std::endl;
+		if (SEARCH::SYZYGY::initSYZYGY("./Syzygy endgame tablebases/Tablebases/"))
+			std::cout << "initialised syzygy" << std::endl;
+		else
+			std::cout << "failed to initialise syzygy" << std::endl;
+
+		// doesn't initialise the search with the maximum number of cores as too allow some threads to focus on the application and not the engine
+		search.initSearchThreads(std::max((NUM_THREADS - 3), 1));
 	}
-	else
-		std::cout << "failed to initialise syzygy" << std::endl;
 
-	NUM_THREADS = std::thread::hardware_concurrency();
-	search.initSearchThreads(NUM_THREADS - 3);
-
-}
-
-KronosEngine::~KronosEngine()
-{
-	deleteMagics();
-	SEARCH::SYZYGY::freeSYZYGY();
+	KronosEngine::~KronosEngine()
+	{
+		SEARCH::SYZYGY::freeSYZYGY();
+	}
 }

@@ -11,7 +11,6 @@ namespace KRONOS
 	{
 		namespace SYZYGY
 		{
-
 			bool syzygyInitialised = false;
 			int SYZYGYLargest = 0;
 
@@ -30,6 +29,7 @@ namespace KRONOS
 				tb_free();
 			}
 
+			// returns the integer expression for castling for SYZYGY to use
 			inline unsigned convertToTBCastling(const Position* position) {
 				unsigned castling = 0;
 				if (position->status.WKcastle)
@@ -43,6 +43,7 @@ namespace KRONOS
 				return castling;
 			}
 
+			// returns the score based on the WDL result
 			int resultToWDL(unsigned result) {
 				if (result == TB_LOSS)
 					return (int)SyzygyResult::SYZYGY_LOSS;
@@ -55,6 +56,7 @@ namespace KRONOS
 				return -1;
 			}
 
+			// translates a SYZYGY move to kronos move
 			inline Move convertToKronosMove(unsigned tbMove, const Position* position)
 			{
 				int from = TB_GET_FROM(tbMove);
@@ -111,6 +113,7 @@ namespace KRONOS
 
 			inline int probeWDL(const Position* position)
 			{
+				// makes sure that the current position is valid
 				if (populationCount(position->board.occupied[BOTH]) > SYZYGYLargest 
 					|| position->halfMoves < 100 
 					|| (!position->status.WKcastle && !position->status.WQcastle && !position->status.BKcastle && !position->status.BQcastle))
@@ -135,11 +138,12 @@ namespace KRONOS
 			}
 
 			inline int probeDTZ(const Position* position, Move* bestMove)
-			{
-				unsigned results[TB_MAX_MOVES];
-				
+			{	
+				// checks if the current position is valid
 				if (populationCount(position->board.occupied[BOTH]) > TB_LARGEST)
 					return (int)SyzygyResult::SYZYGY_FAIL;
+
+				unsigned results[TB_MAX_MOVES];
 
 				unsigned result = tb_probe_root(
 					position->board.occupied[WHITE],
@@ -157,13 +161,13 @@ namespace KRONOS
 					results
 				);
 
+				// makes sure that the result is valid
 				if (result == TB_RESULT_STALEMATE || result == TB_RESULT_CHECKMATE || result == TB_RESULT_FAILED)
 					return (int)SyzygyResult::SYZYGY_FAIL;
 
 				*bestMove = convertToKronosMove(result, position);
 
 				return resultToWDL(result);
-
 			}
 
 		} // namespace SYZYGY

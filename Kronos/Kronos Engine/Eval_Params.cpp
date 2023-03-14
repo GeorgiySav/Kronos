@@ -41,32 +41,6 @@ namespace KRONOS {
 			{
 			}
 
-			void Eval_Parameters::saveParams()
-			{
-				time_t now = time(0);
-				std::string dt = ctime(&now);
-				dt.erase(remove(dt.begin(), dt.end(), '\n'), dt.end());
-				dt.erase(remove(dt.begin(), dt.end(), ' '), dt.end());
-				dt.erase(remove(dt.begin(), dt.end(), ':'), dt.end());
-				dt = "../Kronos/Eval Parameters/" + dt + ".txt";
-				std::ofstream outFile(dt, std::ios::app);
-				if (outFile.fail())
-					return;
-				outFile.write((char*)this, sizeof(*this));
-				outFile.close();
-			}
-
-			void Eval_Parameters::loadParams(std::string filePath)
-			{
-				std::ifstream inFile;
-				inFile.open(filePath, std::ios::in);
-				if (inFile.fail())
-					return;
-				inFile.seekg(0);
-				inFile.read((char*)this, sizeof(*this));
-				inFile.close();
-			}
-
 		} // PARAMS
 
 	} // EVALUATION

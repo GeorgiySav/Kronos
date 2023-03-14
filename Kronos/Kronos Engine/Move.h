@@ -6,7 +6,6 @@ namespace KRONOS
 {
 
 	struct Move {
-
 		u8 from;
 		u8 to;
 		u8 flag : 4;
@@ -16,6 +15,7 @@ namespace KRONOS
 		constexpr Move(int from, int to, int flag, u8 moved_Piece) : from(from), to(to), flag(flag), moved_Piece(moved_Piece) {}
 		constexpr ~Move() {}
 
+		// converts the move to a 16 bit integer
 		constexpr u16 toIntMove() {
 			// xxxx xxxx xxxx xxxx
 			// xxxx xxxx xx11 1111 to
@@ -27,7 +27,7 @@ namespace KRONOS
 		friend bool operator == (const Move& lhs, const Move& rhs) {
 			return lhs.from == rhs.from && lhs.to == rhs.to && lhs.flag == rhs.flag && lhs.moved_Piece == rhs.moved_Piece;
 		}
-
+		// checks if the move is a promotion or capture
 		constexpr bool isTactical() { return flag & 0b1100; }
 	};
 

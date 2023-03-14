@@ -33,9 +33,12 @@ namespace KRONOS {
 					nextMove = hashMove;
 					return true;
 				}
-
+				// no breaks so that the code continues into the next stage once one stage is finished
 			case (STAGE_FILTER_MOVES):
 			{
+				// filters all generated moves into tacticals and quiets
+				// tacticals are initially scored based of their MVV LVA score
+				// quiets based of their history score
 				stage++;
 				std::vector<int> tacticalScores;
 				tacticalScores.reserve(10);

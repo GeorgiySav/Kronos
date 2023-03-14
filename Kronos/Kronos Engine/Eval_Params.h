@@ -7,7 +7,7 @@ namespace KRONOS {
 	namespace EVALUATION {
 
 		namespace PARAMS {
-			
+			// a material entry in the table			
 			struct Material {
 				Score value;
 				int16_t phase;
@@ -84,6 +84,7 @@ namespace KRONOS {
 
 			struct Eval_Parameters
 			{
+				// material values
 				Score PAWN_VALUE = { 100, 154 };
 				Score KNIGHT_VALUE = { 376, 412 };
 				Score BISHOP_VALUE = { 404, 460 };
@@ -91,6 +92,7 @@ namespace KRONOS {
 				Score QUEEN_VALUE = { 1006, 1590 };
 				Score KING_VALUE = { 20000, 20000 };
 
+				// pawn values
 				Score CONNECTED_PAWN_VALUE = Score(8, 9);
 				Score DOUBLED_PAWN_VALUE = Score(-9, -18);
 				Score ISOLATED_PAWN_VALUE = Score(-3, -9);
@@ -98,13 +100,14 @@ namespace KRONOS {
 				Score PASSED_ISOLATED_PAWN_VALUE = Score(-21, -21);
 				Score PASSED_BACKWARD_PAWN_VALUE = Score(-20, -20);
 
-				Score PASSER_DIST_ALLY[8] = { {0, 0}, {-1, 3}, {2, -5}, {6, -13}, {0, -22}, {-8, -31}, {-13, -27}, {0, 0}, };
-				Score PASSER_DIST_ENEMY[8] = { {0, 0}, {-3, 3}, {-4, 6}, {-5, 16}, {-1, 33}, {1, 49}, {14, 42}, {0, 0}, };
+				Score PASSED_DISTANCE_TO_ALLY[8] = { {0, 0}, {-1, 3}, {2, -5}, {6, -13}, {0, -22}, {-8, -31}, {-13, -27}, {0, 0}, };
+				Score PASSED_DISTANCE_TO_ENEMY[8] = { {0, 0}, {-3, 3}, {-4, 6}, {-5, 16}, {-1, 33}, {1, 49}, {14, 42}, {0, 0}, };
 				Score PASSER_BONUS[8] = { {0, 0}, {-9, -5}, {-13, 11}, {-6, 2}, {23, 12}, {85, 28}, {121, 92}, {0, 0}, };
 				Score UNBLOCKED_PASSER[8] = { {0, 0}, {6, 7}, {2, 1}, {4, 18}, {8, 29}, {19, 67}, {77, 114}, {0, 0}, };
 				Score PASSER_SAFE_PUSH[8] = { {0, 0}, {10, -5}, {12, -2}, {0, 10}, {-2, 18}, {22, 36}, {77, 23}, {0, 0}, };
-				Score PASSER_SAFE_PROM[8] = { {0, 0}, {-42, 25}, {-48, 14}, {-56, 36}, {-75, 67}, {-38, 129}, {-5, 213}, {0, 0}, };
+				Score PASSER_SAFE_PROMOTION[8] = { {0, 0}, {-42, 25}, {-48, 14}, {-56, 36}, {-75, 67}, {-38, 129}, {-5, 213}, {0, 0}, };
 
+				// king safety
 				basic_score WEAK_TILE = 32;
 				basic_score ENEMY_PAWN = -15;
 				basic_score QUEEN_SAFE_CHECK = 75;
@@ -116,8 +119,8 @@ namespace KRONOS {
 				basic_score KING_SHELTER_2 = -4;
 				basic_score KING_SHELTER_F1 = -57;
 				basic_score KING_SHELTER_F2 = -39;
-				basic_score KingStorm1 = 122;
-				basic_score KingStorm2 = 66;
+				basic_score KING_STORM_1 = 122;
+				basic_score KING_STORM_2 = 66;
 				
 				basic_score ATK_ON_KING_WEIGHT[5] = { 0, 64, 34, 29, 79 };
 
@@ -133,9 +136,10 @@ namespace KRONOS {
 				Score ROOK_OPEN_FILE_BONUS = Score(38, 12);
 				
 				Score KNIGHT_OUTPOST_BONUS = Score(32, 27);
-				Score KNIGHT_X_OUTPOST_BONUS = Score(17, 14);
+				Score KNIGHT_ATK_OUTPOST_BONUS = Score(17, 14);
 				Score BISHOP_OUTPOST_BONUS = Score(39, 1);
 
+				// score based on where the pieces are
 				Score PST[2][6][64];
 
 				Score BISHOP_PAWN_PENALTY = { 7, 9 };
@@ -146,13 +150,13 @@ namespace KRONOS {
 
 				Score THREAT_PAWN_PUSH_VALUE = { 16, 13 };
 				Score THREAT_WEAK_PAWNS_VALUE = { 7, 53 };
-				Score THREAT_PAWNSxMINORS_VALUE = { 68, 30 };
-				Score THREAT_MINORSxMINORS_VALUE = { 29, 40 };
-				Score THREAT_MAJORSxWEAK_MINORS_VALUE = { 31, 81 };
-				Score THREAT_PAWN_MINORSxMAJORS_VALUE = { 39, 29 };
-				Score THREAT_ALLxQUEENS_VALUE = { 39, 21 };
-				Score THREAT_KINGxMINORS_VALUE = { 22, 67 };
-				Score THREAT_KINGxROOKS_VALUE = { -28, 54 };
+				Score THREAT_PAWNS_ATK_MINORS_VALUE = { 68, 30 };
+				Score THREAT_MINORS_ATK_MINORS_VALUE = { 29, 40 };
+				Score THREAT_MAJORS_ATK_WEAK_MINORS_VALUE = { 31, 81 };
+				Score THREAT_PAWN_MINORS_ATK_MAJORS_VALUE = { 39, 29 };
+				Score THREAT_ALL_ATK_QUEENS_VALUE = { 39, 21 };
+				Score THREAT_KING_ATK_MINORS_VALUE = { 22, 67 };
+				Score THREAT_KING_ATK_ROOKS_VALUE = { -28, 54 };
 
 				Score PIECE_SPACE = { 3, 3 };
 				Score EMPTY_SPACE = { 5, 0 };
@@ -189,11 +193,10 @@ namespace KRONOS {
 				Eval_Parameters();
 				~Eval_Parameters();
 
-
+				// Second-degree polynomial material imbalance, by Tord Romstad
 				Score imbalance(const int pieceCount[2][6], bool side) {
 					Score score;
 
-					// Second-degree polynomial material imbalance, by Tord Romstad
 					for (int pc1 = 0; pc1 < 6; pc1++) {
 						int pCount = pieceCount[side][pc1];
 						if (pCount == 0)
@@ -270,7 +273,6 @@ namespace KRONOS {
 															// possible opposite coloured bishops
 															if (majors == 0 && minors == 2 && WB == 1 && BB == 1)
 																mat.flags |= 4;
-
 														}
 													}
 												}
@@ -290,9 +292,6 @@ namespace KRONOS {
 					}
 					return false;
 				}
-
-				void saveParams();
-				void loadParams(std::string filePath);
 			};
 
 			

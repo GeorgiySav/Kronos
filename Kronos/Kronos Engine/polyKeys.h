@@ -3,11 +3,10 @@
 #include "utility.h"
 
 namespace KRONOS
-{
-	
+{	
 	namespace POLY
 	{
-		
+		// used to generate polyglot hashes		
 		const u64 polyNums[781] = {
 			u64(0x9D39247E33776D41), u64(0x2AF7398005AAA5C7), u64(0x44DB015024623547), u64(0x9C15F73E62A76AE2),
 			u64(0x75834465489C0C89), u64(0x3290AC3A203001BF), u64(0x0FBBAD1F61042279), u64(0xE83A908FF2FB60CA),

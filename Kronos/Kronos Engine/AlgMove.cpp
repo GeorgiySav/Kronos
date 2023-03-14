@@ -1,18 +1,18 @@
-#include "PGN.h"
+#include "AlgMove.h"
 #include <sstream>
 #include <string>
 #include <iostream>
 
 namespace KRONOS {
-
+	// gets the file in character format
 	std::string getFileString(int tile) {
 		return std::string(1, char(97 + (tile % 8)));
 	}
-
+	// gets the rank in character format
 	std::string getRankString(int tile) {
 		return std::to_string(int(tile / 8) + 1);
 	}
-
+	
 	std::string KronosMoveToAlgebraic(const Move& move, const Position& position) {
 		const u8& from = move.from;
 		const u8& to = move.to;
@@ -29,6 +29,7 @@ namespace KRONOS {
 		else if (flag == QUEEN_CASTLE)
 			str = "0-0-0";
 		else {
+			// pawn moves are characterised by the file, while other pieces by their character
 			if (movedPiece == PAWN && flag & CAPTURE)
 				str = getFileString(from);
 			else if (movedPiece == KNIGHT)
@@ -42,6 +43,7 @@ namespace KRONOS {
 			else if (movedPiece == KING) 
 				str = "K";
 
+			// pieces of the same type may be able to move to the same tile so they must be differentiated
 			if (movedPiece != PAWN && movedPiece != KING) {
 				// check if other of the same pieces can move to the same tile
 				BitBoard others = EMPTY;
@@ -103,36 +105,4 @@ namespace KRONOS {
 
 		return str;
 	}
-
-	void processPGN(std::string PGN, std::vector<Position>& positions, std::vector<Move>& moves, std::vector<std::string> & pgnMoves) {
-		std::string events, moveSection;
-		std::string sectionDelimiter = "\n\n";
-
-		size_t pos = PGN.find(sectionDelimiter);
-		events = PGN.substr(0, pos);
-		PGN.erase(0, pos + sectionDelimiter.length());
-		moveSection = PGN;
-
-		std::cout << events << "\n" << std::endl;
-		std::cout << moveSection << "\n" << std::endl;
-
-		// events
-
-		//moves
-		std::string moveDelimiter = ".";
-		std::string tmp;
-		std::stringstream ss(moveSection);
-		std::vector<std::string> movesList;
-
-		while (std::getline(ss, tmp, '.')) {
-			movesList.push_back(tmp);
-		}
-
-		for (auto& item : movesList) {
-			std::cout << item << std::endl;
-		}
-
-
-	}
-
 }

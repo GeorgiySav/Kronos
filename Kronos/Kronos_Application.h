@@ -16,23 +16,21 @@ private:
 	bool running = true;
 
 	// ui
-
 	sf::RenderWindow window;
-	sf::Event events;
+	sf::Event events; // input events
 
 	sf::Clock deltaClock;
 
 	Kronos_Board_UI boardUI;
 	PromotionPopUp promotionPopUp;
 
+	// evaluation bar
 	sf::RectangleShape whiteBar;
 	sf::RectangleShape blackBar;
 	sf::Text evalText;
 	
 	sf::Font font;
-
 	ImFont* mainFont;
-
 	float moveFontScale = 1.25f;
 
 	bool whiteBottom = true;
@@ -54,12 +52,13 @@ public:
 	Kronos_Application();
 	~Kronos_Application();
 
-	void run();
+	void processInputs();
 	void render();
+	void run(); // application loop
 
+	// creates an input field for a given setting in the settings page
 	void createKronosSetting(const std::string& enterMessage, const std::string& inputId, const std::string& enterId, std::function<void(int)> setFunc, int& sliderValue, int min, int max);
 
-	void processInputs();
-
+	// flips the board
 	void flipBoard();
 };

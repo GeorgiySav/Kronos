@@ -10,11 +10,12 @@ namespace KRONOS
 	Position FENtoBoard(std::string FEN)
 	{
 		Position position;
-		
+
 		std::stringstream fenStream;
 		fenStream.str(FEN);
 		std::string fenBoard, fenTurn, fenCastling, fenEP, fenHalfmove, fenFullmove;
 
+		// parses the FEN
 		std::getline(fenStream, fenBoard, ' ');
 		std::getline(fenStream, fenTurn, ' ');
 		std::getline(fenStream, fenCastling, ' ');
@@ -27,13 +28,14 @@ namespace KRONOS
 			return position;
 		}
 
+		// checks if the FEN has a valid number of kings
 		if ((count(fenBoard, '/') != 7) || (count(fenBoard, 'k') != 1) || (count(fenBoard, 'K') != 1)) {
 			std::cout << "Invalid number of kings or ranks\n";
 			return position;
 		}
 
+		// loops through the characters in the FEN and adds the pieces to position
 		int bIndex = 56;
-
 		for (int index = 0; index < fenBoard.length(); index++) {
 			if (fenBoard[index] == '/') {
 				index++;
@@ -111,14 +113,14 @@ namespace KRONOS
 			std::cout << "Invalid colour\n";
 			return Position();
 		}
-
+		// checks whose side is to move
 		position.status.isWhite = fenTurn == "w" ? true : false;
 
 		position.status.BKcastle = false;
 		position.status.BQcastle = false;
 		position.status.WKcastle = false;
 		position.status.WQcastle = false;
-
+		// checks castling
 		if (instr(fenCastling, 'K')) {
 			position.status.WKcastle = true;
 		}
@@ -132,6 +134,7 @@ namespace KRONOS
 			position.status.BQcastle = true;
 		}
 
+		// checks for en passant
 		if (fenEP != "-") {
 			position.status.EP = ((fenEP[1] - '1') * 8) + (fenEP[0] - 'a');
 		}
@@ -141,14 +144,14 @@ namespace KRONOS
 		if (!is_number(fenHalfmove)) {
 			position.halfMoves = 0;
 		}
-
-		position.halfMoves = atoi(fenHalfmove.c_str());
+		else
+			position.halfMoves = atoi(fenHalfmove.c_str());
 
 		if (!is_number(fenFullmove)) {
 			position.fullMoves = 0;
 		}
-
-		position.fullMoves = atoi(fenFullmove.c_str());
+		else
+			position.fullMoves = atoi(fenFullmove.c_str());
 
 		position.hash = HASH::zobrist.generateHash(position);
 
@@ -159,7 +162,8 @@ namespace KRONOS
 	{
 		std::string FEN = "";
 		int emptyCount = 0;
-		
+	
+		// loops through all tiles and add the pieces to the string
 		for (int row = 7; row >= 0; row--) {
 			for (int rank = 0; rank < 8; rank++) {
 				int tile = 8 * row + rank;
@@ -264,6 +268,7 @@ namespace KRONOS
 		if (emptyCount)
 			FEN += std::to_string(emptyCount);
 
+		// must remove the first character otherwise it won't be valid
 		FEN.erase(FEN.begin());
 
 		FEN += " ";
@@ -281,6 +286,8 @@ namespace KRONOS
 			FEN += "k";
 		if (position->status.BQcastle)
 			FEN += "q";
+		if (FEN.back() == ' ')
+			FEN += "-";
 
 		FEN += " ";
 

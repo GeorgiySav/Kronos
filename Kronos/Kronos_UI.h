@@ -10,6 +10,7 @@
 #define DEFAULT_WINDOW_WIDTH 994
 #define DEFAULT_WINDOW_HEIGHT 729
 
+// stores information about a piece
 struct PieceSprite {
 	sf::Texture texture;
 	sf::Sprite sprite;
@@ -21,6 +22,7 @@ struct PieceSprite {
 
 	~PieceSprite() {}
 
+	// loads a texture from a file
 	void set(std::string picturePath, sf::IntRect area) {
 		texture.loadFromFile(picturePath, area);
 		sprite.setTexture(texture);
@@ -28,6 +30,7 @@ struct PieceSprite {
 	}
 };
 
+// keeps track of a piece selected by the mouse
 struct SelectedPiece {
 	int pos;
 	PieceSprite* sprite;
@@ -47,8 +50,8 @@ class Kronos_Board_UI
 private:
 	PieceSprite sprites[2][6];
 
-	sf::Color white = sf::Color(124, 76, 62, 255);
-	sf::Color black = sf::Color(81, 42, 42, 255);
+	sf::Color white = sf::Color(163, 162, 159, 255);
+	sf::Color black = sf::Color(60, 60, 60, 255);
 
 	sf::Texture boardTexture;
 	sf::Sprite boardSprite;
@@ -68,8 +71,11 @@ public:
 	Kronos_Board_UI();
 	~Kronos_Board_UI() {}
 
+	// attempts to select a piece when the user clicks on the board
 	void selectPiece(sf::RenderWindow& window, KRONOS::Board* board, KRONOS::Move_List* moves, bool isWhite, bool whiteBottom);
+	// returns a possible move if the user dropped the piece onto a valid tile
 	std::optional<KRONOS::Move> dropPiece(sf::RenderWindow& window, KRONOS::Board* board, bool whiteBottom);
+	// renders the board
 	void renderKronosBoard(sf::RenderWindow& window, KRONOS::Board* board, bool whiteBottom);
 
 	int getBoardWidth() {
@@ -103,6 +109,7 @@ public:
 		return (8 * (7 - std::floor(mouseY / getBoardInterval()))) + (std::floor(mouseX / getBoardInterval()));
 	}
 
+	// calculates the x and y pos on the window for a piece to rendered to
 	sf::Vector2f boardIndexToBoardPos(int boardIndex) {
 		return { float(boardPosition.x + (boardIndex % 8) * getBoardInterval() + (getBoardInterval() * 0.5)),
 				 float(boardPosition.y + boardSprite.getGlobalBounds().height - (std::floor(boardIndex / 8) * getBoardInterval() + (getBoardInterval() * 0.5))) };

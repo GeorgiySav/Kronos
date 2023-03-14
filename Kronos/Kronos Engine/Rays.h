@@ -9,6 +9,7 @@ namespace KRONOS {
 		NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST
 	};
 
+	// returns the direction based on the offset from a given tile
 	static Dir getDirectionFromOffset(int offset) {
 		if (!(offset % 8))
 			if (offset > 0)
